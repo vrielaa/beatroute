@@ -1,0 +1,6 @@
+<p class="username">{{ userName() }}</p>
+@if (profileImageUrl(); as imageUrl) {
+<div class="profile-picture-container">
+  <img [src]="imageUrl" alt="User Profile Picture" class="profile-picture" />
+</div>
+}

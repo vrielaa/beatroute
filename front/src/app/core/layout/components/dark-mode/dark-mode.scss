@@ -1,0 +1,21 @@
+:host {
+  color: inherit;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+
+.dark-mode-toggle {
+  color: inherit;
+
+  transition: all 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  transform: scale(1.1);
+}
+
+.dark-mode-toggle:active {
+  transform: scale(0.9);
+  transform: translateY(0.1rem);
+}

@@ -1,0 +1,129 @@
+:host {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 8rem 8rem;
+}
+
+.main-header {
+  grid-row: 1/2;
+  height: 100%;
+  width: 100%;
+  background-color: #607aa1;
+  color: black;
+
+  display: grid;
+  grid-template-columns: 20rem 26rem auto 5rem minmax(auto, 20rem) 10rem 20rem;
+
+  app-logo {
+    grid-column: 2/3;
+  }
+
+  app-user-profile {
+    grid-column: 5/6;
+  }
+
+  app-logout {
+    grid-column: 6/7;
+    justify-self: center;
+  }
+
+  app-dark-mode {
+    grid-column: 4/5;
+    justify-self: center;
+  }
+}
+
+.dark-mode {
+  background-color: #1e2939;
+  color: white;
+}
+
+.layout{
+  width: 100%;
+  height: 100%;
+
+  display: grid;
+  grid-template-rows: 1fr 4rem 1fr;
+}
+
+.nav-container {
+  grid-row: 2/3;
+  height: 100%;
+  width: 100%;
+  color: inherit;
+
+  display: grid;
+  grid-template-columns: 20rem auto 20rem;
+  place-items: center;
+}
+
+.main-nav {
+  grid-column: 2/3;
+  height: 100%;
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  place-items: center;
+  padding: 0.4rem;
+  
+  background-color: #607aa1;
+  border-radius: 2rem;
+}
+
+.main-nav-dark {
+  background-color: #1e2939;
+
+  .nav-link:hover {
+    background-color: #344662;
+  } 
+
+  .nav-link:active {
+    background-color: #2e3a4e;
+  }
+}
+
+#dashboard-link {
+  grid-column: 1/2;
+}
+
+#music-profile-link {
+  grid-column: 2/3;
+}
+
+#music-map-link {
+  grid-column: 3/4;
+}
+
+#playlist-generator-link {
+  grid-column: 4/5;
+}
+
+.nav-link {
+  display: grid;
+  grid-template-columns: 2rem auto;
+  gap: 1rem;
+  color: inherit;
+  place-items: center;
+  border: none;
+  padding: 0.5rem 10rem;
+  width: 100%;
+  height: 3.5rem;
+  border-radius: 2rem;
+
+  &:hover {
+    background-color: #7696c6;
+  }
+
+  &:active {
+    background-color: #54719c;
+  }
+}
+
+
+
+
+
+.label {
+  margin-left: 0.5rem;
+}
