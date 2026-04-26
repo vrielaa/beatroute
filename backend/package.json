@@ -1,0 +1,17 @@
+{
+  "name": "spotify-backend",
+  "version": "1.0.0",
+  "description": "Backend for Spotify auth and user data",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-session": "^1.19.0",
+    "prettier": "^2.8.8"
+  }
+}
