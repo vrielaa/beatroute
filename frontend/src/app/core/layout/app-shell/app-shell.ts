@@ -108,7 +108,5 @@ export class AppShellComponent {
     console.log('Navigating to:', path);
   }
 
-  public isDarkMode(): boolean {
-    return document.documentElement.classList.contains('dark-mode');
-  }
+ 
 }

@@ -9,14 +9,15 @@
   padding: 0.5rem 1rem;
   border-radius: 1rem;
   transition: all 0.3s ease;
+  font-size: var(--text-base);
 
   &:hover {
-    background-color: #7696c6;
+    background-color: var(--color-surface-tertiary);
     transform: scale(1.05);
   }
 
   &:active {
-    background-color: #54719c;
+    background-color: var(--color-surface-tertiary);
     transform: translateY(0.2rem);
   }
 }
@@ -24,8 +25,7 @@
 .logout-button {
   background-color: transparent;
   border: none;
-  color: inherit;
+  color: var(--color-text-primary);
   cursor: pointer;
-  font-size: 1.4rem;
   font-family: Inter, sans-serif;
 }

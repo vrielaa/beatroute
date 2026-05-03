@@ -1,4 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { ThemeService } from '@src/app/shared/utils/theme.service';
 
 @Component({
   selector: 'app-dark-mode',
@@ -7,27 +8,18 @@ import { Component, signal } from '@angular/core';
   styleUrl: './dark-mode.scss',
 })
 export class DarkMode {
-  readonly isDarkMode = signal(false);
+  readonly themeService = inject(ThemeService);
+  readonly themes = ThemeService.themes;
 
-  constructor() {
-    if (localStorage.getItem('darkMode') === null) {
-      localStorage.setItem('darkMode', 'false');
-    }
-
-    const initialValue = localStorage.getItem('darkMode') === 'true';
-
-    this.isDarkMode.set(initialValue);
-    document.documentElement.classList.toggle('dark-mode', initialValue);
+  public isDarkMode(): boolean {
+    return this.themeService.currentTheme()?.id === 'dark';
   }
 
+
+
   public toggleDarkMode(): void {
-    this.isDarkMode.update((isDark) => {
-      const newValue = !isDark;
-
-      localStorage.setItem('darkMode', newValue.toString());
-      document.documentElement.classList.toggle('dark-mode', newValue);
-
-      return newValue;
-    });
+    const currentTheme = this.themeService.currentTheme();
+    const newTheme = currentTheme === ThemeService.themes[0] ? ThemeService.themes[1] : ThemeService.themes[0];
+    this.themeService.setTheme(newTheme);
   }
 }

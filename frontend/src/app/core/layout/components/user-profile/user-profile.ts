@@ -25,4 +25,12 @@ export class UserProfile {
 
     return this.spotifyService.userProfileResource.value()?.display_name ?? null;
   });
+
+  readonly userEmail = computed(() => {
+    if (!this.spotifyService.userProfileResource.hasValue()) {
+      return null;
+    }
+
+    return this.spotifyService.userProfileResource.value()?.email ?? null;
+  });
 }

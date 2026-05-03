@@ -1,4 +1,4 @@
-<header class="main-header" [class.dark-mode]="isDarkMode()">
+<header class="main-header">
   <app-logo />
   <app-dark-mode />
   <app-user-profile />
@@ -7,7 +7,7 @@
 
 <div class="layout">
   <div class="nav-container">
-    <nav class="main-nav" [class.main-nav-dark]="isDarkMode()">
+    <nav class="main-nav" >
       @for (link of navLinks; track link.path) {
         <button
           type="button"
