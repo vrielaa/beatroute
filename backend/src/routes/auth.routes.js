@@ -101,6 +101,4 @@ router.get("/spotify/callback", async (req, res) => {
   }
 });
 
-
-
 export default router;

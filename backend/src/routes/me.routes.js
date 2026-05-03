@@ -38,7 +38,7 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
 router.get("/profile", ensureSpotifyAccessToken, async (req, res) => {
   try {
     const spotifyResponse = await fetch("https://api.spotify.com/v1/me", {
-      headers: headers(req)
+      headers: headers(req),
     });
 
     const data = await spotifyResponse.json();
@@ -50,7 +50,9 @@ router.get("/profile", ensureSpotifyAccessToken, async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error("Me error:", error);
-    res.status(500).json({ message: "Nie udało się pobrać informacji o użytkowniku" });
+    res
+      .status(500)
+      .json({ message: "Nie udało się pobrać informacji o użytkowniku" });
   }
 });
 

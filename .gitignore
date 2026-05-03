@@ -1,0 +1,16 @@
+# .gitignore
+
+# Compiled output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+# Logs
+logs/
+*.log
+
+.DS_Store

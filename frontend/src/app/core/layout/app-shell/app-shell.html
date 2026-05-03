@@ -1,45 +1,47 @@
 <header class="main-header" [class.dark-mode]="isDarkMode()">
-  <app-logo></app-logo>
-  <app-dark-mode></app-dark-mode>
-  <app-user-profile></app-user-profile>
-  <app-logout></app-logout>
+  <app-logo />
+  <app-dark-mode />
+  <app-user-profile />
+  <app-logout />
 </header>
 
 <div class="layout">
   <div class="nav-container">
     <nav class="main-nav" [class.main-nav-dark]="isDarkMode()">
       @for (link of navLinks; track link.path) {
-      <a
-        class="nav-link"
-        id="{{ link.id }}"
-        [routerLink]="link.path"
-        routerLinkActive="active-link"
-        [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+        <button
+          type="button"
+          class="nav-link"
+          [class.active-link]="link.isActive()"
+          [id]="link.id"
+          (click)="navigateTo(link.path)"
         >
-          @for (path of link.iconPath.paths; track $index) {
-          <path
-            [attr.d]="path"
-            stroke="currentColor"
-            stroke-width="1.33333"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          }
-        </svg>
-        <span>{{ link.label }}</span>
-      </a>
+          <svg
+            class="nav-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
+            @for (path of link.iconPath.paths; track $index) {
+              <path
+                [attr.d]="path"
+                stroke="currentColor"
+                stroke-width="1.33333"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            }
+          </svg>
+
+          <span>{{ link.label }}</span>
+        </button>
       }
     </nav>
   </div>
 
   <main class="content">
-    <router-outlet></router-outlet>
+    <router-outlet />
   </main>
 </div>

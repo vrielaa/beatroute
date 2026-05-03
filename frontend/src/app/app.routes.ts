@@ -19,21 +19,28 @@ export const routes: Routes = [
         pathMatch: 'full',
         redirectTo: 'dashboard',
       },
-      // {
-      //   path: 'dashboard',
-      //   loadComponent: () =>
-      //     import('@features/dashboard/dashboard').then((m) => m.Dashboard),
-      // },
-      // {
-      //   path: 'top-tracks',
-      //   loadComponent: () =>
-      //     import('@features/top-tracks/top-tracks').then((m) => m.TopTracks),
-      // },
-      // {
-      //   path: 'profile',
-      //   loadComponent: () =>
-      //     import('@features/profile/profile').then((m) => m.Profile),
-      // },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('@features/dashboard/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'music-profile',
+        loadComponent: () =>
+          import('@features/music-profile/music-profile').then((m) => m.MusicProfile),
+      },
+      {
+        path: 'music-map',
+        loadComponent: () =>
+          import('@features/music-map/music-map').then((m) => m.MusicMap),
+      },
+      {
+        path: 'playlist-generator',
+        loadComponent: () =>
+          import('@features/playlist-generator/playlist-generator').then((m) => m.PlaylistGenerator),
+      },
+
+
     ],
   },
   {
