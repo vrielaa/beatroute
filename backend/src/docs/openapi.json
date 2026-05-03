@@ -1,0 +1,143 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BeatRoute API",
+    "version": "1.0.0",
+    "description": "API for Spotify auth, user data and playlists"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000"
+    }
+  ],
+  "paths": {
+    "/auth/spotify/login": {
+      "get": {
+        "summary": "Redirect user to Spotify login",
+        "responses": {
+          "302": {
+            "description": "Redirect to Spotify authorization page"
+          }
+        }
+      }
+    },
+    "/auth/spotify/callback": {
+      "get": {
+        "summary": "Handle Spotify OAuth callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect back to frontend"
+          },
+          "400": {
+            "description": "OAuth error or state mismatch"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Check if user is logged in",
+        "responses": {
+          "200": {
+            "description": "Authentication status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isLoggedIn": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Log out current user",
+        "responses": {
+          "200": {
+            "description": "Logged out successfully"
+          }
+        }
+      }
+    },
+    "/api/me/profile": {
+      "get": {
+        "summary": "Get current Spotify user profile",
+        "responses": {
+          "200": {
+            "description": "Spotify user profile"
+          },
+          "401": {
+            "description": "User not logged in"
+          }
+        }
+      }
+    },
+    "/api/me/top-tracks": {
+      "get": {
+        "summary": "Get current user's top tracks",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["short_term", "medium_term", "long_term"],
+              "default": "medium_term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top tracks list"
+          },
+          "401": {
+            "description": "User not logged in"
+          }
+        }
+      }
+    }
+  }
+}
