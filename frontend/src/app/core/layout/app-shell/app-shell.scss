@@ -8,11 +8,11 @@
   grid-row: 1/2;
   height: 100%;
   width: 100%;
-  background-color: #607aa1;
-  color: black;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
 
   display: grid;
-  grid-template-columns: 20rem 26rem auto 5rem minmax(auto, 20rem) 10rem 20rem;
+  grid-template-columns: 20rem 30rem auto 5rem minmax(auto, 30rem) 10rem 20rem;
 
   app-logo {
     grid-column: 2/3;
@@ -33,10 +33,7 @@
   }
 }
 
-.dark-mode {
-  background-color: #1e2939;
-  color: white;
-}
+
 
 .layout{
   width: 100%;
@@ -50,7 +47,7 @@
   grid-row: 2/3;
   height: 100%;
   width: 100%;
-  color: inherit;
+  color: var(--color-text-primary);
 
   display: grid;
   grid-template-columns: 20rem auto 20rem;
@@ -67,21 +64,10 @@
   place-items: center;
   padding: 0.4rem;
   
-  background-color: #607aa1;
+  background-color: var(--color-surface);
   border-radius: 2rem;
 }
 
-.main-nav-dark {
-  background-color: #1e2939;
-
-  .nav-link:hover {
-    background-color: #344662;
-  } 
-
-  .nav-link:active {
-    background-color: #2e3a4e;
-  }
-}
 
 #dashboard-link {
   grid-column: 1/2;
@@ -103,7 +89,8 @@
   display: grid;
   grid-template-columns: 2rem auto;
   gap: 1rem;
-  color: inherit;
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
   place-items: center;
   border: none;
   padding: 0.5rem 10rem;
@@ -112,16 +99,16 @@
   border-radius: 2rem;
 
   &:hover {
-    background-color: #7696c6;
+    background-color: var(--color-surface-tertiary);
   }
 
   &:active {
-    background-color: #54719c;
+    background-color: var(--color-surface-tertiary);
   }
 }
 
 .active-link {
-  background-color: #54719c;
+  background-color: var(--color-surface-tertiary);
 }
 
 

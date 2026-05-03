@@ -11,7 +11,4 @@ export class Logo {
   readonly spotifyService = inject(SpotifyService);
 
   readonly logoUrl = 'logo.png';
-  public isDarkMode(): boolean {
-    return document.documentElement.classList.contains('dark-mode');
-  }
 }

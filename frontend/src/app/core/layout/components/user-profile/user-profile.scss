@@ -1,13 +1,16 @@
 :host {
   display: grid;
   grid-template-columns: auto 5rem;
-  gap: 2rem;
-  color: inherit;
+  grid-template-rows: auto auto;
+  gap: 0.1rem 2rem;
+  color: var(--color-text-primary);
 
   align-items: center;
   padding-right: 2rem;
 }
 .profile-picture-container {
+  grid-row: 1/-1;
+  grid-column: 2/3;
   width: 5rem;
   height: 5rem;
   border-radius: 50%;
@@ -21,6 +24,23 @@
 }
 
 .username {
+  grid-column: 1/2;
+  grid-row: 1/2;
   justify-self: end;
-  font-family: 'Inter', sans-serif;
+  align-self: end;
+  font-size: var(--text-base);
+
 }
+
+.useremail {
+  grid-row: 2/3;
+  grid-column: 1/2;
+  justify-self: end;
+  font-size: var(--text-sm);
+  align-self: start;
+  color: var(--color-text-primary);
+}
+
+
+
+
