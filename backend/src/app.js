@@ -1,6 +1,8 @@
 import express from "express";
 import session from "express-session";
 import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import openapiDocument from "./docs/openapi.json" with { type: "json" };
 
 import { validateEnv } from "./utils/validateEnv.js";
 
@@ -61,6 +63,8 @@ export function createApp() {
   app.use("/auth", authRoutes);
   app.use("/api/auth", sessionRoutes);
   app.use("/api/me", meRoutes);
+
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 
   app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });
