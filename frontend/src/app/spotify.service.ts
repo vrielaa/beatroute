@@ -8,6 +8,7 @@ export class SpotifyService {
   public loginWithSpotify(): void {
     window.location.href = '/auth/spotify/login';
   }
+
   private readonly http = inject(HttpClient);
 
   public authResource = httpResource<{ isLoggedIn: boolean }>(() => ({

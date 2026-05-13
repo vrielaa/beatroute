@@ -20,7 +20,7 @@ export type ITheme = {
 };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 /**
  * Service for managing application themes.
@@ -41,7 +41,7 @@ export class ThemeService {
       id: 'dark',
       name: 'Dark Theme',
       className: 'theme-dark',
-    }
+    },
   ];
 
   /**
@@ -108,6 +108,6 @@ export class ThemeService {
    */
   private _getDefaultTheme(): ITheme {
     const themeId = (localStorage.getItem(this.localStorageKey) as TThemeId) ?? 'dark';
-    return ThemeService.themes.find(theme => theme.id === themeId) || ThemeService.themes[0];
+    return ThemeService.themes.find((theme) => theme.id === themeId) || ThemeService.themes[0];
   }
 }

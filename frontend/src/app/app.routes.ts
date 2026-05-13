@@ -31,16 +31,15 @@ export const routes: Routes = [
       },
       {
         path: 'music-map',
-        loadComponent: () =>
-          import('@features/music-map/music-map').then((m) => m.MusicMap),
+        loadComponent: () => import('@features/music-map/music-map').then((m) => m.MusicMap),
       },
       {
         path: 'playlist-generator',
         loadComponent: () =>
-          import('@features/playlist-generator/playlist-generator').then((m) => m.PlaylistGenerator),
+          import('@features/playlist-generator/playlist-generator').then(
+            (m) => m.PlaylistGenerator
+          ),
       },
-
-
     ],
   },
   {

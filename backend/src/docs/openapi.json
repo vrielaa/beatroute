@@ -10,9 +10,24 @@
       "url": "http://127.0.0.1:3000"
     }
   ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Spotify authentication flow"
+    },
+    {
+      "name": "Session",
+      "description": "Application session endpoints"
+    },
+    {
+      "name": "Me",
+      "description": "Endpoints for the currently logged-in user"
+    }
+  ],
   "paths": {
     "/auth/spotify/login": {
       "get": {
+        "tags": ["Auth"],
         "summary": "Redirect user to Spotify login",
         "responses": {
           "302": {
@@ -23,6 +38,7 @@
     },
     "/auth/spotify/callback": {
       "get": {
+        "tags": ["Auth"],
         "summary": "Handle Spotify OAuth callback",
         "parameters": [
           {
@@ -62,6 +78,7 @@
     },
     "/api/auth/me": {
       "get": {
+        "tags": ["Session"],
         "summary": "Check if user is logged in",
         "responses": {
           "200": {
@@ -84,6 +101,7 @@
     },
     "/api/auth/logout": {
       "post": {
+        "tags": ["Session"],
         "summary": "Log out current user",
         "responses": {
           "200": {
@@ -94,6 +112,7 @@
     },
     "/api/me/profile": {
       "get": {
+        "tags": ["Me"],
         "summary": "Get current Spotify user profile",
         "responses": {
           "200": {
@@ -107,6 +126,7 @@
     },
     "/api/me/top-tracks": {
       "get": {
+        "tags": ["Me"],
         "summary": "Get current user's top tracks",
         "parameters": [
           {
@@ -124,8 +144,8 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["short_term", "medium_term", "long_term"],
-              "default": "medium_term"
+              "enum": ["4_weeks", "6_months", "1_year"],
+              "default": "6_months"
             }
           }
         ],

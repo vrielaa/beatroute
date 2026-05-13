@@ -107,6 +107,4 @@ export class AppShellComponent {
     this.router.navigateByUrl(path);
     console.log('Navigating to:', path);
   }
-
- 
 }
