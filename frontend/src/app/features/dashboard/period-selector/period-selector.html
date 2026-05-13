@@ -1,1 +1,27 @@
-<p>period-selector works!</p>
+<div class="period-header">
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    @for (path of svgCalendarIconPaths; track $index) {
+    <path
+      [attr.d]="path"
+      stroke="currentColor"
+      stroke-width="1.33333"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    }
+  </svg>
+
+  <h3>Zakres czasowy</h3>
+</div>
+
+<form class="period-selector-container">
+  <label for="period-select">Wybierz zakres</label>
+  <select id="period-select">
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option value="4_weeks">Ostatni miesiąc</option>
+    <option value="6_months">Ostatnie 6 miesięcy</option>
+    <option value="1_year">Ostatni rok</option>
+  </select>
+</form>

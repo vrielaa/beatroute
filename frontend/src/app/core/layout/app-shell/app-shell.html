@@ -7,36 +7,36 @@
 
 <div class="layout">
   <div class="nav-container">
-    <nav class="main-nav" >
+    <nav class="main-nav">
       @for (link of navLinks; track link.path) {
-        <button
-          type="button"
-          class="nav-link"
-          [class.active-link]="link.isActive()"
-          [id]="link.id"
-          (click)="navigateTo(link.path)"
+      <button
+        type="button"
+        class="nav-link"
+        [class.active-link]="link.isActive()"
+        [id]="link.id"
+        (click)="navigateTo(link.path)"
+      >
+        <svg
+          class="nav-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
         >
-          <svg
-            class="nav-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-          >
-            @for (path of link.iconPath.paths; track $index) {
-              <path
-                [attr.d]="path"
-                stroke="currentColor"
-                stroke-width="1.33333"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            }
-          </svg>
+          @for (path of link.iconPath.paths; track $index) {
+          <path
+            [attr.d]="path"
+            stroke="currentColor"
+            stroke-width="1.33333"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          }
+        </svg>
 
-          <span>{{ link.label }}</span>
-        </button>
+        <span>{{ link.label }}</span>
+      </button>
       }
     </nav>
   </div>

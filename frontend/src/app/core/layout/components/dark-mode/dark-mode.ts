@@ -15,11 +15,10 @@ export class DarkMode {
     return this.themeService.currentTheme()?.id === 'dark';
   }
 
-
-
   public toggleDarkMode(): void {
     const currentTheme = this.themeService.currentTheme();
-    const newTheme = currentTheme === ThemeService.themes[0] ? ThemeService.themes[1] : ThemeService.themes[0];
+    const newTheme =
+      currentTheme === ThemeService.themes[0] ? ThemeService.themes[1] : ThemeService.themes[0];
     this.themeService.setTheme(newTheme);
   }
 }

@@ -7,14 +7,22 @@ const headers = (req) => ({
   Authorization: `Bearer ${req.session.spotify.accessToken}`,
 });
 
+const timeRangeMap = {
+  "4_weeks": "short_term",
+  "6_months": "medium_term",
+  "1_year": "long_term",
+};
+
 router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
   try {
     const limit = String(req.query.limit || 10);
-    const timeRange = String(req.query.time_range || "medium_term");
+    const timeRange = String(req.query.time_range || "6_months");
+
+
 
     const params = new URLSearchParams({
       limit,
-      time_range: timeRange,
+      time_range: timeRangeMap[timeRange] || "medium_term",
     });
 
     const spotifyResponse = await fetch(

@@ -169,9 +169,7 @@ body {
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition:
-    background-color var(--transition-base),
-    color var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 /* Jeśli używasz Angular Material typography tokens, możesz to zostawić.
@@ -284,9 +282,7 @@ app-root {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
-  transition:
-    background-color var(--transition-base),
-    color var(--transition-base),
+  transition: background-color var(--transition-base), color var(--transition-base),
     border-color var(--transition-base);
 }
 
