@@ -16,12 +16,12 @@
 
 <form class="period-selector-container">
   <label for="period-select">Wybierz zakres</label>
-  <select id="period-select">
+  <select id="period-select" (change)="selectRange($event)" [value]="selectedRange()">
     <button>
       <selectedcontent></selectedcontent>
     </button>
-    <option value="4_weeks">Ostatni miesiąc</option>
-    <option value="6_months">Ostatnie 6 miesięcy</option>
-    <option value="1_year">Ostatni rok</option>
+    <option value="short_term">Ostatni miesiąc</option>
+    <option value="medium_term">Ostatnie 6 miesięcy</option>
+    <option value="long_term">Ostatni rok</option>
   </select>
 </form>

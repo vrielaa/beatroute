@@ -15,9 +15,15 @@ import {
   IS_PRODUCTION,
 } from "./config/spotify.config.js";
 
-import authRoutes from "./routes/auth.routes.js";
-import sessionRoutes from "./routes/session.routes.js";
-import meRoutes from "./routes/me.routes.js";
+import {
+  SOUNDCHARTS_APP_ID,
+  SOUNDCHARTS_API_KEY,
+} from './config/soundcharts.config.js';
+
+import authRoutes from "./integrations/routes/auth.routes.js";
+import sessionRoutes from "./integrations/routes/session.routes.js";
+import meRoutes from "./integrations/routes/me.routes.js";
+import tracksRoutes from "./integrations/routes/track.routes.js";
 
 const requiredEnvVars = {
   FRONTEND_URL,
@@ -25,6 +31,8 @@ const requiredEnvVars = {
   SPOTIFY_CLIENT_SECRET,
   SPOTIFY_REDIRECT_URI,
   SESSION_SECRET,
+  SOUNDCHARTS_APP_ID,
+  SOUNDCHARTS_API_KEY,
 };
 
 validateEnv(requiredEnvVars);
@@ -63,6 +71,7 @@ export function createApp() {
   app.use("/auth", authRoutes);
   app.use("/api/auth", sessionRoutes);
   app.use("/api/me", meRoutes);
+  app.use("/api/tracks", tracksRoutes);
 
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 

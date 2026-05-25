@@ -1,5 +1,5 @@
 import { Router } from "express";
-import ensureSpotifyAccessToken from "../middleware/ensureSpotifyAccessToken.js";
+import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
 
 const router = Router();
 
@@ -22,7 +22,7 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
 
     const params = new URLSearchParams({
       limit,
-      time_range: timeRangeMap[timeRange] || "medium_term",
+      time_range: timeRange,
     });
 
     const spotifyResponse = await fetch(

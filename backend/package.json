@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend for Spotify auth and user data",
   "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "dev": "node src/server.js",
     "format": "prettier --write ."

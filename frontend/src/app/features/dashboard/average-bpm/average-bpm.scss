@@ -1,0 +1,19 @@
+:host {
+  grid-row: 1/2;
+  grid-column: 2/3;
+  width: 100%;
+   
+
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 4rem 4rem;
+}
+
+.bpm-header {
+  grid-row: 1/2;
+  display: flex;
+  gap: 1rem;
+  font-size: var(--text-sm);
+  flex-direction: row;
+  place-items: center;
+}

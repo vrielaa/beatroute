@@ -5,8 +5,8 @@ import {
   SPOTIFY_REDIRECT_URI,
   FRONTEND_URL,
   SCOPES,
-} from "../config/spotify.config.js";
-import { getSpotifyBasicAuthHeader } from "../utils/spotify.js";
+} from "../../config/spotify.config.js";
+import { getSpotifyBasicAuthHeader } from "../../utils/spotify.js";
 
 const router = Router();
 

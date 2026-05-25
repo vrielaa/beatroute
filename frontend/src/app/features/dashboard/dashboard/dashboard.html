@@ -1,1 +1,2 @@
-<app-period-selector></app-period-selector>
+<app-period-selector class="card" (rangeChange)="changeRange($event)"></app-period-selector>
+<app-average-bpm class="card" [topTracks]="topTracks()"></app-average-bpm>
