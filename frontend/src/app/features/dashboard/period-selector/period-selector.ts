@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, input, output } from '@angular/core';
+import { TimeRange } from '@src/app/core/models/models';
 
 @Component({
   selector: 'app-period-selector',
@@ -7,6 +8,17 @@ import { Component } from '@angular/core';
   styleUrl: './period-selector.scss',
 })
 export class PeriodSelector {
+  public readonly selectedRange = input<TimeRange>('short_term');
+  public readonly rangeChange = output<TimeRange>();
+
+  public selectRange(e: Event): void {
+    const range = (e.target as HTMLSelectElement).value as TimeRange;
+    this.rangeChange.emit(range);
+    console.log('Selected range:', range);
+  }
+
+
+
   svgCalendarIconPaths = [
     'M6.66667 1.66667V5.00001',
     'M13.3333 1.66667V5.00001',

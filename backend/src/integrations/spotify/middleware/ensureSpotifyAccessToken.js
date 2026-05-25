@@ -1,4 +1,4 @@
-import { refreshAccessToken } from "../utils/spotify.js";
+import { refreshAccessToken } from "../../../utils/spotify.js";
 
 export default async function ensureSpotifyAccessToken(req, res, next) {
   try {

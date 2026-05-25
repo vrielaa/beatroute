@@ -1,3 +1,18 @@
+:host {
+  grid-row: 1/2;
+  grid-column: 1/2;
+  width: 100%;
+   
+
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 4rem 4rem;
+  
+
+
+
+}
+
 select,
 ::picker(select) {
   appearance: base-select;
@@ -10,12 +25,13 @@ label {
 
 select {
   flex: 1;
-}
-select {
-  border: 2px solid #dddddd;
+  border: none;
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-lg);
   padding: 10px;
   transition: 0.4s;
 }
+
 
 
 select::picker-icon {
@@ -32,20 +48,20 @@ option {
   justify-content: flex-start;
   gap: 20px;
 
-  border: 2px solid #dddddd;
+  border: 1px solid var(--color-border);
   padding: 10px;
   transition: 0.4s;
 }
 option:first-of-type {
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 option:last-of-type {
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 ::picker(select) {
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 option:not(option:last-of-type) {
@@ -67,7 +83,7 @@ option:checked {
 option::checkmark {
   order: 1;
   margin-left: auto;
-  content: '☑️';
+  content: '✔️';
 }
 ::picker(select) {
   opacity: 0;
@@ -83,7 +99,6 @@ option::checkmark {
 }
 ::picker(select) {
   top: calc(anchor(bottom) + 1px);
-  left: anchor(10%);
 }
 @supports not (appearance: base-select) {
   body::before {
@@ -96,4 +111,24 @@ option::checkmark {
     padding: 1rem 0;
     z-index: 1;
   }
+}
+
+
+
+.period-header {
+  grid-row: 1/2;
+  display: flex;
+  gap: 1rem;
+  font-size: var(--text-sm);
+  flex-direction: row;
+  place-items: center;
+}
+
+.period-selector-container {
+  grid-row: 2/3;
+  display: flex;
+  gap: 1rem;
+  flex-direction: row;
+  place-items: center;
+  font-size: var(--text-sm);
 }

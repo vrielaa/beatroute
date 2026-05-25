@@ -1,5 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, httpResource } from '@angular/common/http';
+import { TimeRange, TopTracksResponse, MultipleAudioFeaturesResponse } from './core/models/models';
+import { Observable } from 'rxjs/internal/Observable';
 
 @Injectable({
   providedIn: 'root',
@@ -29,15 +31,23 @@ export class SpotifyService {
     withCredentials: true,
   }));
 
-  public topTracksResource = httpResource<any>(() => ({
-    url: '/api/me/top-tracks',
-    method: 'GET',
-    params: {
-      limit: '10',
-      time_range: 'medium_term',
-    },
-    withCredentials: true,
-  }));
+  public getTopTracks(timeRange: TimeRange, limit = 10): Observable<TopTracksResponse> {
+    return this.http.get<TopTracksResponse>('/api/me/top-tracks', {
+      params: {
+        time_range: timeRange,
+        limit: String(limit),
+      },
+      withCredentials: true,
+    });
+  }
+
+  public getTracksAudioFeatures(trackIds: string[]): Observable<any> {
+    return this.http.post(
+      '/api/tracks/audio-features',
+      { trackIds },
+      { withCredentials: true },
+    );
+  }
 
   public logout() {
     return this.http.post(
