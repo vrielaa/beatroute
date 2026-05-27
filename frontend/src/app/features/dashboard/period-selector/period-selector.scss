@@ -2,15 +2,10 @@
   grid-row: 1/2;
   grid-column: 1/2;
   width: 100%;
-   
 
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 4rem 4rem;
-  
-
-
-
 }
 
 select,
@@ -31,8 +26,6 @@ select {
   padding: 10px;
   transition: 0.4s;
 }
-
-
 
 select::picker-icon {
   transition: 0.4s rotate;
@@ -67,8 +60,6 @@ option:last-of-type {
 option:not(option:last-of-type) {
   border-bottom: none;
 }
-
-
 
 option .icon {
   font-size: 1.6rem;
@@ -112,8 +103,6 @@ option::checkmark {
     z-index: 1;
   }
 }
-
-
 
 .period-header {
   grid-row: 1/2;
