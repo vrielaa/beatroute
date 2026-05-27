@@ -171,8 +171,8 @@ import {
   withLatestFrom,
   zip,
   zipAll,
-  zipWith,
-} from './chunk-PJVWDKLX.js';
+  zipWith
+} from "./chunk-PJVWDKLX.js";
 export {
   ArgumentOutOfRangeError,
   AsyncSubject,
@@ -346,5 +346,5 @@ export {
   withLatestFrom,
   zip,
   zipAll,
-  zipWith,
+  zipWith
 };

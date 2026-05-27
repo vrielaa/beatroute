@@ -27,32 +27,22 @@ function normalizeTracksResponse(tracksResponse) {
 
 export async function getTracksByIds(ids) {
   const query = ids.map((id) => `ids=${encodeURIComponent(id)}`).join('&');
-  console.log('[ReccoBeats service] getTracksByIds ids:', ids);
 
   return fetchFromReccoBeats(`/v1/track?${query}`);
 }
 
 export async function getTrackAudioFeaturesByReccoBeatsId(trackId) {
-  console.log('[ReccoBeats service] getTrackAudioFeaturesByReccoBeatsId:', trackId);
-
   const data = await fetchFromReccoBeats(`/v1/track/${trackId}/audio-features`);
-
-  console.log('[ReccoBeats service] raw audio features data:', data);
 
   return mapReccoBeatsAudioFeatures(data);
 }
 
 export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
-  console.log('[ReccoBeats service] spotifyTrackId:', spotifyTrackId);
-
   const tracksResponse = await getTracksByIds([spotifyTrackId]);
-  console.log('[ReccoBeats service] tracksResponse:', tracksResponse);
 
   const tracks = normalizeTracksResponse(tracksResponse);
-  console.log('[ReccoBeats service] normalized tracks:', tracks);
 
   const track = tracks[0] ?? null;
-  console.log('[ReccoBeats service] matched track:', track);
 
   const reccoBeatsId = track?.id;
 
@@ -70,13 +60,9 @@ export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
 }
 
 export async function getManyTrackAudioFeaturesBySpotifyIds(spotifyTrackIds) {
-  console.log('[ReccoBeats service] getManyTrackAudioFeaturesBySpotifyIds input:', spotifyTrackIds);
-
   const tracksResponse = await getTracksByIds(spotifyTrackIds);
-  console.log('[ReccoBeats service] tracksResponse bulk:', tracksResponse);
 
   const tracks = normalizeTracksResponse(tracksResponse);
-  console.log('[ReccoBeats service] normalized tracks:', tracks);
 
   const idMap = new Map();
 
@@ -88,18 +74,9 @@ export async function getManyTrackAudioFeaturesBySpotifyIds(spotifyTrackIds) {
     }
   }
 
-  console.log('[ReccoBeats service] idMap:', Array.from(idMap.entries()));
-
   const results = await Promise.all(
     spotifyTrackIds.map(async (spotifyId) => {
       const reccoBeatsId = idMap.get(spotifyId);
-
-      console.log(
-        '[ReccoBeats service] processing spotifyId:',
-        spotifyId,
-        '-> reccoBeatsId:',
-        reccoBeatsId,
-      );
 
       if (!reccoBeatsId) {
         return {
@@ -126,8 +103,6 @@ export async function getManyTrackAudioFeaturesBySpotifyIds(spotifyTrackIds) {
       }
     }),
   );
-
-  console.log('[ReccoBeats service] final results:', results);
 
   return results;
 }

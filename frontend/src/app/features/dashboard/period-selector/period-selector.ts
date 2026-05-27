@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { TimeRange } from '@src/app/core/models/models';
 
 @Component({
@@ -9,7 +9,17 @@ import { TimeRange } from '@src/app/core/models/models';
 })
 export class PeriodSelector {
   public readonly selectedRange = input<TimeRange>('short_term');
+  public readonly tracksFoundRatio = input<{ foundTracksCount: number; totalTracksCount: number } | null>(null);
   public readonly rangeChange = output<TimeRange>();
+
+  public readonly showIncompleteWarning = computed(() => {
+    const ratio = this.tracksFoundRatio();
+    if (!ratio) return false;
+
+    return ratio.totalTracksCount !== ratio.foundTracksCount;
+  });
+
+
 
   public selectRange(e: Event): void {
     const range = (e.target as HTMLSelectElement).value as TimeRange;
