@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, httpResource } from '@angular/common/http';
-import { TimeRange, TopTracksResponse, MultipleAudioFeaturesResponse } from './core/models/models';
+import { TimeRange, TopTracksResponse, MultipleAudioFeaturesResponse, AudioStats } from './core/models/models';
 import { Observable } from 'rxjs/internal/Observable';
 
 @Injectable({
@@ -9,7 +9,7 @@ import { Observable } from 'rxjs/internal/Observable';
 export class SpotifyService {
   public loginWithSpotify(): void {
     window.location.href = '/auth/spotify/login';
-  }
+  } 
 
   private readonly http = inject(HttpClient);
 
@@ -41,11 +41,15 @@ export class SpotifyService {
     });
   }
 
-  public getTracksAudioFeatures(trackIds: string[]): Observable<any> {
-    return this.http.post(
-      '/api/tracks/audio-features',
+  public getTracksAudioFeatures(trackIds: string[]): Observable<MultipleAudioFeaturesResponse> {
+    return this.http.post<MultipleAudioFeaturesResponse>('/api/tracks/audio-features', { trackIds }, { withCredentials: true });
+  }
+
+  public getTracksAudioStats(trackIds: string[]): Observable<AudioStats> {
+    return this.http.post<AudioStats>(
+      '/api/tracks/audio-stats',
       { trackIds },
-      { withCredentials: true },
+      { withCredentials: true }
     );
   }
 

@@ -10,8 +10,16 @@
     />
     }
   </svg>
-
-  <h3>Średnie BPM utworów</h3>
+  <div class="bpm-heading-container">
+    <h3>Średnie BPM</h3>
+    <p class="bpm-description">Obliczane na podstawie Twoich ulubionych utworów</p>
+  </div>
 </div>
 
-<p> {{ averageBpm() }} </p>
+<div class="bpm-value-container">
+  @if (isLoading()) {
+  <div class="spinner spinner-sm"></div>
+  } @else {
+  <p class="bpm-value">{{ averageBpm() }}</p>
+  }
+</div>

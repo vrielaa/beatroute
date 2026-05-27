@@ -17,8 +17,6 @@ export class PeriodSelector {
     console.log('Selected range:', range);
   }
 
-
-
   svgCalendarIconPaths = [
     'M6.66667 1.66667V5.00001',
     'M13.3333 1.66667V5.00001',

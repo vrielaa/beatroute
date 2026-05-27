@@ -5,3 +5,31 @@
   box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
   padding: 2rem;
 }
+
+.spinner {
+  width: 3.2rem;
+  height: 3.2rem;
+  border: 0.3rem solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+.spinner-sm {
+  width: 2rem;
+  height: 2rem;
+  border-width: 0.2rem;
+}
+
+.spinner-lg {
+  width: 4.8rem;
+  height: 4.8rem;
+  border-width: 0.4rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

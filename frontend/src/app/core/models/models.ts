@@ -30,3 +30,23 @@ export type AudioFeatures = {
 export type MultipleAudioFeaturesResponse = {
   audio_features: AudioFeatures[];
 };
+
+export type AudioStats = {
+  trackCount: number;
+  averageBpm: number;
+  averageEnergy: number;
+  averageDanceability: number;
+  averageValence: number;
+  averageAcousticness: number;
+  averageInstrumentalness: number;
+  averageLiveness: number;
+  averageSpeechiness: number;
+  averageLoudness: number;
+  dominantKey: number;
+  majorPercentage: number;
+  minorPercentage: number;
+  dominantTimeSignature: number;
+  liveTrackPercentage: number;
+  instrumentalTrackPercentage: number;
+  speechHeavyTrackPercentage: number;
+};

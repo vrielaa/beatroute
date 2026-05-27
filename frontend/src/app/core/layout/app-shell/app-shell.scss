@@ -3,8 +3,10 @@
   height: 100vh;
   grid-template-columns: 1fr;
   grid-template-rows: 8rem 8rem 1fr;
+  font-family: var(--font-sons);
 }
 
+// The main header contains the logo, dark mode toggle, user profile, and logout button
 .main-header {
   grid-row: 1/2;
   height: 100%;
@@ -34,6 +36,7 @@
   }
 }
 
+//navigation bar
 .layout {
   width: 100%;
   height: 100%;
@@ -42,6 +45,7 @@
   grid-template-rows: 1fr 4rem 1fr;
 }
 
+// The navigation container holds the bar with navigation links in the middle column
 .nav-container {
   grid-row: 2/3;
   height: 100%;
@@ -53,6 +57,7 @@
   place-items: center;
 }
 
+// The content container that holds the 4 links in the middle column of the .nav-container
 .main-nav {
   grid-column: 2/3;
   height: 100%;
@@ -84,6 +89,7 @@
   grid-column: 4/5;
 }
 
+//button styles for the navigation links
 .nav-link {
   display: grid;
   grid-template-columns: 2rem auto;
@@ -108,10 +114,6 @@
 
 .active-link {
   background-color: var(--color-surface-tertiary);
-}
-
-.label {
-  margin-left: 0.5rem;
 }
 
 .content {
