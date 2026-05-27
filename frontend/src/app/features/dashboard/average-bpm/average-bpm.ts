@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { TopTracksResponse } from '@src/app/core/models/models';
 import { SpotifyService } from '@src/app/spotify.service';
 
@@ -14,6 +14,7 @@ export class AverageBpm {
   public readonly topTracks = input<TopTracksResponse | null>(null);
   public readonly averageBpm = signal<number | null>(null);
   public readonly isLoading = signal(false);
+  public readonly audioStatsChange = output<any>();
 
   constructor() {
     effect(() => {
@@ -29,14 +30,15 @@ export class AverageBpm {
 
       this.spotifyService.getTracksAudioStats(trackIds).subscribe({
         next: (response) => {
-          console.log('Audio features response:', response);
           const avgBpm = response.averageBpm;
           this.averageBpm.set(Math.round(avgBpm));
+          this.audioStatsChange.emit(response);
           this.isLoading.set(false);
         },
         error: (error) => {
           console.error('Błąd pobierania audio features:', error);
           this.averageBpm.set(null);
+          this.audioStatsChange.emit(null);
           this.isLoading.set(false);
         },
       });

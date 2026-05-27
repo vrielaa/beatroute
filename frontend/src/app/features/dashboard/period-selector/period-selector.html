@@ -25,3 +25,9 @@
     <option value="long_term">Ostatni rok</option>
   </select>
 </form>
+
+@if (showIncompleteWarning()) {
+  <div class="warning-banner">
+    <p>Znaleziono {{ tracksFoundRatio()?.foundTracksCount }} z {{ tracksFoundRatio()?.totalTracksCount }} utworów</p>
+  </div>
+}

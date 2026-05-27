@@ -1,2 +1,2 @@
-<app-period-selector class="card" (rangeChange)="changeRange($event)"></app-period-selector>
-<app-average-bpm class="card" [topTracks]="topTracks()"></app-average-bpm>
+<app-period-selector class="card" (rangeChange)="changeRange($event)" [tracksFoundRatio]="tracksFoundRatio()"></app-period-selector>
+<app-average-bpm class="card" [topTracks]="topTracks()" (audioStatsChange)="onAudioStatsChange($event)"></app-average-bpm>

@@ -20,8 +20,6 @@ router.post('/audio-features', async (req, res) => {
   try {
     const { trackIds } = req.body;
 
-    console.log('[POST /api/tracks/audio-features] req.body:', req.body);
-
     if (!Array.isArray(trackIds) || trackIds.length === 0) {
       return res.status(400).json({
         message: 'trackIds musi być niepustą tablicą',
@@ -40,11 +38,10 @@ router.post('/audio-features', async (req, res) => {
   }
 });
 
+// returns object with average values of audio features for given Spotify track IDs, based on ReccoBeats data, and count of valid tracks found
 router.post('/audio-stats', async (req, res) => {
   try {
     const { trackIds } = req.body;
-
-    console.log('[POST /api/tracks/audio-stats] req.body:', req.body);
 
     if (!Array.isArray(trackIds) || trackIds.length === 0) {
       return res.status(400).json({
@@ -53,10 +50,15 @@ router.post('/audio-stats', async (req, res) => {
     }
 
     const results = await getManyTrackAudioFeaturesBySpotifyIds(trackIds);
-    const stats = calculateAudioStats(results);
+    const foundTracksCount = results.filter(result => !result.error).length;
+    let stats = calculateAudioStats(results);
+    stats = {
+      ...stats,
+      foundTracksCount: foundTracksCount,
+      totalTracksCount: trackIds.length,
+    };
 
-    console.log('[POST /api/tracks/audio-stats] stats:', stats);
-
+    console.log('Calculated audio stats:', stats);
     res.json(stats);
   } catch (error) {
     console.error('ReccoBeats audio stats error:', error);

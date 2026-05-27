@@ -3,8 +3,10 @@
   height: 100%;
 
   display: grid;
-  grid-template-rows: 12rem 12rem;
+  grid-template-rows: auto auto 12rem;
   grid-template-columns: 2fr 1fr;
 
   gap: 1rem;
 }
+
+
