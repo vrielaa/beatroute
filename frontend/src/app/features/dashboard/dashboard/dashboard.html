@@ -1,2 +1,12 @@
-<app-period-selector class="card" (rangeChange)="changeRange($event)" [tracksFoundRatio]="tracksFoundRatio()"></app-period-selector>
-<app-average-bpm class="card" [topTracks]="topTracks()" (audioStatsChange)="onAudioStatsChange($event)"></app-average-bpm>
+<app-listening-stats-filters
+  class="card"
+  (timeRangeChange)="changeTimeRange($event)"
+  [(selectedArtistsRange)]="selectedArtistsRange"
+  [(selectedTracksRange)]="selectedTracksRange"
+  [tracksFoundRatio]="tracksFoundRatio()"
+></app-listening-stats-filters>
+<app-average-bpm
+  class="card"
+  [topTracks]="topTracks()"
+  (audioStatsChange)="onAudioStatsChange($event)"
+></app-average-bpm>

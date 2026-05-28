@@ -33,8 +33,6 @@ router.get("/spotify/login", (req, res) => {
   });
 });
 
-
-
 router.get("/spotify/callback", async (req, res) => {
   try {
     const { code, state, error } = req.query;

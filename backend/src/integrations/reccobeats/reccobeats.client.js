@@ -1,11 +1,11 @@
-import { RECCOBEATS_BASE_URL } from '../../config/reccobeats.config.js';
+import { RECCOBEATS_BASE_URL } from "../../config/reccobeats.config.js";
 
 export async function fetchFromReccoBeats(endpoint) {
   const url = `${RECCOBEATS_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {
     headers: {
-      Accept: 'application/json',
+      Accept: "application/json",
     },
   });
 
@@ -16,12 +16,15 @@ export async function fetchFromReccoBeats(endpoint) {
   try {
     data = rawText ? JSON.parse(rawText) : null;
   } catch (parseError) {
-    console.error('[ReccoBeats] JSON parse error:', parseError);
+    console.error("[ReccoBeats] JSON parse error:", parseError);
     throw new Error(`ReccoBeats returned non-JSON response: ${rawText}`);
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `ReccoBeats request failed with status ${response.status}`);
+    throw new Error(
+      data?.message ||
+        `ReccoBeats request failed with status ${response.status} and response: ${rawText}`
+    );
   }
 
   return data;

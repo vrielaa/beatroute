@@ -8,7 +8,7 @@ function average(values) {
 }
 
 function roundIfNumber(value, digits = 2) {
-  if (typeof value !== 'number') {
+  if (typeof value !== "number") {
     return null;
   }
 
@@ -52,43 +52,43 @@ export function calculateAudioStats(audioFeatures) {
 
   const tempos = validTracks
     .map((track) => track.tempo)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const energies = validTracks
     .map((track) => track.energy)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const danceabilities = validTracks
     .map((track) => track.danceability)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const valences = validTracks
     .map((track) => track.valence)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const acousticnesses = validTracks
     .map((track) => track.acousticness)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const instrumentalnesses = validTracks
     .map((track) => track.instrumentalness)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const livenesses = validTracks
     .map((track) => track.liveness)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const speechinesses = validTracks
     .map((track) => track.speechiness)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const loudnesses = validTracks
     .map((track) => track.loudness)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const keys = validTracks
     .map((track) => track.key)
-    .filter((value) => typeof value === 'number' && value >= 0);
+    .filter((value) => typeof value === "number" && value >= 0);
 
   const modes = validTracks
     .map((track) => track.mode)
@@ -96,18 +96,19 @@ export function calculateAudioStats(audioFeatures) {
 
   const timeSignatures = validTracks
     .map((track) => track.timeSignature)
-    .filter((value) => typeof value === 'number');
+    .filter((value) => typeof value === "number");
 
   const liveTracksCount = validTracks.filter(
-    (track) => typeof track.liveness === 'number' && track.liveness > 0.8,
+    (track) => typeof track.liveness === "number" && track.liveness > 0.8
   ).length;
 
   const instrumentalTracksCount = validTracks.filter(
-    (track) => typeof track.instrumentalness === 'number' && track.instrumentalness > 0.5,
+    (track) =>
+      typeof track.instrumentalness === "number" && track.instrumentalness > 0.5
   ).length;
 
   const speechHeavyTracksCount = validTracks.filter(
-    (track) => typeof track.speechiness === 'number' && track.speechiness > 0.66,
+    (track) => typeof track.speechiness === "number" && track.speechiness > 0.66
   ).length;
 
   const majorCount = modes.filter((value) => value === 1).length;
@@ -130,7 +131,13 @@ export function calculateAudioStats(audioFeatures) {
     majorPercentage: percentage(majorCount, modes.length),
     minorPercentage: percentage(minorCount, modes.length),
     liveTrackPercentage: percentage(liveTracksCount, validTracks.length),
-    instrumentalTrackPercentage: percentage(instrumentalTracksCount, validTracks.length),
-    speechHeavyTrackPercentage: percentage(speechHeavyTracksCount, validTracks.length),
+    instrumentalTrackPercentage: percentage(
+      instrumentalTracksCount,
+      validTracks.length
+    ),
+    speechHeavyTrackPercentage: percentage(
+      speechHeavyTracksCount,
+      validTracks.length
+    ),
   };
 }

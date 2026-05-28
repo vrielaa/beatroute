@@ -1,1 +1,1 @@
-export const RECCOBEATS_BASE_URL = 'https://api.reccobeats.com';
+export const RECCOBEATS_BASE_URL = "https://api.reccobeats.com";

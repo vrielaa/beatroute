@@ -18,8 +18,6 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
     const limit = String(req.query.limit || 10);
     const timeRange = String(req.query.time_range || "6_months");
 
-
-
     const params = new URLSearchParams({
       limit,
       time_range: timeRange,

@@ -59,6 +59,7 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "host": "127.0.0.1",
+            "liveReload": true,
             "port": 4200,
             "ssl": true,
             "sslCert": "./certs/localhost.pem",

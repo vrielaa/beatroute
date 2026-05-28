@@ -20,13 +20,24 @@ export class AverageBpm {
     effect(() => {
       const tracks = this.topTracks();
 
-      if (!tracks?.items?.length) {
+      // when there are no tracks, we want to show loading state until we know that there are no tracks, so we set averageBpm to null and isLoading to true
+      if (tracks === null) {
         this.averageBpm.set(null);
+        this.isLoading.set(true);
+        return;
+      }
+
+      // when we know that there are no tracks, we want to show that there are no tracks instead of loading state, so we set isLoading to false
+      if (!tracks.items?.length) {
+        this.averageBpm.set(null);
+        this.audioStatsChange.emit(null);
         this.isLoading.set(false);
         return;
       }
 
       const trackIds = tracks.items.map((track: any) => track.id);
+      // when we have tracks, we want to show loading state until we get the average bpm, so we set isLoading to true
+      this.isLoading.set(true);
 
       this.spotifyService.getTracksAudioStats(trackIds).subscribe({
         next: (response) => {
