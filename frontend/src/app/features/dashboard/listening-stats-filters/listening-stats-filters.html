@@ -1,0 +1,88 @@
+<div class="period-header">
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    @for (path of svgSettingsIconPaths; track $index) {
+    <path
+      [attr.d]="path"
+      stroke="currentColor"
+      stroke-width="1.33333"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    }
+  </svg>
+
+  <h3>Ustawienia parametrów do analizy</h3>
+</div>
+
+<form class="period-selector-container">
+  <label for="period-select">Wybierz zakres</label>
+  <select id="period-select" (change)="selectTimeRange($event)" [value]="selectedTimeRange()">
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option value="short_term">Ostatni miesiąc</option>
+    <option value="medium_term">Ostatnie 6 miesięcy</option>
+    <option value="long_term">Ostatni rok</option>
+  </select>
+</form>
+
+<form class="tracks-artists-range-container">
+  <div class="range-field">
+    <label for="tracks-range-input">Liczba utworów</label>
+
+    <div class="range-controls">
+      <input
+        id="tracks-range-input"
+        type="number"
+        min="1"
+        max="40"
+        [value]="selectedTracksRange()"
+        (input)="selectTracksRange($event)"
+      />
+
+      <input
+        id="tracks-range-slider"
+        type="range"
+        min="1"
+        max="40"
+        step="1"
+        [value]="selectedTracksRange()"
+        (input)="selectTracksRange($event)"
+      />
+    </div>
+  </div>
+
+  <div class="range-field">
+    <label for="artists-range-input">Liczba artystów</label>
+
+    <div class="range-controls">
+      <input
+        id="artists-range-input"
+        type="number"
+        min="1"
+        max="40"
+        [value]="selectedArtistsRange()"
+        (input)="selectArtistsRange($event)"
+      />
+
+      <input
+        id="artists-range-slider"
+        type="range"
+        min="1"
+        max="40"
+        step="1"
+        [value]="selectedArtistsRange()"
+        (input)="selectArtistsRange($event)"
+      />
+    </div>
+  </div>
+</form>
+
+@if (showIncompleteWarning()) {
+<div class="warning-banner">
+  <p>
+    Znaleziono {{ tracksFoundRatio()?.foundTracksCount }} z
+    {{ tracksFoundRatio()?.totalTracksCount }} utworów
+  </p>
+</div>
+}

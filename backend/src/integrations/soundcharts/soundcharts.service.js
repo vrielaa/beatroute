@@ -1,7 +1,9 @@
-import { fetchFromSoundcharts } from './soundcharts.client.js';
+import { fetchFromSoundcharts } from "./soundcharts.client.js";
 
 export async function getSongBySpotifyId(spotifyTrackId) {
-  return fetchFromSoundcharts(`/api/v2.25/song/by-platform/spotify/${spotifyTrackId}`);
+  return fetchFromSoundcharts(
+    `/api/v2.25/song/by-platform/spotify/${spotifyTrackId}`
+  );
 }
 
 export async function getSongMetadataByUuid(uuid) {
@@ -15,11 +17,11 @@ export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
   const audio = song?.object?.audio;
 
   if (!uuid) {
-    throw new Error('Soundcharts UUID not found');
+    throw new Error("Soundcharts UUID not found");
   }
 
   if (!audio) {
-    throw new Error('Soundcharts audio features not found');
+    throw new Error("Soundcharts audio features not found");
   }
 
   return {

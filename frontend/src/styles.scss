@@ -84,6 +84,7 @@ html.theme-light {
   --text-2xl: 2.4rem;
   --text-3xl: 3rem;
   --text-4xl: 3.6rem;
+  --text-5xl: 4.8rem;
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -110,6 +111,11 @@ html.theme-dark {
   --color-surface: #171b24;
   --color-surface-secondary: #1d2330;
   --color-surface-tertiary: #252c3b;
+
+  --color-surface-hover: #1a2130;
+  --color-surface-secondary-hover: #293243;
+
+  --color-white-accent: #ddd2d2;
 
   --color-text-primary: #f3f6fc;
   --color-text-secondary: #9aa4b8;

@@ -1,5 +1,5 @@
-import { fetchFromReccoBeats } from './reccobeats.client.js';
-import { mapReccoBeatsAudioFeatures } from './reccobeats.mapper.js';
+import { fetchFromReccoBeats } from "./reccobeats.client.js";
+import { mapReccoBeatsAudioFeatures } from "./reccobeats.mapper.js";
 
 function normalizeTracksResponse(tracksResponse) {
   if (Array.isArray(tracksResponse)) {
@@ -26,7 +26,7 @@ function normalizeTracksResponse(tracksResponse) {
 }
 
 export async function getTracksByIds(ids) {
-  const query = ids.map((id) => `ids=${encodeURIComponent(id)}`).join('&');
+  const query = ids.map((id) => `ids=${encodeURIComponent(id)}`).join("&");
 
   return fetchFromReccoBeats(`/v1/track?${query}`);
 }
@@ -47,7 +47,9 @@ export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
   const reccoBeatsId = track?.id;
 
   if (!reccoBeatsId) {
-    throw new Error(`ReccoBeats track not found for Spotify ID: ${spotifyTrackId}`);
+    throw new Error(
+      `ReccoBeats track not found for Spotify ID: ${spotifyTrackId}`
+    );
   }
 
   const audio = await getTrackAudioFeaturesByReccoBeatsId(reccoBeatsId);
@@ -81,7 +83,7 @@ export async function getManyTrackAudioFeaturesBySpotifyIds(spotifyTrackIds) {
       if (!reccoBeatsId) {
         return {
           spotifyId,
-          error: 'ReccoBeats track not found',
+          error: "ReccoBeats track not found",
         };
       }
 
@@ -94,14 +96,18 @@ export async function getManyTrackAudioFeaturesBySpotifyIds(spotifyTrackIds) {
           ...audio,
         };
       } catch (error) {
-        console.error('[ReccoBeats service] audio fetch error for', spotifyId, error);
+        console.error(
+          "[ReccoBeats service] audio fetch error for",
+          spotifyId,
+          error
+        );
 
         return {
           spotifyId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         };
       }
-    }),
+    })
   );
 
   return results;

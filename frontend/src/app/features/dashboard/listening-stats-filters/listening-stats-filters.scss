@@ -5,11 +5,26 @@
 
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: 4rem 4rem 5rem;
+  grid-auto-rows: min-content;
 
   gap: 1rem;
 }
 
+.period-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.period-select-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.period-select-field label {
+  min-width: 140px;
+}
 select,
 ::picker(select) {
   appearance: base-select;
@@ -126,7 +141,7 @@ option::checkmark {
 
 .warning-banner {
   grid-column: 1/-1;
-  grid-row: 3/4;
+  grid-row: 4/5;
   background-color: rgba(255, 165, 0, 0.15);
   color: #d97706;
   padding: 0.75rem 1rem;
@@ -137,4 +152,54 @@ option::checkmark {
   align-items: center;
   gap: 0.5rem;
   border-left: 4px solid #ff8c00;
+  margin-top: 1rem;
+  height: 5rem;
+}
+
+.tracks-artists-range-container {
+  grid-row: 3/4;
+  font-size: var(--text-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.range-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.range-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+input[type='number'] {
+  width: 72px;
+  border: none;
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+}
+
+input[type='range'] {
+  flex: 1;
+  appearance: none;
+  background-color: var(--color-surface-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+
+input[type='range']:hover {
+  background-color: var(--color-surface-secondary-hover);
+}
+
+
+input[type='range']::-webkit-slider-thumb {
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
 }
