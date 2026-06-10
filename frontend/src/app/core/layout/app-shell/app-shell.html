@@ -12,6 +12,7 @@
       <button
         type="button"
         class="nav-link"
+        [attr.aria-label]="link.label"
         [class.active-link]="link.isActive()"
         [id]="link.id"
         (click)="navigateTo(link.path)"

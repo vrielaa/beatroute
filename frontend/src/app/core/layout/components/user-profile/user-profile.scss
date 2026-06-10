@@ -1,6 +1,7 @@
 :host {
+  min-width: 0;
   display: grid;
-  grid-template-columns: auto 5rem;
+  grid-template-columns: minmax(0, auto) 5rem;
   grid-template-rows: auto auto;
   gap: 0.1rem 2rem;
   color: var(--color-text-primary);
@@ -24,6 +25,10 @@
 }
 
 .username {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   grid-column: 1/2;
   grid-row: 1/2;
   justify-self: end;
@@ -32,10 +37,32 @@
 }
 
 .useremail {
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   grid-row: 2/3;
   grid-column: 1/2;
   justify-self: end;
   font-size: var(--text-sm);
   align-self: start;
   color: var(--color-text-primary);
+}
+
+@media (max-width: 1050px) {
+  :host {
+    grid-template-columns: 4.4rem;
+    padding-right: 0;
+  }
+
+  .profile-picture-container {
+    grid-column: 1;
+    width: 4.4rem;
+    height: 4.4rem;
+  }
+
+  .username,
+  .useremail {
+    display: none;
+  }
 }

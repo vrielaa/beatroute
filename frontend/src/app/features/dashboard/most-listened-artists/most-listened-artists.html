@@ -1,0 +1,61 @@
+<div class="artists-header">
+  <div class="heading-icon" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path
+        d="M13.333 17.5v-1.667a3.333 3.333 0 0 0-3.333-3.333H5a3.333 3.333 0 0 0-3.333 3.333V17.5M7.5 9.167A3.333 3.333 0 1 0 7.5 2.5a3.333 3.333 0 0 0 0 6.667ZM18.333 17.5v-1.667a3.333 3.333 0 0 0-2.5-3.225M13.333 2.608a3.333 3.333 0 0 1 0 6.459"
+        stroke="currentColor"
+        stroke-width="1.333"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </div>
+
+  <div>
+    <h3>Najczęściej słuchani artyści</h3>
+    <p>Twoi ulubieni wykonawcy z {{ periodLabel() }}</p>
+  </div>
+</div>
+
+<div class="artists-content" aria-live="polite">
+  @if (isLoading()) {
+  <ol class="artists-grid" aria-label="Ładowanie artystów">
+    @for (item of [1, 2, 3, 4, 5]; track item) {
+    <li class="artist-card skeleton-card">
+      <span class="skeleton skeleton-rank"></span>
+      <span class="skeleton skeleton-image"></span>
+      <span class="skeleton skeleton-name"></span>
+    </li>
+    }
+  </ol>
+  } @else if (hasError()) {
+  <div class="state-message">
+    <p>Nie udało się pobrać listy artystów.</p>
+    <button type="button" (click)="retry()">Spróbuj ponownie</button>
+  </div>
+  } @else if (artists().length === 0) {
+  <div class="state-message">
+    <p>Brak danych o artystach dla wybranego okresu.</p>
+  </div>
+  } @else {
+  <ol class="artists-grid">
+    @for (artist of artists(); track artist.id; let position = $index) {
+    <li class="artist-card">
+      <span class="artist-rank" [class.top-three]="position < 3">{{ position + 1 }}</span>
+
+      <div class="artist-image">
+        @if (artist.images[0]?.url; as imageUrl) {
+        <img [src]="imageUrl" [alt]="'Zdjęcie artysty ' + artist.name" loading="lazy" />
+        } @else {
+        <span aria-hidden="true">{{ artistInitial(artist) }}</span>
+        }
+      </div>
+
+      <div class="artist-info">
+        <p class="artist-name" [title]="artist.name">{{ artist.name }}</p>
+      </div>
+    </li>
+    }
+  </ol>
+  }
+</div>
