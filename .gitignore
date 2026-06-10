@@ -13,6 +13,7 @@ dist/
 coverage/
 .angular/
 out-tsc/
+*.tsbuildinfo
 frontend/dist/
 backend/dist/
 
