@@ -25,11 +25,11 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
 
     .bpm-description {
+      margin-top: 0.4rem;
       font-size: var(--text-xs);
-      color: var(--color-text-primary);
+      color: var(--color-text-secondary);
     }
   }
 }

@@ -1,9 +1,10 @@
 import { Component, computed, input, model, output } from '@angular/core';
 import { TimeRange } from '@src/app/core/models/models';
+import { Icon } from '@shared/components/icon/icon';
 
 @Component({
   selector: 'app-listening-stats-filters',
-  imports: [],
+  imports: [Icon],
   templateUrl: './listening-stats-filters.html',
   styleUrl: './listening-stats-filters.scss',
 })
@@ -95,16 +96,4 @@ export class ListeningStatsFilters {
       this.selectedArtistsRange.set(clampedValue);
     }, this.debounceTime);
   }
-
-  svgSettingsIconPaths = [
-    'M17.5001 3.3335H11.6667',
-    'M8.33333 3.3335H2.5',
-    'M17.5 10H10',
-    'M6.66667 10H2.5',
-    'M17.4999 16.6665H13.3333',
-    'M10 16.6665H2.5',
-    'M11.6667 1.6665V4.99984',
-    'M6.66675 8.3335V11.6668',
-    'M13.3333 15V18.3333',
-  ];
 }

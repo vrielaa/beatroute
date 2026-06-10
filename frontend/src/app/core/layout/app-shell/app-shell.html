@@ -17,24 +17,13 @@
         [id]="link.id"
         (click)="navigateTo(link.path)"
       >
-        <svg
+        <app-icon
           class="nav-icon"
-          width="16"
-          height="16"
+          [name]="link.icon"
+          [size]="16"
           viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden="true"
-        >
-          @for (path of link.iconPath.paths; track $index) {
-          <path
-            [attr.d]="path"
-            stroke="currentColor"
-            stroke-width="1.33333"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          }
-        </svg>
+          [strokeWidth]="1.33333"
+        />
 
         <span>{{ link.label }}</span>
       </button>
