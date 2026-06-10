@@ -1,9 +1,10 @@
 import { Component, computed, input, output } from '@angular/core';
 import { TimeRange, TopArtist } from '@src/app/core/models/models';
+import { Icon } from '@shared/components/icon/icon';
 
 @Component({
   selector: 'app-most-listened-artists',
-  imports: [],
+  imports: [Icon],
   templateUrl: './most-listened-artists.html',
   styleUrl: './most-listened-artists.scss',
 })
