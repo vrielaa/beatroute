@@ -78,11 +78,36 @@
   </div>
 </form>
 
-@if (showIncompleteWarning()) {
-<div class="warning-banner">
-  <p>
-    Znaleziono {{ tracksFoundRatio()?.foundTracksCount }} z
-    {{ tracksFoundRatio()?.totalTracksCount }} utworów
-  </p>
+@if ( showInsufficientListeningHistoryWarning() || showMissingAudioDataWarning() ||
+showInsufficientArtistsHistoryWarning() ) {
+<div class="warnings-container">
+  @if (showInsufficientListeningHistoryWarning()) {
+  <div class="warning-banner">
+    <p>
+      <strong>Za mało danych w Spotify.</strong> Wybrano analizę
+      {{ tracksFoundRatio()?.requestedTracksCount }} utworów, ale Spotify ma tylko
+      {{ tracksFoundRatio()?.spotifyTotalTracksCount }} najczęściej słuchanych utworów
+      {{ periodLabel() }}.
+    </p>
+  </div>
+  } @if (showMissingAudioDataWarning()) {
+  <div class="warning-banner">
+    <p>
+      <strong>Brak danych audio w ReccoBeats.</strong> Wybrano analizę
+      {{ tracksFoundRatio()?.requestedTracksCount }} utworów. Do analizy przekazano
+      {{ tracksFoundRatio()?.returnedTracksCount }}, ale dane audio znaleziono tylko dla
+      {{ tracksFoundRatio()?.audioDataTracksCount }} z nich.
+    </p>
+  </div>
+  } @if (showInsufficientArtistsHistoryWarning()) {
+  <div class="warning-banner">
+    <p>
+      <strong>Za mało danych w Spotify.</strong> Wybrano analizę
+      {{ artistsFoundRatio()?.requestedArtistsCount }} artystów, ale Spotify ma tylko
+      {{ artistsFoundRatio()?.spotifyTotalArtistsCount }} najczęściej słuchanych artystów
+      {{ periodLabel() }}.
+    </p>
+  </div>
+  }
 </div>
 }

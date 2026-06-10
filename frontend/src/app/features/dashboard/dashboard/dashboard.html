@@ -1,12 +1,22 @@
 <app-listening-stats-filters
   class="card"
   (timeRangeChange)="changeTimeRange($event)"
+  [selectedTimeRange]="selectedTimeRange()"
   [(selectedArtistsRange)]="selectedArtistsRange"
   [(selectedTracksRange)]="selectedTracksRange"
   [tracksFoundRatio]="tracksFoundRatio()"
+  [artistsFoundRatio]="artistsFoundRatio()"
 ></app-listening-stats-filters>
 <app-average-bpm
   class="card"
-  [topTracks]="topTracks()"
-  (audioStatsChange)="onAudioStatsChange($event)"
+  [averageBpm]="averageBpm()"
+  [isLoading]="isAudioStatsLoading()"
 ></app-average-bpm>
+<app-most-listened-artists
+  class="card"
+  [timeRange]="selectedTimeRange()"
+  [artists]="topArtists()?.items ?? []"
+  [isLoading]="isTopArtistsLoading()"
+  [hasError]="hasTopArtistsError()"
+  (retryRequested)="retryTopArtists()"
+></app-most-listened-artists>

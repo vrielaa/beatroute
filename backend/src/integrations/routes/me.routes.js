@@ -7,16 +7,10 @@ const headers = (req) => ({
   Authorization: `Bearer ${req.session.spotify.accessToken}`,
 });
 
-const timeRangeMap = {
-  "4_weeks": "short_term",
-  "6_months": "medium_term",
-  "1_year": "long_term",
-};
-
 router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
   try {
     const limit = String(req.query.limit || 10);
-    const timeRange = String(req.query.time_range || "6_months");
+    const timeRange = String(req.query.time_range || "medium_term");
 
     const params = new URLSearchParams({
       limit,
@@ -38,6 +32,36 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
   } catch (error) {
     console.error("Top tracks error:", error);
     res.status(500).json({ message: "Nie udało się pobrać top tracks" });
+  }
+});
+
+router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
+  try {
+    const limit = String(req.query.limit || 10);
+    const timeRange = String(req.query.time_range || "medium_term");
+
+    const params = new URLSearchParams({
+      limit,
+      time_range: timeRange,
+    });
+
+    const spotifyResponse = await fetch(
+      `https://api.spotify.com/v1/me/top/artists?${params.toString()}`,
+      { headers: headers(req) }
+    );
+
+    const data = await spotifyResponse.json();
+
+    console.log("Spotify top artists response:", data);
+
+    if (!spotifyResponse.ok) {
+      return res.status(spotifyResponse.status).json(data);
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("Top artists error:", error);
+    res.status(500).json({ message: "Nie udało się pobrać top artists" });
   }
 });
 

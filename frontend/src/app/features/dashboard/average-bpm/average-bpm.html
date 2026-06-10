@@ -18,8 +18,10 @@
 
 <div class="bpm-value-container">
   @if (isLoading()) {
-  <div class="spinner spinner-sm"></div>
-  } @else {
+  <div class="skeleton bpm-skeleton" aria-label="Ładowanie średniego BPM"></div>
+  } @else if (averageBpm() !== null) {
   <p class="bpm-value">{{ averageBpm() }} BPM</p>
+  } @else {
+  <p class="bpm-empty">Brak danych</p>
   }
 </div>

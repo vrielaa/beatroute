@@ -5,6 +5,7 @@ import {
   TopTracksResponse,
   MultipleAudioFeaturesResponse,
   AudioStats,
+  TopArtistsResponse,
 } from './core/models/models';
 import { Observable } from 'rxjs/internal/Observable';
 
@@ -38,6 +39,16 @@ export class SpotifyService {
 
   public getTopTracks(timeRange: TimeRange, limit = 10): Observable<TopTracksResponse> {
     return this.http.get<TopTracksResponse>('/api/me/top-tracks', {
+      params: {
+        time_range: timeRange,
+        limit: String(limit),
+      },
+      withCredentials: true,
+    });
+  }
+
+  public getTopArtists(timeRange: TimeRange, limit = 10): Observable<TopArtistsResponse> {
+    return this.http.get<TopArtistsResponse>('/api/me/top-artists', {
       params: {
         time_range: timeRange,
         limit: String(limit),
