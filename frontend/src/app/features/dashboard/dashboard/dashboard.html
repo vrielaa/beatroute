@@ -20,3 +20,10 @@
   [hasError]="hasTopArtistsError()"
   (retryRequested)="retryTopArtists()"
 ></app-most-listened-artists>
+<app-genre-distribution
+  class="card"
+  [distribution]="genreDistribution()"
+  [timeRange]="selectedTimeRange()"
+  [isLoading]="isGenreDistributionLoading()"
+  [hasError]="hasGenreDistributionError()"
+></app-genre-distribution>

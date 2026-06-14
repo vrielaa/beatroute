@@ -11,8 +11,8 @@
 
 <div class="artists-content" aria-live="polite">
   @if (isLoading()) {
-  <ol class="artists-grid" aria-label="Ładowanie artystów">
-    @for (item of [1, 2, 3, 4, 5]; track item) {
+  <ol #skeletonGrid class="artists-grid" aria-label="Ładowanie artystów">
+    @for (item of skeletonItems(); track item) {
     <li class="artist-card skeleton-card">
       <span class="skeleton skeleton-rank"></span>
       <span class="skeleton skeleton-image"></span>

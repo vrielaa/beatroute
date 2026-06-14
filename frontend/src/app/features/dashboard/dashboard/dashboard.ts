@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ListeningStatsFilters } from '../listening-stats-filters/listening-stats-filters';
 import {
+  ArtistGenreDistributionResponse,
   AudioStats,
   TimeRange,
   TopArtistsResponse,
@@ -9,16 +10,19 @@ import {
 import { SpotifyService } from '@src/app/spotify.service';
 import { AverageBpm } from '../average-bpm/average-bpm';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
-import { of, Subscription, switchMap, tap } from 'rxjs';
+import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
+import { GenreDistribution } from '../genre-distribution/genre-distribution';
+import { LastfmService } from '@src/app/lastfm.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ListeningStatsFilters, AverageBpm, MostListenedArtists],
+  imports: [ListeningStatsFilters, AverageBpm, GenreDistribution, MostListenedArtists],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
 export class Dashboard {
   private readonly spotifyService = inject(SpotifyService);
+  private readonly lastfmService = inject(LastfmService);
   public readonly selectedTimeRange = signal<TimeRange>('short_term');
   public readonly selectedTracksRange = signal(10);
   public readonly selectedArtistsRange = signal(10);
@@ -26,6 +30,9 @@ export class Dashboard {
   public readonly topArtists = signal<TopArtistsResponse | null>(null);
   public readonly isTopArtistsLoading = signal(true);
   public readonly hasTopArtistsError = signal(false);
+  public readonly genreDistribution = signal<ArtistGenreDistributionResponse | null>(null);
+  public readonly isGenreDistributionLoading = signal(true);
+  public readonly hasGenreDistributionError = signal(false);
   public readonly audioStats = signal<AudioStats | null>(null);
   public readonly isAudioStatsLoading = signal(true);
   private readonly topArtistsReloadTrigger = signal(0);
@@ -129,18 +136,47 @@ export class Dashboard {
     this.topArtists.set(null);
     this.isTopArtistsLoading.set(true);
     this.hasTopArtistsError.set(false);
+    this.genreDistribution.set(null);
+    this.isGenreDistributionLoading.set(true);
+    this.hasGenreDistributionError.set(false);
 
-    return this.spotifyService.getTopArtists(timeRange, artistsRange).subscribe({
-      next: (response) => {
-        this.topArtists.set(response);
-        this.isTopArtistsLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Błąd pobierania najczęściej słuchanych artystów:', error);
-        this.topArtists.set(null);
-        this.hasTopArtistsError.set(true);
-        this.isTopArtistsLoading.set(false);
-      },
-    });
+    return this.spotifyService
+      .getTopArtists(timeRange, artistsRange)
+      .pipe(
+        tap((response) => {
+          this.topArtists.set(response);
+          this.isTopArtistsLoading.set(false);
+        }),
+        switchMap((response) => {
+          const artistNames = response.items.map((artist) => artist.name);
+
+          if (!artistNames.length) {
+            return of(null);
+          }
+
+          return this.lastfmService.getArtistGenreDistribution(artistNames).pipe(
+            catchError((error) => {
+              console.error('Błąd pobierania gatunków artystów:', error);
+              this.hasGenreDistributionError.set(true);
+              return of(null);
+            })
+          );
+        })
+      )
+      .subscribe({
+        next: (distribution) => {
+          this.genreDistribution.set(distribution);
+          this.isGenreDistributionLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Błąd pobierania najczęściej słuchanych artystów:', error);
+          this.topArtists.set(null);
+          this.hasTopArtistsError.set(true);
+          this.isTopArtistsLoading.set(false);
+          this.genreDistribution.set(null);
+          this.hasGenreDistributionError.set(true);
+          this.isGenreDistributionLoading.set(false);
+        },
+      });
   }
 }

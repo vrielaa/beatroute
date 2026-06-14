@@ -24,6 +24,7 @@ import authRoutes from "./integrations/routes/auth.routes.js";
 import sessionRoutes from "./integrations/routes/session.routes.js";
 import meRoutes from "./integrations/routes/me.routes.js";
 import tracksRoutes from "./integrations/routes/track.routes.js";
+import lastfmRoutes from "./integrations/routes/lastfm.routes.js";
 
 const requiredEnvVars = {
   FRONTEND_URL,
@@ -72,6 +73,7 @@ export function createApp() {
   app.use("/api/auth", sessionRoutes);
   app.use("/api/me", meRoutes);
   app.use("/api/tracks", tracksRoutes);
+  app.use("/api/lastfm", lastfmRoutes);
 
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 

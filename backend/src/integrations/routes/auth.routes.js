@@ -7,6 +7,13 @@ import {
   SCOPES,
 } from "../../config/spotify.config.js";
 import { getSpotifyBasicAuthHeader } from "../../utils/spotify.js";
+import {
+  LASTFM_API_KEY,
+  LASTFM_AUTH_URL,
+  LASTFM_REDIRECT_URI,
+  assertLastfmConfig,
+} from "../../config/lastfm.config.js";
+import { createLastfmSession } from "../lastfm/lastfm.service.js";
 
 const router = Router();
 
@@ -98,6 +105,84 @@ router.get("/spotify/callback", async (req, res) => {
   } catch (error) {
     console.error("Callback error:", error);
     res.status(500).json({ message: "Błąd callbacku Spotify" });
+  }
+});
+
+router.get("/lastfm/login", (req, res) => {
+  try {
+    assertLastfmConfig();
+
+    const state = crypto.randomBytes(16).toString("hex");
+    const callbackUrl = new URL(LASTFM_REDIRECT_URI);
+    const authorizationUrl = new URL(LASTFM_AUTH_URL);
+
+    callbackUrl.searchParams.set("state", state);
+    authorizationUrl.searchParams.set("api_key", LASTFM_API_KEY);
+    authorizationUrl.searchParams.set("cb", callbackUrl.toString());
+
+    req.session.lastfmAuthState = state;
+
+    req.session.save((error) => {
+      if (error) {
+        console.error("Last.fm session save error:", error);
+        return res.status(500).json({
+          message: "Nie udało się rozpocząć autoryzacji Last.fm",
+        });
+      }
+
+      res.redirect(authorizationUrl.toString());
+    });
+  } catch (error) {
+    console.error("Last.fm login error:", error);
+    res.status(503).json({
+      message:
+        error instanceof Error ? error.message : "Błąd konfiguracji Last.fm",
+    });
+  }
+});
+
+router.get("/lastfm/callback", async (req, res) => {
+  try {
+    const { token, state } = req.query;
+
+    if (typeof token !== "string" || typeof state !== "string") {
+      return res.status(400).json({
+        message: "Brak tokenu lub state w odpowiedzi Last.fm",
+      });
+    }
+
+    if (state !== req.session.lastfmAuthState) {
+      return res.status(400).json({
+        message: "Nieprawidłowy state autoryzacji Last.fm",
+      });
+    }
+
+    delete req.session.lastfmAuthState;
+
+    const lastfmSession = await createLastfmSession(token);
+
+    req.session.lastfm = {
+      sessionKey: lastfmSession.key,
+      username: lastfmSession.name,
+      subscriber: lastfmSession.subscriber === "1",
+    };
+
+    req.session.save((error) => {
+      if (error) {
+        console.error("Last.fm callback session save error:", error);
+        return res.status(500).json({
+          message: "Nie udało się zapisać sesji Last.fm",
+        });
+      }
+
+      res.redirect(`${FRONTEND_URL}/`);
+    });
+  } catch (error) {
+    console.error("Last.fm callback error:", error);
+    res.status(502).json({
+      message: "Nie udało się utworzyć sesji Last.fm",
+      lastfmError: error instanceof Error ? error.message : String(error),
+    });
   }
 });
 
