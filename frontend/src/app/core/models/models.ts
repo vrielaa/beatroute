@@ -79,3 +79,44 @@ export type AudioStats = {
   foundTracksCount: number;
   totalTracksCount: number;
 };
+
+export interface LastfmTrackInfo {
+  name: string | null;
+  artist: string | null;
+  mbid: string | null;
+  url: string | null;
+  genre: string | null;
+  genreCandidates: string[];
+  tags: { name: string; url: string | null }[];
+  genreSource: 'lastfm-top-tags' | 'lastfm-track-top-tags' | 'lastfm-artist-info-tags' | null;
+  genreIsFallback: boolean;
+}
+
+export interface SpotifyTrackSummary {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  durationMs: number | null;
+  spotifyUrl: string | null;
+}
+
+export interface SpotifyLastfmTrackResponse {
+  spotify: SpotifyTrackSummary;
+  lastfm: LastfmTrackInfo;
+}
+
+export interface ArtistGenreDistributionItem {
+  name: string;
+  count: number;
+  percentage: number;
+  artists: string[];
+}
+
+export interface ArtistGenreDistributionResponse {
+  genres: ArtistGenreDistributionItem[];
+  totalArtists: number;
+  matchedArtists: number;
+  unmatchedArtists: string[];
+  source: 'lastfm-artist-info-tags';
+}

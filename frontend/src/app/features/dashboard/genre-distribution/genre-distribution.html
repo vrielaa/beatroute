@@ -1,0 +1,61 @@
+<div class="genre-header">
+  <app-icon name="genres" />
+
+  <div>
+    <h3>Skład gatunków muzycznych</h3>
+    <p>Główne gatunki Twoich top artystów z {{ periodLabel() }}</p>
+  </div>
+</div>
+
+<div class="genre-content" aria-live="polite">
+  @if (isLoading()) {
+  <div class="chart-layout" aria-label="Ładowanie składu gatunków">
+    <div class="skeleton chart-skeleton"></div>
+    <div class="legend-skeleton">
+      @for (item of [1, 2, 3, 4]; track item) {
+      <span class="skeleton"></span>
+      }
+    </div>
+  </div>
+  } @else if (hasError()) {
+  <div class="state-message">
+    <p>Nie udało się pobrać gatunków artystów.</p>
+  </div>
+  } @else if (!distribution()?.matchedArtists) {
+  <div class="state-message">
+    <p>Last.fm nie znalazł gatunków dla artystów z wybranego okresu.</p>
+  </div>
+  } @else {
+  <div class="chart-layout">
+    <div
+      class="donut-chart"
+      role="img"
+      [attr.aria-label]="chartAriaLabel()"
+      [style.background]="chartBackground()"
+    >
+      <div class="donut-center" aria-hidden="true">
+        <strong>{{ distribution()?.matchedArtists }}</strong>
+        <span>artystów</span>
+      </div>
+    </div>
+
+    <div class="genre-summary">
+      <ul class="genre-legend">
+        @for (segment of segments(); track segment.name) {
+        <li [title]="segment.artists.join(', ')">
+          <span class="legend-color" [style.background-color]="segment.color"></span>
+          <span class="legend-name">{{ segment.name }}</span>
+          <strong>{{ segment.percentage }}%</strong>
+          <span class="legend-count">{{ segment.count }}</span>
+        </li>
+        }
+      </ul>
+
+      <p class="coverage">
+        Gatunek znaleziono dla {{ distribution()?.matchedArtists }} z
+        {{ distribution()?.totalArtists }} analizowanych artystów.
+      </p>
+    </div>
+  </div>
+  }
+</div>
