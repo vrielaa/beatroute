@@ -1,11 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ThemeService } from '@src/app/shared/utils/theme.service';
 
 @Component({
   selector: 'app-dark-mode',
   imports: [],
   templateUrl: './dark-mode.html',
-  styleUrl: './dark-mode.scss',
+  host: {
+    class: 'grid items-center justify-items-center text-[var(--color-text-primary)]',
+  },
 })
 export class DarkMode {
   readonly themeService = inject(ThemeService);
