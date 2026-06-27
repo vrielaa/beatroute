@@ -5,7 +5,9 @@ import { ICONS, IconName } from '@shared/icons/icons';
   selector: 'app-icon',
   imports: [],
   templateUrl: './icon.html',
-  styleUrl: './icon.scss',
+  host: {
+    class: 'inline-flex flex-none text-inherit',
+  },
 })
 export class Icon {
   public readonly name = input.required<IconName>();
