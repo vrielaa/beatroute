@@ -5,7 +5,10 @@ import { SpotifyService } from '@src/app/spotify.service';
   selector: 'app-login',
   imports: [],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
+  host: {
+    class:
+      'grid min-h-screen place-items-center bg-[var(--color-bg)] p-[2rem] text-[var(--color-text-primary)]',
+  },
 })
 export class Login {
   readonly spotifyService = inject(SpotifyService);
