@@ -1,12 +1,12 @@
 import { Router } from "express";
 import ensureLastfmSession from "../lastfm/middleware/ensureLastfmSession.js";
+import { getLastfmArtistGenreDistribution } from "../lastfm/lastfm.artist.service.js";
 import {
-  getLastfmArtistGenreDistribution,
   getLastfmTrackInfo,
-  getLastfmUserInfo,
   scrobbleTrack,
   updateNowPlaying,
-} from "../lastfm/lastfm.service.js";
+} from "../lastfm/lastfm.track.service.js";
+import { getLastfmUserInfo } from "../lastfm/lastfm.service.js";
 import { LastfmApiError } from "../lastfm/lastfm.client.js";
 import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
 import {
