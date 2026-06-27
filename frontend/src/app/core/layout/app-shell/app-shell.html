@@ -1,36 +1,43 @@
-<header class="main-header">
-  <app-logo />
-  <app-dark-mode />
-  <app-user-profile />
-  <app-logout />
+<header
+  class="row-start-1 row-end-2 grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,auto)_auto] items-center gap-[clamp(1rem,2vw,2.4rem)] bg-[var(--color-surface)] px-[max(2rem,calc((100%_-_120rem)/2))] text-[var(--color-text-primary)] max-[900px]:px-[2rem] max-[600px]:grid-cols-[minmax(0,1fr)_auto_auto] max-[600px]:gap-[1.2rem] max-[600px]:px-[1.2rem]"
+>
+  <app-logo class="col-start-1 col-end-2 min-w-[0] justify-self-start" />
+  <app-dark-mode class="col-start-2 col-end-3" />
+  <app-user-profile class="col-start-3 col-end-4 max-[600px]:hidden" />
+  <app-logout class="col-start-4 col-end-5 max-[600px]:col-start-3 max-[600px]:col-end-4" />
 </header>
 
-<div class="layout">
-  <div class="nav-container">
-    <nav class="main-nav">
+<div class="grid h-full w-full grid-rows-[1fr_4rem_1fr] max-[600px]:grid-rows-[1fr_4.4rem_1fr]">
+  <div
+    class="row-start-2 row-end-3 flex h-full w-full justify-center px-[2rem] text-[var(--color-text-primary)] max-[900px]:px-[1.6rem] max-[600px]:px-[1rem]"
+  >
+    <nav
+      class="grid h-full w-[min(100%,120rem)] grid-cols-4 grid-rows-1 items-stretch overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface)] p-[0.4rem] shadow-[0_0.8rem_2.4rem_var(--color-shadow)] max-[600px]:rounded-[var(--radius-lg)]"
+    >
       @for (link of navLinks; track link.path) {
       <button
         type="button"
-        class="nav-link"
+        [class]="link.isActive() ? activeNavLinkClasses : navLinkClasses"
         [attr.aria-label]="link.label"
-        [class.active-link]="link.isActive()"
         [id]="link.id"
         (click)="navigateTo(link.path)"
       >
         <app-icon
-          class="nav-icon"
+          class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
           [name]="link.icon"
           [size]="16"
           viewBox="0 0 16 16"
           [strokeWidth]="1.33333"
         />
 
-        <span>{{ link.label }}</span>
+        <span class="max-[600px]:sr-only">{{ link.label }}</span>
       </button>
       }
     </nav>
   </div>
 </div>
-<main class="content">
+<main
+  class="row-start-3 row-end-4 grid min-h-[0] w-full grid-cols-[minmax(2rem,1fr)_minmax(0,120rem)_minmax(2rem,1fr)] items-start overflow-y-auto pt-[2rem] pb-[4rem] max-[900px]:grid-cols-[1.6rem_minmax(0,1fr)_1.6rem] max-[900px]:pt-[1.6rem] max-[900px]:pb-[3rem] max-[600px]:grid-cols-[1rem_minmax(0,1fr)_1rem] max-[600px]:pt-[1rem] max-[600px]:pb-[2rem]"
+>
   <router-outlet />
 </main>
