@@ -15,7 +15,9 @@ interface GenreChartSegment extends ArtistGenreDistributionItem {
   selector: 'app-genre-distribution',
   imports: [Icon],
   templateUrl: './genre-distribution.html',
-  styleUrl: './genre-distribution.scss',
+  host: {
+    class: 'col-span-full flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+  },
 })
 export class GenreDistribution {
   private readonly colors = ['#7c5cff', '#3478f6', '#1f9d62', '#e7a93f', '#e05f8a', '#8c98aa'];
@@ -24,6 +26,20 @@ export class GenreDistribution {
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly isLoading = input(true);
   public readonly hasError = input(false);
+  public readonly chartLayoutClasses =
+    'grid min-w-[0] grid-cols-[minmax(16rem,24rem)_minmax(0,1fr)] items-center justify-center gap-[clamp(2.4rem,6vw,7rem)] max-[700px]:grid-cols-1 max-[700px]:gap-[2.4rem]';
+  public readonly chartVisualClasses =
+    'aspect-square w-[min(100%,24rem)] justify-self-center rounded-full max-[700px]:w-[min(72vw,22rem)]';
+  public readonly donutChartClasses = `${this.chartVisualClasses} relative grid place-items-center shadow-[0_1rem_2.8rem_var(--color-shadow)]`;
+  public readonly stateMessageClasses =
+    'grid min-h-[20rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]';
+  public readonly genreRowClasses =
+    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_auto_2.8rem_1.6rem] items-center gap-[1rem] px-[1rem] py-[0.9rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_auto_1.2rem] max-[420px]:gap-[0.8rem]';
+  public readonly summaryGenreRowClasses = `${this.genreRowClasses} cursor-pointer list-none [&::-webkit-details-marker]:hidden`;
+  public readonly subgenreListClasses =
+    'grid gap-[0.6rem] pt-0 pr-[1rem] pb-[1rem] pl-[3.2rem] max-[420px]:pl-[2.8rem]';
+  public readonly subgenreItemClasses =
+    'grid min-w-[0] grid-cols-[minmax(0,1fr)_auto_2.8rem] items-center gap-[0.8rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[420px]:grid-cols-[minmax(0,1fr)_auto]';
 
   public readonly periodLabel = computed(() => {
     const labels: Record<TimeRange, string> = {

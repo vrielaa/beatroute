@@ -1,82 +1,120 @@
-<div class="genre-header">
-  <app-icon name="genres" />
+<div class="flex items-start gap-[1rem]">
+  <app-icon class="flex-none text-[var(--color-accent)]" name="genres" />
 
-  <div>
-    <h3>Skład gatunków muzycznych</h3>
-    <p>Główne gatunki Twoich top artystów z {{ periodLabel() }}</p>
+  <div class="min-w-[0]">
+    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)] max-[420px]:leading-[var(--line-height-tight)]">
+      Skład gatunków muzycznych
+    </h3>
+    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      Główne gatunki Twoich top artystów z {{ periodLabel() }}
+    </p>
   </div>
 </div>
 
-<div class="genre-content" aria-live="polite">
+<div class="grid min-h-[24rem] items-center" aria-live="polite">
   @if (isLoading()) {
-  <div class="chart-layout" aria-label="Ładowanie składu gatunków">
-    <div class="skeleton chart-skeleton"></div>
-    <div class="legend-skeleton">
+  <div [class]="chartLayoutClasses" aria-label="Ładowanie składu gatunków">
+    <div [class]="'skeleton ' + chartVisualClasses"></div>
+    <div class="grid gap-[1rem]">
       @for (item of [1, 2, 3, 4]; track item) {
-      <span class="skeleton"></span>
+      <span class="skeleton h-[3.8rem] rounded-[var(--radius-md)]"></span>
       }
     </div>
   </div>
   } @else if (hasError()) {
-  <div class="state-message">
+  <div [class]="stateMessageClasses">
     <p>Nie udało się pobrać gatunków artystów.</p>
   </div>
   } @else if (!distribution()?.matchedArtists) {
-  <div class="state-message">
+  <div [class]="stateMessageClasses">
     <p>Last.fm nie znalazł gatunków dla artystów z wybranego okresu.</p>
   </div>
   } @else {
-  <div class="chart-layout">
+  <div [class]="chartLayoutClasses">
     <div
-      class="donut-chart"
+      [class]="donutChartClasses"
       role="img"
       [attr.aria-label]="chartAriaLabel()"
       [style.background]="chartBackground()"
     >
-      <div class="donut-center" aria-hidden="true">
-        <strong>{{ distribution()?.matchedArtists }}</strong>
-        <span>artystów</span>
+      <div
+        class="flex aspect-square w-[58%] flex-col items-center justify-center rounded-full bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+        aria-hidden="true"
+      >
+        <strong class="text-[length:clamp(var(--text-2xl),4vw,var(--text-4xl))] leading-none">
+          {{ distribution()?.matchedArtists }}
+        </strong>
+        <span class="mt-[0.5rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+          artystów
+        </span>
       </div>
     </div>
 
-    <div class="genre-summary">
-      <ul class="genre-legend">
+    <div class="min-w-[0]">
+      <ul class="grid gap-[0.8rem]">
         @for (segment of segments(); track segment.name) {
-        <li class="genre-item" [title]="segment.artists.join(', ')">
+        <li
+          class="min-w-[0] rounded-[var(--radius-md)] bg-[var(--color-surface-secondary)]"
+          [title]="segment.artists.join(', ')"
+        >
           @if (hasExpandableSubgenres(segment)) {
-          <details class="genre-details">
-            <summary class="genre-row">
-              <span class="legend-color" [style.background-color]="segment.color"></span>
-              <span class="legend-name">{{ segment.name }}</span>
-              <strong>{{ segment.percentage }}%</strong>
-              <span class="legend-count">{{ segment.count }}</span>
-              <span class="expand-indicator" aria-hidden="true">+</span>
+          <details class="group min-w-[0]">
+            <summary [class]="summaryGenreRowClasses">
+              <span class="h-[1.2rem] w-[1.2rem] rounded-full" [style.background-color]="segment.color"></span>
+              <span
+                class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-medium)]"
+              >
+                {{ segment.name }}
+              </span>
+              <strong class="text-[length:var(--text-xs)]">{{ segment.percentage }}%</strong>
+              <span
+                class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[420px]:hidden"
+              >
+                {{ segment.count }}
+              </span>
+              <span
+                class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)] transition-transform duration-[160ms] ease-[ease] group-open:rotate-45"
+                aria-hidden="true"
+              >
+                +
+              </span>
             </summary>
 
-            <ul class="subgenre-list" [attr.aria-label]="'Podgatunki dla ' + segment.name">
+            <ul [class]="subgenreListClasses" [attr.aria-label]="'Podgatunki dla ' + segment.name">
               @for (subgenre of segment.subgenres; track subgenre.name) {
-              <li [title]="subgenre.artists.join(', ')">
-                <span>{{ subgenre.name }}</span>
-                <strong>{{ subgenre.percentage }}%</strong>
-                <span>{{ subgenre.count }}</span>
+              <li [class]="subgenreItemClasses" [title]="subgenre.artists.join(', ')">
+                <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ subgenre.name }}</span>
+                <strong class="text-[var(--color-text-primary)]">{{ subgenre.percentage }}%</strong>
+                <span class="max-[420px]:hidden">{{ subgenre.count }}</span>
               </li>
               }
             </ul>
           </details>
           } @else {
-          <div class="genre-row">
-            <span class="legend-color" [style.background-color]="segment.color"></span>
-            <span class="legend-name">{{ segment.name }}</span>
-            <strong>{{ segment.percentage }}%</strong>
-            <span class="legend-count">{{ segment.count }}</span>
-            <span class="expand-spacer" aria-hidden="true"></span>
+          <div [class]="genreRowClasses">
+            <span class="h-[1.2rem] w-[1.2rem] rounded-full" [style.background-color]="segment.color"></span>
+            <span
+              class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-medium)]"
+            >
+              {{ segment.name }}
+            </span>
+            <strong class="text-[length:var(--text-xs)]">{{ segment.percentage }}%</strong>
+            <span
+              class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[420px]:hidden"
+            >
+              {{ segment.count }}
+            </span>
+            <span
+              class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+              aria-hidden="true"
+            ></span>
           </div>
           }
         </li>
         }
       </ul>
 
-      <p class="coverage">
+      <p class="mt-[1.2rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
         Gatunek znaleziono dla {{ distribution()?.matchedArtists }} z
         {{ distribution()?.totalArtists }} analizowanych artystów.
       </p>
