@@ -18,7 +18,10 @@ import { LastfmService } from '@src/app/lastfm.service';
   selector: 'app-dashboard',
   imports: [ListeningStatsFilters, AverageBpm, GenreDistribution, MostListenedArtists],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss',
+  host: {
+    class:
+      'grid w-full min-w-[0] auto-rows-min grid-cols-[minmax(0,2fr)_minmax(26rem,1fr)] gap-[1.6rem] [&>.card]:min-w-[0] max-[960px]:grid-cols-1 max-[960px]:[&>.card]:col-start-1 max-[960px]:[&>.card]:col-end-auto max-[960px]:[&>.card]:row-auto max-[600px]:gap-[1rem] max-[600px]:[&>.card]:rounded-[var(--radius-lg)] max-[600px]:[&>.card]:p-[1.4rem] max-[380px]:[&>.card]:p-[1.2rem]',
+  },
 })
 export class Dashboard {
   private readonly spotifyService = inject(SpotifyService);
