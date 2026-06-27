@@ -1,22 +1,16 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { ListeningStatsFilters } from '../listening-stats-filters/listening-stats-filters';
-import {
-  ArtistGenreDistributionResponse,
-  AudioStats,
-  TimeRange,
-  TopArtistsResponse,
-  TopTracksResponse,
-} from '@src/app/core/models/models';
-import { SpotifyService } from '@src/app/spotify.service';
+import { TimeRange } from '@src/app/core/models/models';
 import { AverageBpm } from '../average-bpm/average-bpm';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
-import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
 import { GenreDistribution } from '../genre-distribution/genre-distribution';
-import { LastfmService } from '@src/app/lastfm.service';
+import { DashboardTracksStore } from './dashboard-tracks.store';
+import { DashboardArtistsStore } from './dashboard-artists.store';
 
 @Component({
   selector: 'app-dashboard',
   imports: [ListeningStatsFilters, AverageBpm, GenreDistribution, MostListenedArtists],
+  providers: [DashboardTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
   host: {
     class:
@@ -24,76 +18,28 @@ import { LastfmService } from '@src/app/lastfm.service';
   },
 })
 export class Dashboard {
-  private readonly spotifyService = inject(SpotifyService);
-  private readonly lastfmService = inject(LastfmService);
+  private readonly tracksStore = inject(DashboardTracksStore);
+  private readonly artistsStore = inject(DashboardArtistsStore);
+
   public readonly selectedTimeRange = signal<TimeRange>('short_term');
   public readonly selectedTracksRange = signal(10);
   public readonly selectedArtistsRange = signal(10);
-  public readonly topTracks = signal<TopTracksResponse | null>(null);
-  public readonly topArtists = signal<TopArtistsResponse | null>(null);
-  public readonly isTopArtistsLoading = signal(true);
-  public readonly hasTopArtistsError = signal(false);
-  public readonly genreDistribution = signal<ArtistGenreDistributionResponse | null>(null);
-  public readonly isGenreDistributionLoading = signal(true);
-  public readonly hasGenreDistributionError = signal(false);
-  public readonly audioStats = signal<AudioStats | null>(null);
-  public readonly isAudioStatsLoading = signal(true);
-  private readonly topArtistsReloadTrigger = signal(0);
 
-  public readonly averageBpm = computed(() => {
-    const averageBpm = this.audioStats()?.averageBpm;
-
-    return typeof averageBpm === 'number' ? Math.round(averageBpm) : null;
-  });
-
-  public readonly tracksFoundRatio = computed(() => {
-    const topTracks = this.topTracks();
-    const stats = this.audioStats();
-    if (!topTracks) return null;
-
-    return {
-      requestedTracksCount: topTracks.limit,
-      spotifyTotalTracksCount: topTracks.total,
-      returnedTracksCount: topTracks.items.length,
-      audioDataTracksCount: stats?.foundTracksCount ?? null,
-    };
-  });
-
-  public readonly artistsFoundRatio = computed(() => {
-    const topArtists = this.topArtists();
-    if (!topArtists) return null;
-
-    return {
-      requestedArtistsCount: topArtists.limit,
-      spotifyTotalArtistsCount: topArtists.total,
-    };
-  });
-
-  public readonly artistGenres = computed<Record<string, string[]>>(() => {
-    const distribution = this.genreDistribution();
-
-    if (!distribution) return {};
-
-    return distribution.genres.reduce<Record<string, string[]>>((genres, genre) => {
-      const displayGenres = genre.subgenres.length ? genre.subgenres : [genre];
-
-      for (const displayGenre of displayGenres) {
-        for (const artist of displayGenre.artists) {
-          const normalizedArtist = this.normalizeArtistName(artist);
-          genres[normalizedArtist] = this.addUniqueGenre(
-            genres[normalizedArtist] ?? [],
-            displayGenre.name
-          );
-        }
-      }
-
-      return genres;
-    }, {});
-  });
+  public readonly topArtists = this.artistsStore.topArtists;
+  public readonly isTopArtistsLoading = this.artistsStore.isTopArtistsLoading;
+  public readonly hasTopArtistsError = this.artistsStore.hasTopArtistsError;
+  public readonly genreDistribution = this.artistsStore.genreDistribution;
+  public readonly isGenreDistributionLoading = this.artistsStore.isGenreDistributionLoading;
+  public readonly hasGenreDistributionError = this.artistsStore.hasGenreDistributionError;
+  public readonly averageBpm = this.tracksStore.averageBpm;
+  public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
+  public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;
+  public readonly artistsFoundRatio = this.artistsStore.artistsFoundRatio;
+  public readonly artistGenres = this.artistsStore.artistGenres;
 
   constructor() {
     effect((onCleanup) => {
-      const subscription = this.loadTopTracksAndAudioStats(
+      const subscription = this.tracksStore.load(
         this.selectedTimeRange(),
         this.selectedTracksRange()
       );
@@ -102,9 +48,9 @@ export class Dashboard {
     });
 
     effect((onCleanup) => {
-      this.topArtistsReloadTrigger();
+      this.artistsStore.reloadVersion();
 
-      const subscription = this.loadTopArtists(
+      const subscription = this.artistsStore.load(
         this.selectedTimeRange(),
         this.selectedArtistsRange()
       );
@@ -126,99 +72,6 @@ export class Dashboard {
   }
 
   public retryTopArtists(): void {
-    this.topArtistsReloadTrigger.update((value) => value + 1);
-  }
-
-  private normalizeArtistName(artistName: string): string {
-    return artistName.trim().toLocaleLowerCase();
-  }
-
-  private normalizeGenreName(genreName: string): string {
-    return genreName.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-  }
-
-  private addUniqueGenre(genres: string[], genreName: string): string[] {
-    const normalizedGenreName = this.normalizeGenreName(genreName);
-    const alreadyExists = genres.some(
-      (genre) => this.normalizeGenreName(genre) === normalizedGenreName
-    );
-
-    return alreadyExists ? genres : [...genres, genreName];
-  }
-
-  private loadTopTracksAndAudioStats(timeRange: TimeRange, tracksRange: number): Subscription {
-    this.topTracks.set(null);
-    this.audioStats.set(null);
-    this.isAudioStatsLoading.set(true);
-
-    return this.spotifyService
-      .getTopTracks(timeRange, tracksRange)
-      .pipe(
-        tap((response) => this.topTracks.set(response)),
-        switchMap((response) => {
-          const trackIds = response.items.map((track) => track.id);
-
-          return trackIds.length ? this.spotifyService.getTracksAudioStats(trackIds) : of(null);
-        })
-      )
-      .subscribe({
-        next: (stats) => {
-          this.audioStats.set(stats);
-          this.isAudioStatsLoading.set(false);
-        },
-        error: (error) => {
-          console.error('Błąd pobierania utworów lub statystyk audio:', error);
-          this.audioStats.set(null);
-          this.isAudioStatsLoading.set(false);
-        },
-      });
-  }
-
-  private loadTopArtists(timeRange: TimeRange, artistsRange: number): Subscription {
-    this.topArtists.set(null);
-    this.isTopArtistsLoading.set(true);
-    this.hasTopArtistsError.set(false);
-    this.genreDistribution.set(null);
-    this.isGenreDistributionLoading.set(true);
-    this.hasGenreDistributionError.set(false);
-
-    return this.spotifyService
-      .getTopArtists(timeRange, artistsRange)
-      .pipe(
-        tap((response) => {
-          this.topArtists.set(response);
-          this.isTopArtistsLoading.set(false);
-        }),
-        switchMap((response) => {
-          const artistNames = response.items.map((artist) => artist.name);
-
-          if (!artistNames.length) {
-            return of(null);
-          }
-
-          return this.lastfmService.getArtistGenreDistribution(artistNames).pipe(
-            catchError((error) => {
-              console.error('Błąd pobierania gatunków artystów:', error);
-              this.hasGenreDistributionError.set(true);
-              return of(null);
-            })
-          );
-        })
-      )
-      .subscribe({
-        next: (distribution) => {
-          this.genreDistribution.set(distribution);
-          this.isGenreDistributionLoading.set(false);
-        },
-        error: (error) => {
-          console.error('Błąd pobierania najczęściej słuchanych artystów:', error);
-          this.topArtists.set(null);
-          this.hasTopArtistsError.set(true);
-          this.isTopArtistsLoading.set(false);
-          this.genreDistribution.set(null);
-          this.hasGenreDistributionError.set(true);
-          this.isGenreDistributionLoading.set(false);
-        },
-      });
+    this.artistsStore.retry();
   }
 }
