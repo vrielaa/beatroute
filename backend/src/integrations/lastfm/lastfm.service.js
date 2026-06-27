@@ -307,6 +307,7 @@ export async function getLastfmArtistInfo(artist) {
 
   return {
     name: resolvedArtist,
+    requestedName: artist,
     mbid: data?.artist?.mbid || null,
     url: data?.artist?.url ?? null,
     genre: genreTags[0]?.name ?? null,
@@ -363,8 +364,10 @@ export async function getLastfmArtistGenreDistribution(artists) {
   let totalGenreMatches = 0;
 
   for (const artist of artistResults) {
+    const artistName = artist.requestedName ?? artist.name;
+
     if (!artist.genreCandidates?.length) {
-      unmatchedArtists.push(artist.name);
+      unmatchedArtists.push(artistName);
       continue;
     }
 
@@ -396,18 +399,18 @@ export async function getLastfmArtistGenreDistribution(artists) {
       };
 
       existingSubgenre.count += 1;
-      existingSubgenre.artistSet.add(artist.name);
+      existingSubgenre.artistSet.add(artistName);
       existingGenre.subgenreMap.set(normalizedSubgenre, existingSubgenre);
 
       existingGenre.count += 1;
-      existingGenre.artistSet.add(artist.name);
+      existingGenre.artistSet.add(artistName);
       totalGenreMatches += 1;
 
       genreMap.set(canonicalGenreName, existingGenre);
     }
 
     if (!hasMatchedGenre) {
-      unmatchedArtists.push(artist.name);
+      unmatchedArtists.push(artistName);
     }
   }
 

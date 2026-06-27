@@ -75,9 +75,16 @@ export class Dashboard {
     if (!distribution) return {};
 
     return distribution.genres.reduce<Record<string, string[]>>((genres, genre) => {
-      for (const artist of genre.artists) {
-        const normalizedArtist = this.normalizeArtistName(artist);
-        genres[normalizedArtist] = [...(genres[normalizedArtist] ?? []), genre.name];
+      const displayGenres = genre.subgenres.length ? genre.subgenres : [genre];
+
+      for (const displayGenre of displayGenres) {
+        for (const artist of displayGenre.artists) {
+          const normalizedArtist = this.normalizeArtistName(artist);
+          genres[normalizedArtist] = this.addUniqueGenre(
+            genres[normalizedArtist] ?? [],
+            displayGenre.name
+          );
+        }
       }
 
       return genres;
@@ -124,6 +131,19 @@ export class Dashboard {
 
   private normalizeArtistName(artistName: string): string {
     return artistName.trim().toLocaleLowerCase();
+  }
+
+  private normalizeGenreName(genreName: string): string {
+    return genreName.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+  }
+
+  private addUniqueGenre(genres: string[], genreName: string): string[] {
+    const normalizedGenreName = this.normalizeGenreName(genreName);
+    const alreadyExists = genres.some(
+      (genre) => this.normalizeGenreName(genre) === normalizedGenreName
+    );
+
+    return alreadyExists ? genres : [...genres, genreName];
   }
 
   private loadTopTracksAndAudioStats(timeRange: TimeRange, tracksRange: number): Subscription {
