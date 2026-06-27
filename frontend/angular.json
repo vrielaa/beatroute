@@ -62,8 +62,8 @@
             "liveReload": true,
             "port": 4200,
             "ssl": true,
-            "sslCert": "./certs/localhost.pem",
-            "sslKey": "./certs/localhost-key.pem",
+            "sslCert": "./certs/127.0.0.1.pem",
+            "sslKey": "./certs/127.0.0.1-key.pem",
             "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
