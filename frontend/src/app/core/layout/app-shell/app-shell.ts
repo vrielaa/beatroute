@@ -37,8 +37,14 @@ export class AppShellComponent {
 
   public readonly isMenuOpen = signal(false);
   public readonly navLinkClasses =
-    'flex h-full min-h-[0] w-full min-w-[0] items-center justify-center gap-[1rem] rounded-[2rem] border-0 px-[clamp(1rem,3vw,6rem)] py-[0.5rem] text-[length:var(--text-base)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)] active:bg-[var(--color-surface-tertiary)] max-[900px]:gap-[0.6rem] max-[900px]:px-[1rem] max-[900px]:text-[length:var(--text-sm)] max-[600px]:p-[0.6rem]';
-  public readonly activeNavLinkClasses = `${this.navLinkClasses} bg-[var(--color-surface-tertiary)]`;
+    'group relative flex h-full min-h-[0] w-full min-w-[0] border-0 p-0 text-[var(--color-text-primary)]';
+  public readonly navLinkContentClasses =
+    'relative flex h-full min-h-[0] min-w-[0] items-center justify-center gap-[1rem] rounded-[2rem] px-[clamp(1rem,3vw,6rem)] py-[0.5rem] [transition:background-color_var(--transition-fast)] group-hover:bg-[var(--color-surface-tertiary)] group-active:bg-[var(--color-surface-tertiary)] max-[900px]:gap-[0.6rem] max-[900px]:px-[1rem] max-[600px]:p-[0.6rem]';
+  public readonly firstNavLinkContentSizeClasses = 'w-full';
+  public readonly overlappedNavLinkContentSizeClasses = '-ml-[1rem] w-[calc(100%+1rem)]';
+  public readonly activeNavLinkContentClasses = 'bg-[var(--color-surface-tertiary)]';
+  public readonly navLinkLabelClasses =
+    'text-[length:var(--text-base)] font-[var(--font-weight-medium)] leading-[var(--line-height-tight)] max-[900px]:text-[length:1.5rem] max-[600px]:sr-only';
 
   private readonly baseNavLinks: BaseNavLink[] = [
     {
