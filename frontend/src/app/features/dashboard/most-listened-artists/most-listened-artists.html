@@ -45,6 +45,13 @@
 
       <div class="artist-info">
         <p class="artist-name" [title]="artist.name">{{ artist.name }}</p>
+        @if (artistGenresFor(artist).length) {
+        <div class="artist-genres" [attr.aria-label]="'Gatunki artysty ' + artist.name">
+          @for (genre of artistGenresFor(artist); track genre) {
+          <span class="artist-genre">{{ genre }}</span>
+          }
+        </div>
+        }
       </div>
     </li>
     }

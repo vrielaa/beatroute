@@ -42,11 +42,36 @@
     <div class="genre-summary">
       <ul class="genre-legend">
         @for (segment of segments(); track segment.name) {
-        <li [title]="segment.artists.join(', ')">
-          <span class="legend-color" [style.background-color]="segment.color"></span>
-          <span class="legend-name">{{ segment.name }}</span>
-          <strong>{{ segment.percentage }}%</strong>
-          <span class="legend-count">{{ segment.count }}</span>
+        <li class="genre-item" [title]="segment.artists.join(', ')">
+          @if (hasExpandableSubgenres(segment)) {
+          <details class="genre-details">
+            <summary class="genre-row">
+              <span class="legend-color" [style.background-color]="segment.color"></span>
+              <span class="legend-name">{{ segment.name }}</span>
+              <strong>{{ segment.percentage }}%</strong>
+              <span class="legend-count">{{ segment.count }}</span>
+              <span class="expand-indicator" aria-hidden="true">+</span>
+            </summary>
+
+            <ul class="subgenre-list" [attr.aria-label]="'Podgatunki dla ' + segment.name">
+              @for (subgenre of segment.subgenres; track subgenre.name) {
+              <li [title]="subgenre.artists.join(', ')">
+                <span>{{ subgenre.name }}</span>
+                <strong>{{ subgenre.percentage }}%</strong>
+                <span>{{ subgenre.count }}</span>
+              </li>
+              }
+            </ul>
+          </details>
+          } @else {
+          <div class="genre-row">
+            <span class="legend-color" [style.background-color]="segment.color"></span>
+            <span class="legend-name">{{ segment.name }}</span>
+            <strong>{{ segment.percentage }}%</strong>
+            <span class="legend-count">{{ segment.count }}</span>
+            <span class="expand-spacer" aria-hidden="true"></span>
+          </div>
+          }
         </li>
         }
       </ul>

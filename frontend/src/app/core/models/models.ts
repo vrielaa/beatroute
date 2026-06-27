@@ -106,17 +106,22 @@ export interface SpotifyLastfmTrackResponse {
   lastfm: LastfmTrackInfo;
 }
 
-export interface ArtistGenreDistributionItem {
+export interface ArtistGenreDistributionSubgenreItem {
   name: string;
   count: number;
   percentage: number;
   artists: string[];
 }
 
+export interface ArtistGenreDistributionItem extends ArtistGenreDistributionSubgenreItem {
+  subgenres: ArtistGenreDistributionSubgenreItem[];
+}
+
 export interface ArtistGenreDistributionResponse {
   genres: ArtistGenreDistributionItem[];
   totalArtists: number;
   matchedArtists: number;
+  totalGenreMatches: number;
   unmatchedArtists: string[];
   source: 'lastfm-artist-info-tags';
 }

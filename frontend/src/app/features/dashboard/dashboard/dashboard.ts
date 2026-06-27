@@ -66,6 +66,21 @@ export class Dashboard {
     };
   });
 
+  public readonly artistGenres = computed<Record<string, string[]>>(() => {
+    const distribution = this.genreDistribution();
+
+    if (!distribution) return {};
+
+    return distribution.genres.reduce<Record<string, string[]>>((genres, genre) => {
+      for (const artist of genre.artists) {
+        const normalizedArtist = this.normalizeArtistName(artist);
+        genres[normalizedArtist] = [...(genres[normalizedArtist] ?? []), genre.name];
+      }
+
+      return genres;
+    }, {});
+  });
+
   constructor() {
     effect((onCleanup) => {
       const subscription = this.loadTopTracksAndAudioStats(
@@ -102,6 +117,10 @@ export class Dashboard {
 
   public retryTopArtists(): void {
     this.topArtistsReloadTrigger.update((value) => value + 1);
+  }
+
+  private normalizeArtistName(artistName: string): string {
+    return artistName.trim().toLocaleLowerCase();
   }
 
   private loadTopTracksAndAudioStats(timeRange: TimeRange, tracksRange: number): Subscription {

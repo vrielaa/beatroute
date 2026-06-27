@@ -23,6 +23,7 @@ export class MostListenedArtists {
 
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly artists = input<TopArtist[]>([]);
+  public readonly artistGenres = input<Record<string, string[]>>({});
   public readonly isLoading = input(true);
   public readonly hasError = input(false);
   public readonly retryRequested = output<void>();
@@ -63,6 +64,14 @@ export class MostListenedArtists {
 
   public artistInitial(artist: TopArtist): string {
     return artist.name.charAt(0).toUpperCase();
+  }
+
+  public artistGenresFor(artist: TopArtist): string[] {
+    return this.artistGenres()[this.normalizeArtistName(artist.name)] ?? [];
+  }
+
+  private normalizeArtistName(artistName: string): string {
+    return artistName.trim().toLocaleLowerCase();
   }
 
   private updateSkeletonCount(grid: HTMLOListElement): void {

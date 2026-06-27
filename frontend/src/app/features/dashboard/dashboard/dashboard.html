@@ -16,6 +16,7 @@
   class="card"
   [timeRange]="selectedTimeRange()"
   [artists]="topArtists()?.items ?? []"
+  [artistGenres]="artistGenres()"
   [isLoading]="isTopArtistsLoading()"
   [hasError]="hasTopArtistsError()"
   (retryRequested)="retryTopArtists()"
