@@ -144,7 +144,8 @@
                     "isLoggedIn": {
                       "type": "boolean"
                     }
-                  }
+                  },
+                  "required": ["isLoggedIn"]
                 }
               }
             }
@@ -158,7 +159,14 @@
         "summary": "Log out current user",
         "responses": {
           "200": {
-            "description": "Logged out successfully"
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -196,7 +204,14 @@
         "summary": "Disconnect the Last.fm account",
         "responses": {
           "200": {
-            "description": "Last.fm account disconnected"
+            "description": "Last.fm account disconnected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Application session could not be updated"
@@ -210,7 +225,14 @@
         "summary": "Get current Spotify user profile",
         "responses": {
           "200": {
-            "description": "Spotify user profile"
+            "description": "Spotify user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpotifyUserProfile"
+                }
+              }
+            }
           },
           "401": {
             "description": "User not logged in"
@@ -245,7 +267,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Top tracks list"
+            "description": "Top tracks list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopTracksResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "User not logged in"
@@ -280,7 +309,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Top artists list"
+            "description": "Top artists list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopArtistsResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "User not logged in"
@@ -294,7 +330,14 @@
         "summary": "Get the connected Last.fm user profile",
         "responses": {
           "200": {
-            "description": "Last.fm user profile"
+            "description": "Last.fm user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastfmUserProfile"
+                }
+              }
+            }
           },
           "401": {
             "description": "Last.fm account is not connected"
@@ -382,7 +425,14 @@
         },
         "responses": {
           "200": {
-            "description": "Genre distribution among the supplied artists"
+            "description": "Genre distribution among the supplied artists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistGenreDistributionResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid artist list"
@@ -407,7 +457,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Spotify metadata and Last.fm track information"
+            "description": "Spotify metadata and Last.fm track information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpotifyLastfmTrackResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "Spotify session is missing or expired"
@@ -431,34 +488,288 @@
       }
     },
     "schemas": {
-      "LastfmTrack": {
+      "MessageResponse": {
         "type": "object",
         "properties": {
-          "artist": {
-            "type": "string"
-          },
-          "track": {
-            "type": "string"
-          },
-          "album": {
-            "type": "string"
-          },
-          "albumArtist": {
-            "type": "string"
-          },
-          "duration": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "trackNumber": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "mbid": {
+          "message": {
             "type": "string"
           }
         },
-        "required": ["artist", "track"]
+        "required": ["message"]
+      },
+      "SpotifyExternalUrls": {
+        "type": "object",
+        "properties": {
+          "spotify": {
+            "type": "string"
+          }
+        },
+        "required": ["spotify"]
+      },
+      "SpotifyImage": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "height": {
+            "type": ["integer", "null"]
+          },
+          "width": {
+            "type": ["integer", "null"]
+          }
+        },
+        "required": ["url", "height", "width"]
+      },
+      "SpotifyFollowers": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": ["total"]
+      },
+      "SpotifyUserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": ["string", "null"]
+          },
+          "email": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpotifyImage"
+            }
+          },
+          "external_urls": {
+            "$ref": "#/components/schemas/SpotifyExternalUrls"
+          },
+          "followers": {
+            "$ref": "#/components/schemas/SpotifyFollowers"
+          },
+          "href": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        },
+        "required": ["id"]
+      },
+      "SpotifyTopArtist": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpotifyImage"
+            }
+          },
+          "followers": {
+            "$ref": "#/components/schemas/SpotifyFollowers"
+          },
+          "popularity": {
+            "type": "integer"
+          },
+          "external_urls": {
+            "$ref": "#/components/schemas/SpotifyExternalUrls"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "genres",
+          "images",
+          "followers",
+          "popularity",
+          "external_urls"
+        ]
+      },
+      "SpotifyTrackArtist": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["name"]
+      },
+      "SpotifyAlbumSummary": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpotifyImage"
+            }
+          }
+        },
+        "required": ["name", "images"]
+      },
+      "SpotifyTopTrack": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "artists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpotifyTrackArtist"
+            }
+          },
+          "album": {
+            "$ref": "#/components/schemas/SpotifyAlbumSummary"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "popularity": {
+            "type": "integer"
+          }
+        },
+        "required": ["id", "name", "artists", "album", "duration_ms", "popularity"]
+      },
+      "SpotifyPagingBase": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "next": {
+            "type": ["string", "null"]
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "previous": {
+            "type": ["string", "null"]
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": ["href", "limit", "next", "offset", "previous", "total"]
+      },
+      "TopTracksResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SpotifyPagingBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SpotifyTopTrack"
+                }
+              }
+            },
+            "required": ["items"]
+          }
+        ]
+      },
+      "TopArtistsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SpotifyPagingBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SpotifyTopArtist"
+                }
+              }
+            },
+            "required": ["items"]
+          }
+        ]
+      },
+      "LastfmUserProfile": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "realname": {
+            "type": ["string", "null"]
+          },
+          "url": {
+            "type": ["string", "null"]
+          },
+          "image": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "#text": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                }
+              },
+              "required": ["#text", "size"]
+            }
+          },
+          "playcount": {
+            "type": ["string", "null"]
+          },
+          "registered": {
+            "type": "object",
+            "properties": {
+              "unixtime": {
+                "type": "string"
+              },
+              "#text": {
+                "type": "integer"
+              }
+            }
+          },
+          "country": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["name"]
       },
       "LastfmTrackInfo": {
         "type": "object",
@@ -524,6 +835,128 @@
           "tags",
           "genreSource",
           "genreIsFallback"
+        ]
+      },
+      "SpotifyTrackSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "artists": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "album": {
+            "type": ["string", "null"]
+          },
+          "durationMs": {
+            "type": ["integer", "null"]
+          },
+          "spotifyUrl": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["id", "name", "artists", "album", "durationMs", "spotifyUrl"]
+      },
+      "SpotifyLastfmTrackResponse": {
+        "type": "object",
+        "properties": {
+          "spotify": {
+            "$ref": "#/components/schemas/SpotifyTrackSummary"
+          },
+          "lastfm": {
+            "$ref": "#/components/schemas/LastfmTrackInfo"
+          }
+        },
+        "required": ["spotify", "lastfm"]
+      },
+      "ArtistGenreDistributionSubgenreItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "percentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "artists": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["name", "count", "percentage", "artists"]
+      },
+      "ArtistGenreDistributionItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ArtistGenreDistributionSubgenreItem"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "subgenres": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ArtistGenreDistributionSubgenreItem"
+                }
+              }
+            },
+            "required": ["subgenres"]
+          }
+        ]
+      },
+      "ArtistGenreDistributionResponse": {
+        "type": "object",
+        "properties": {
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtistGenreDistributionItem"
+            }
+          },
+          "totalArtists": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "matchedArtists": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalGenreMatches": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unmatchedArtists": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "enum": ["lastfm-artist-info-tags"]
+          }
+        },
+        "required": [
+          "genres",
+          "totalArtists",
+          "matchedArtists",
+          "totalGenreMatches",
+          "unmatchedArtists",
+          "source"
         ]
       }
     }
