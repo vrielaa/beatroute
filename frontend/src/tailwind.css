@@ -1,0 +1,17 @@
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source "./app";
+
+@keyframes bpm-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
