@@ -1,54 +1,79 @@
-<div class="artists-header">
-  <div class="heading-icon" aria-hidden="true">
+<div class="flex items-start gap-[1rem]">
+  <div class="flex-none text-[var(--color-accent)]" aria-hidden="true">
     <app-icon name="artists" />
   </div>
 
-  <div>
-    <h3>Najczęściej słuchani artyści</h3>
-    <p>Twoi ulubieni wykonawcy z {{ periodLabel() }}</p>
+  <div class="min-w-[0]">
+    <h3 class="text-[length:var(--text-lg)] leading-[inherit] max-[420px]:text-[length:var(--text-base)] max-[420px]:leading-[var(--line-height-tight)]">
+      Najczęściej słuchani artyści
+    </h3>
+    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      Twoi ulubieni wykonawcy z {{ periodLabel() }}
+    </p>
   </div>
 </div>
 
-<div class="artists-content" aria-live="polite">
+<div class="min-h-[18rem]" aria-live="polite">
   @if (isLoading()) {
-  <ol #skeletonGrid class="artists-grid" aria-label="Ładowanie artystów">
+  <ol #skeletonGrid [class]="artistsGridClasses" aria-label="Ładowanie artystów">
     @for (item of skeletonItems(); track item) {
-    <li class="artist-card skeleton-card">
-      <span class="skeleton skeleton-rank"></span>
-      <span class="skeleton skeleton-image"></span>
-      <span class="skeleton skeleton-name"></span>
+    <li [class]="skeletonCardClasses">
+      <span
+        class="skeleton absolute left-[1rem] top-[1rem] h-[2.6rem] w-[2.6rem] rounded-full"
+      ></span>
+      <span class="skeleton h-[9.6rem] w-[9.6rem] rounded-full max-[420px]:h-[7.2rem] max-[420px]:w-[7.2rem]"></span>
+      <span class="skeleton h-[1.6rem] w-3/4 rounded-[var(--radius-xs)]"></span>
     </li>
     }
   </ol>
   } @else if (hasError()) {
-  <div class="state-message">
+  <div [class]="stateMessageClasses">
     <p>Nie udało się pobrać listy artystów.</p>
-    <button type="button" (click)="retry()">Spróbuj ponownie</button>
+    <button type="button" [class]="retryButtonClasses" (click)="retry()">Spróbuj ponownie</button>
   </div>
   } @else if (artists().length === 0) {
-  <div class="state-message">
+  <div [class]="stateMessageClasses">
     <p>Brak danych o artystach dla wybranego okresu.</p>
   </div>
   } @else {
-  <ol class="artists-grid">
+  <ol [class]="artistsGridClasses">
     @for (artist of artists(); track artist.id; let position = $index) {
-    <li class="artist-card">
-      <span class="artist-rank" [class.top-three]="position < 3">{{ position + 1 }}</span>
+    <li [class]="artistCardClasses">
+      <span [class]="position < 3 ? topArtistRankClasses : artistRankClasses">
+        {{ position + 1 }}
+      </span>
 
-      <div class="artist-image">
+      <div [class]="artistImageClasses">
         @if (artist.images[0]?.url; as imageUrl) {
-        <img [src]="imageUrl" [alt]="'Zdjęcie artysty ' + artist.name" loading="lazy" />
+        <img
+          class="h-full w-full object-cover"
+          [src]="imageUrl"
+          [alt]="'Zdjęcie artysty ' + artist.name"
+          loading="lazy"
+        />
         } @else {
         <span aria-hidden="true">{{ artistInitial(artist) }}</span>
         }
       </div>
 
-      <div class="artist-info">
-        <p class="artist-name" [title]="artist.name">{{ artist.name }}</p>
+      <div class="flex w-max max-w-full min-w-[0] flex-col items-center gap-[0.6rem] text-center">
+        <p
+          class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
+          [title]="artist.name"
+        >
+          {{ artist.name }}
+        </p>
         @if (artistGenresFor(artist).length) {
-        <div class="artist-genres" [attr.aria-label]="'Gatunki artysty ' + artist.name">
+        <div
+          class="flex max-w-full flex-wrap justify-center gap-[0.4rem]"
+          [attr.aria-label]="'Gatunki artysty ' + artist.name"
+        >
           @for (genre of artistGenresFor(artist); track genre) {
-          <span class="artist-genre">{{ genre }}</span>
+          <span
+            class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--radius-pill)] bg-[var(--color-accent-soft)] px-[0.8rem] py-[0.4rem] text-[length:var(--text-xs)] font-[var(--font-weight-semibold)] text-[var(--color-accent)]"
+          >
+            {{ genre }}
+          </span>
           }
         </div>
         }
