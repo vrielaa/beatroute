@@ -29,42 +29,271 @@ function normalizeLastfmTags(tags) {
     .filter((tag) => tag.name);
 }
 
-const NON_GENRE_TAGS = new Set([
-  "american",
-  "australian",
-  "beautiful voice",
-  "british",
-  "canadian",
-  "danish",
-  "female vocalists",
-  "finnish",
-  "french",
-  "german",
-  "icelandic",
-  "italian",
-  "japanese",
-  "korean",
-  "male vocalists",
-  "norwegian",
-  "poland",
-  "polish",
-  "russian",
-  "seen live",
-  "soty",
-  "spanish",
-  "swedish",
-  "ukrainian",
-]);
+function normalizeGenreName(name) {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " n ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isPopToken(token) {
+  return token === "pop" || token.endsWith("pop");
+}
+
+function isRapToken(token) {
+  return token === "rap" || /^rap[a-z0-9]+$/.test(token);
+}
+
+function findTokenStartIndex(tokens, predicate) {
+  let startIndex = 0;
+
+  for (const token of tokens) {
+    if (predicate(token)) {
+      return startIndex;
+    }
+
+    startIndex += token.length;
+  }
+
+  return -1;
+}
+
+const CORE_GENRE_RULES = [
+  {
+    name: "dancehall",
+    index: ({ compactName }) => compactName.indexOf("dancehall"),
+  },
+  {
+    name: "drum and bass",
+    index: ({ compactName }) => {
+      const drumAndBassIndex = compactName.indexOf("drumandbass");
+      return drumAndBassIndex >= 0
+        ? drumAndBassIndex
+        : compactName.indexOf("dnb");
+    },
+  },
+  {
+    name: "dubstep",
+    index: ({ compactName }) => compactName.indexOf("dubstep"),
+  },
+  {
+    name: "reggaeton",
+    index: ({ compactName }) => compactName.indexOf("reggaeton"),
+  },
+  {
+    name: "hip hop",
+    index: ({ compactName }) => compactName.indexOf("hiphop"),
+  },
+  {
+    name: "r&b",
+    index: ({ compactName }) => compactName.indexOf("rnb"),
+  },
+  {
+    name: "electronic",
+    index: ({ compactName }) => {
+      const electronicIndexes = ["electronic", "electronica", "electro"]
+        .map((keyword) => compactName.indexOf(keyword))
+        .filter((index) => index >= 0);
+
+      return electronicIndexes.length ? Math.min(...electronicIndexes) : -1;
+    },
+  },
+  {
+    name: "pop",
+    index: ({ tokens }) => findTokenStartIndex(tokens, isPopToken),
+  },
+  {
+    name: "rap",
+    index: ({ tokens }) => findTokenStartIndex(tokens, isRapToken),
+  },
+  {
+    name: "rock",
+    index: ({ compactName }) => compactName.indexOf("rock"),
+  },
+  {
+    name: "alternative",
+    index: ({ compactName }) => compactName.indexOf("alternative"),
+  },
+  {
+    name: "ambient",
+    index: ({ compactName }) => compactName.indexOf("ambient"),
+  },
+  {
+    name: "afrobeat",
+    index: ({ compactName }) => compactName.indexOf("afrobeat"),
+  },
+  {
+    name: "blues",
+    index: ({ compactName }) => compactName.indexOf("blues"),
+  },
+  {
+    name: "classical",
+    index: ({ compactName }) => compactName.indexOf("classical"),
+  },
+  {
+    name: "country",
+    index: ({ compactName }) => compactName.indexOf("country"),
+  },
+  {
+    name: "dance",
+    index: ({ compactName }) => compactName.indexOf("dance"),
+  },
+  {
+    name: "disco",
+    index: ({ compactName }) => compactName.indexOf("disco"),
+  },
+  {
+    name: "dub",
+    index: ({ compactName }) => compactName.indexOf("dub"),
+  },
+  {
+    name: "emo",
+    index: ({ compactName }) => compactName.indexOf("emo"),
+  },
+  {
+    name: "experimental",
+    index: ({ compactName }) => compactName.indexOf("experimental"),
+  },
+  {
+    name: "folk",
+    index: ({ compactName }) => compactName.indexOf("folk"),
+  },
+  {
+    name: "funk",
+    index: ({ compactName }) => compactName.indexOf("funk"),
+  },
+  {
+    name: "garage",
+    index: ({ compactName }) => compactName.indexOf("garage"),
+  },
+  {
+    name: "goth",
+    index: ({ compactName }) => compactName.indexOf("goth"),
+  },
+  {
+    name: "grunge",
+    index: ({ compactName }) => compactName.indexOf("grunge"),
+  },
+  {
+    name: "hardcore",
+    index: ({ compactName }) => compactName.indexOf("hardcore"),
+  },
+  {
+    name: "house",
+    index: ({ compactName }) => compactName.indexOf("house"),
+  },
+  {
+    name: "indie",
+    index: ({ compactName }) => compactName.indexOf("indie"),
+  },
+  {
+    name: "industrial",
+    index: ({ compactName }) => compactName.indexOf("industrial"),
+  },
+  {
+    name: "jazz",
+    index: ({ compactName }) => compactName.indexOf("jazz"),
+  },
+  {
+    name: "latin",
+    index: ({ compactName }) => compactName.indexOf("latin"),
+  },
+  {
+    name: "metal",
+    index: ({ compactName }) => compactName.indexOf("metal"),
+  },
+  {
+    name: "punk",
+    index: ({ compactName }) => compactName.indexOf("punk"),
+  },
+  {
+    name: "reggae",
+    index: ({ compactName }) => compactName.indexOf("reggae"),
+  },
+  {
+    name: "ska",
+    index: ({ compactName }) => compactName.indexOf("ska"),
+  },
+  {
+    name: "shoegaze",
+    index: ({ compactName }) => compactName.indexOf("shoegaze"),
+  },
+  {
+    name: "soul",
+    index: ({ compactName }) => compactName.indexOf("soul"),
+  },
+  {
+    name: "techno",
+    index: ({ compactName }) => compactName.indexOf("techno"),
+  },
+  {
+    name: "trance",
+    index: ({ compactName }) => compactName.indexOf("trance"),
+  },
+  {
+    name: "trap",
+    index: ({ compactName }) => compactName.indexOf("trap"),
+  },
+  {
+    name: "wave",
+    index: ({ compactName }) => compactName.indexOf("wave"),
+  },
+];
+
+function getCanonicalGenreName(name) {
+  const normalizedName = normalizeGenreName(name);
+
+  if (
+    !normalizedName ||
+    /^(19|20)\d{2}$/.test(normalizedName) ||
+    /^(19|20)\d0s$/.test(normalizedName) ||
+    /^\d{2}'?s$/.test(normalizedName)
+  ) {
+    return null;
+  }
+
+  const tokens = normalizedName.split(" ");
+  const compactName = tokens.join("");
+  const matches = CORE_GENRE_RULES.map((rule, priority) => ({
+    name: rule.name,
+    priority,
+    index: rule.index({ normalizedName, compactName, tokens }),
+  }))
+    .filter((match) => match.index >= 0)
+    .sort(
+      (firstMatch, secondMatch) =>
+        firstMatch.index - secondMatch.index ||
+        firstMatch.priority - secondMatch.priority
+    );
+
+  return matches[0]?.name ?? null;
+}
+
+function buildSubgenres(subgenreMap) {
+  const totalSubgenreMatches = [...subgenreMap.values()].reduce(
+    (sum, subgenre) => sum + subgenre.count,
+    0
+  );
+
+  return [...subgenreMap.values()]
+    .sort(
+      (firstSubgenre, secondSubgenre) =>
+        secondSubgenre.count - firstSubgenre.count ||
+        firstSubgenre.name.localeCompare(secondSubgenre.name)
+    )
+    .map(({ artistSet, ...subgenre }) => ({
+      ...subgenre,
+      artists: [...artistSet],
+      percentage: totalSubgenreMatches
+        ? Number(((subgenre.count / totalSubgenreMatches) * 100).toFixed(1))
+        : 0,
+    }));
+}
 
 function isLikelyGenreTag(tag) {
-  const normalizedName = tag.name.toLowerCase();
-
-  return (
-    !NON_GENRE_TAGS.has(normalizedName) &&
-    !/^(19|20)\d{2}$/.test(normalizedName) &&
-    !/^(19|20)\d0s$/.test(normalizedName) &&
-    !normalizedName.includes("'s daughter")
-  );
+  return getCanonicalGenreName(tag.name) !== null;
 }
 
 export async function getLastfmArtistInfo(artist) {
@@ -131,23 +360,55 @@ export async function getLastfmArtistGenreDistribution(artists) {
   );
   const genreMap = new Map();
   const unmatchedArtists = [];
+  let totalGenreMatches = 0;
 
   for (const artist of artistResults) {
-    if (!artist.genre) {
+    if (!artist.genreCandidates?.length) {
       unmatchedArtists.push(artist.name);
       continue;
     }
 
-    const normalizedGenre = artist.genre.toLocaleLowerCase();
-    const existingGenre = genreMap.get(normalizedGenre) ?? {
-      name: artist.genre,
-      count: 0,
-      artists: [],
-    };
+    let hasMatchedGenre = false;
 
-    existingGenre.count += 1;
-    existingGenre.artists.push(artist.name);
-    genreMap.set(normalizedGenre, existingGenre);
+    for (const genreName of artist.genreCandidates) {
+      const canonicalGenreName = getCanonicalGenreName(genreName);
+
+      if (!canonicalGenreName) {
+        continue;
+      }
+
+      hasMatchedGenre = true;
+
+      const existingGenre = genreMap.get(canonicalGenreName) ?? {
+        name: canonicalGenreName,
+        count: 0,
+        artistSet: new Set(),
+        subgenreMap: new Map(),
+      };
+      const normalizedSubgenre = normalizeGenreName(genreName);
+
+      const existingSubgenre = existingGenre.subgenreMap.get(
+        normalizedSubgenre
+      ) ?? {
+        name: genreName,
+        count: 0,
+        artistSet: new Set(),
+      };
+
+      existingSubgenre.count += 1;
+      existingSubgenre.artistSet.add(artist.name);
+      existingGenre.subgenreMap.set(normalizedSubgenre, existingSubgenre);
+
+      existingGenre.count += 1;
+      existingGenre.artistSet.add(artist.name);
+      totalGenreMatches += 1;
+
+      genreMap.set(canonicalGenreName, existingGenre);
+    }
+
+    if (!hasMatchedGenre) {
+      unmatchedArtists.push(artist.name);
+    }
   }
 
   const matchedArtists = artistResults.length - unmatchedArtists.length;
@@ -157,17 +418,20 @@ export async function getLastfmArtistGenreDistribution(artists) {
         secondGenre.count - firstGenre.count ||
         firstGenre.name.localeCompare(secondGenre.name)
     )
-    .map((genre) => ({
+    .map(({ subgenreMap, artistSet, ...genre }) => ({
       ...genre,
-      percentage: matchedArtists
-        ? Number(((genre.count / matchedArtists) * 100).toFixed(1))
+      artists: [...artistSet],
+      percentage: totalGenreMatches
+        ? Number(((genre.count / totalGenreMatches) * 100).toFixed(1))
         : 0,
+      subgenres: buildSubgenres(subgenreMap),
     }));
 
   return {
     genres,
     totalArtists: artistResults.length,
     matchedArtists,
+    totalGenreMatches,
     unmatchedArtists,
     source: "lastfm-artist-info-tags",
   };

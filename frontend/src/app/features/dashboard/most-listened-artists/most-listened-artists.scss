@@ -39,12 +39,15 @@
 .artists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  justify-items: center;
   gap: 1.2rem;
 }
 
 .artist-card {
   position: relative;
-  min-width: 0;
+  width: fit-content;
+  min-width: min(13rem, 100%);
+  max-width: min(28rem, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,6 +59,11 @@
   border-radius: var(--radius-lg);
   transition: transform var(--transition-base), background-color var(--transition-base),
     border-color var(--transition-base);
+}
+
+.skeleton-card {
+  width: 100%;
+  max-width: none;
 }
 
 .artist-card:not(.skeleton-card):hover {
@@ -108,12 +116,18 @@
 }
 
 .artist-info {
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
   text-align: center;
 }
 
 .artist-name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -122,6 +136,27 @@
 .artist-name {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
+}
+
+.artist-genres {
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.artist-genre {
+  max-width: 100%;
+  padding: 0.4rem 0.8rem;
+  overflow: hidden;
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-pill);
 }
 
 .state-message {
