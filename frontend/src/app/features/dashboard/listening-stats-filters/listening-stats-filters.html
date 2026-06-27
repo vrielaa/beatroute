@@ -1,28 +1,40 @@
-<div class="period-header">
-  <app-icon name="settings" />
+<div class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:items-start">
+  <app-icon class="flex-none" name="settings" />
 
-  <h3>Ustawienia parametrów do analizy</h3>
+  <h3 class="max-[600px]:leading-[var(--line-height-tight)]">
+    Ustawienia parametrów do analizy
+  </h3>
 </div>
 
-<form class="period-selector-container">
-  <label for="period-select">Wybierz zakres</label>
-  <select id="period-select" (change)="selectTimeRange($event)" [value]="selectedTimeRange()">
+<form
+  class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-[0.8rem]"
+>
+  <label [class]="labelClasses" for="period-select">Wybierz zakres</label>
+  <select
+    id="period-select"
+    [class]="selectClasses"
+    (change)="selectTimeRange($event)"
+    [value]="selectedTimeRange()"
+  >
     <button>
       <selectedcontent></selectedcontent>
     </button>
-    <option value="short_term">Ostatni miesiąc</option>
-    <option value="medium_term">Ostatnie 6 miesięcy</option>
-    <option value="long_term">Ostatni rok</option>
+    <option [class]="firstOptionClasses" value="short_term">Ostatni miesiąc</option>
+    <option [class]="middleOptionClasses" value="medium_term">Ostatnie 6 miesięcy</option>
+    <option [class]="lastOptionClasses" value="long_term">Ostatni rok</option>
   </select>
 </form>
 
-<form class="tracks-artists-range-container">
-  <div class="range-field">
-    <label for="tracks-range-input">Liczba utworów</label>
+<form
+  class="grid grid-cols-2 gap-[1.6rem] text-[length:var(--text-sm)] max-[700px]:grid-cols-1"
+>
+  <div [class]="rangeFieldClasses">
+    <label [class]="labelClasses" for="tracks-range-input">Liczba utworów</label>
 
-    <div class="range-controls">
+    <div [class]="rangeControlsClasses">
       <input
         id="tracks-range-input"
+        [class]="numberInputClasses"
         type="number"
         min="1"
         max="40"
@@ -32,6 +44,7 @@
 
       <input
         id="tracks-range-slider"
+        [class]="rangeInputClasses"
         type="range"
         min="1"
         max="40"
@@ -42,12 +55,13 @@
     </div>
   </div>
 
-  <div class="range-field">
-    <label for="artists-range-input">Liczba artystów</label>
+  <div [class]="rangeFieldClasses">
+    <label [class]="labelClasses" for="artists-range-input">Liczba artystów</label>
 
-    <div class="range-controls">
+    <div [class]="rangeControlsClasses">
       <input
         id="artists-range-input"
+        [class]="numberInputClasses"
         type="number"
         min="1"
         max="40"
@@ -57,6 +71,7 @@
 
       <input
         id="artists-range-slider"
+        [class]="rangeInputClasses"
         type="range"
         min="1"
         max="40"
@@ -70,9 +85,9 @@
 
 @if ( showInsufficientListeningHistoryWarning() || showMissingAudioDataWarning() ||
 showInsufficientArtistsHistoryWarning() ) {
-<div class="warnings-container">
+<div class="flex flex-col gap-[1rem]">
   @if (showInsufficientListeningHistoryWarning()) {
-  <div class="warning-banner">
+  <div [class]="warningBannerClasses">
     <p>
       <strong>Za mało danych w Spotify.</strong> Wybrano analizę
       {{ tracksFoundRatio()?.requestedTracksCount }} utworów, ale Spotify ma tylko
@@ -81,7 +96,7 @@ showInsufficientArtistsHistoryWarning() ) {
     </p>
   </div>
   } @if (showMissingAudioDataWarning()) {
-  <div class="warning-banner">
+  <div [class]="warningBannerClasses">
     <p>
       <strong>Brak danych audio w ReccoBeats.</strong> Wybrano analizę
       {{ tracksFoundRatio()?.requestedTracksCount }} utworów. Do analizy przekazano
@@ -90,7 +105,7 @@ showInsufficientArtistsHistoryWarning() ) {
     </p>
   </div>
   } @if (showInsufficientArtistsHistoryWarning()) {
-  <div class="warning-banner">
+  <div [class]="warningBannerClasses">
     <p>
       <strong>Za mało danych w Spotify.</strong> Wybrano analizę
       {{ artistsFoundRatio()?.requestedArtistsCount }} artystów, ale Spotify ma tylko
