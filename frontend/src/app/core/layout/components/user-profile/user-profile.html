@@ -1,9 +1,19 @@
-<p class="username">{{ userName() }}</p>
+<p
+  class="col-start-1 col-end-2 row-start-1 row-end-2 max-w-[18rem] self-end justify-self-end overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-base)] max-[1050px]:hidden"
+>
+  {{ userName() }}
+</p>
 
 @if (profileImageUrl(); as imageUrl) {
-<div class="profile-picture-container">
-  <img [src]="imageUrl" alt="User Profile Picture" class="profile-picture" />
+<div
+  class="col-start-2 col-end-3 row-start-1 row-end-[-1] h-[5rem] w-[5rem] overflow-hidden rounded-full max-[1050px]:col-start-1 max-[1050px]:h-[4.4rem] max-[1050px]:w-[4.4rem]"
+>
+  <img [src]="imageUrl" alt="User Profile Picture" class="h-full w-full object-cover" />
 </div>
 } @if (userEmail(); as email) {
-<p class="useremail subtext">{{ email }}</p>
+<p
+  class="col-start-1 col-end-2 row-start-2 row-end-3 max-w-[22rem] self-start justify-self-end overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-primary)] max-[1050px]:hidden"
+>
+  {{ email }}
+</p>
 }
