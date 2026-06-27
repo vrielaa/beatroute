@@ -1,6 +1,14 @@
-<img [src]="logoUrl" alt="Logo" class="logo-img" />
+<img
+  [src]="logoUrl"
+  alt="Logo"
+  class="h-[6rem] w-[6rem] max-[600px]:h-[4.4rem] max-[600px]:w-[4.4rem] max-[360px]:h-[4rem] max-[360px]:w-[4rem]"
+/>
 
-<p class="text">
-  <span class="logo-text">BeatRoute</span>
-  <span class="logo-subtext">Analiza Preferencji Muzycznych</span>
+<p class="flex min-w-[0] flex-col justify-center max-[360px]:hidden">
+  <span class="text-[length:var(--text-xl)] font-[var(--font-weight-bold)] max-[600px]:text-[length:var(--text-lg)]">
+    BeatRoute
+  </span>
+  <span class="text-[length:var(--text-sm)] text-[var(--color-text-primary)] max-[600px]:hidden">
+    Analiza Preferencji Muzycznych
+  </span>
 </p>
