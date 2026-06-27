@@ -1,4 +1,8 @@
-<button type="button" class="dark-mode-toggle" (click)="toggleDarkMode()">
+<button
+  type="button"
+  class="text-[var(--color-text-primary)] transition-all duration-300 ease-[ease] hover:scale-110 active:translate-y-[0.1rem]"
+  (click)="toggleDarkMode()"
+>
   @if (!isDarkMode()) {
   <svg
     xmlns="http://www.w3.org/2000/svg"
