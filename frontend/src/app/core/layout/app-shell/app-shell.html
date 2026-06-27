@@ -14,23 +14,32 @@
     <nav
       class="grid h-full w-[min(100%,120rem)] grid-cols-4 grid-rows-1 items-stretch overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface)] p-[0.4rem] shadow-[0_0.8rem_2.4rem_var(--color-shadow)] max-[600px]:rounded-[var(--radius-lg)]"
     >
-      @for (link of navLinks; track link.path) {
+      @for (link of navLinks; track link.path; let isFirst = $first) {
       <button
         type="button"
-        [class]="link.isActive() ? activeNavLinkClasses : navLinkClasses"
+        [class]="navLinkClasses"
         [attr.aria-label]="link.label"
         [id]="link.id"
         (click)="navigateTo(link.path)"
       >
-        <app-icon
-          class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
-          [name]="link.icon"
-          [size]="16"
-          viewBox="0 0 16 16"
-          [strokeWidth]="1.33333"
-        />
+        <span
+          [class]="
+            navLinkContentClasses +
+            ' ' +
+            (isFirst ? firstNavLinkContentSizeClasses : overlappedNavLinkContentSizeClasses) +
+            (link.isActive() ? ' ' + activeNavLinkContentClasses : '')
+          "
+        >
+          <app-icon
+            class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
+            [name]="link.icon"
+            [size]="16"
+            viewBox="0 0 16 16"
+            [strokeWidth]="1.33333"
+          />
 
-        <span class="max-[600px]:sr-only">{{ link.label }}</span>
+          <span [class]="navLinkLabelClasses">{{ link.label }}</span>
+        </span>
       </button>
       }
     </nav>
