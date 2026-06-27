@@ -26,13 +26,19 @@ type NavLink = BaseNavLink & {
   selector: 'app-app-shell',
   imports: [RouterOutlet, Logout, UserProfile, Logo, DarkMode, Icon],
   templateUrl: './app-shell.html',
-  styleUrl: './app-shell.scss',
+  host: {
+    class:
+      'grid min-h-[100dvh] grid-cols-1 grid-rows-[8rem_8rem_minmax(0,1fr)] [font-family:var(--font-sons)] max-[900px]:grid-rows-[7rem_7rem_minmax(0,1fr)] max-[600px]:grid-rows-[6.4rem_6.4rem_minmax(0,1fr)]',
+  },
 })
 export class AppShellComponent {
   public readonly spotifyService = inject(SpotifyService);
   private readonly router = inject(Router);
 
   public readonly isMenuOpen = signal(false);
+  public readonly navLinkClasses =
+    'flex h-full min-h-[0] w-full min-w-[0] items-center justify-center gap-[1rem] rounded-[2rem] border-0 px-[clamp(1rem,3vw,6rem)] py-[0.5rem] text-[length:var(--text-base)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)] active:bg-[var(--color-surface-tertiary)] max-[900px]:gap-[0.6rem] max-[900px]:px-[1rem] max-[900px]:text-[length:var(--text-sm)] max-[600px]:p-[0.6rem]';
+  public readonly activeNavLinkClasses = `${this.navLinkClasses} bg-[var(--color-surface-tertiary)]`;
 
   private readonly baseNavLinks: BaseNavLink[] = [
     {
