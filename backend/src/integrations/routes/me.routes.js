@@ -52,8 +52,6 @@ router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
 
     const data = await spotifyResponse.json();
 
-    console.log("Spotify top artists response:", data);
-
     if (!spotifyResponse.ok) {
       return res.status(spotifyResponse.status).json(data);
     }

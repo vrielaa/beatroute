@@ -12,7 +12,6 @@ export class Logout {
   readonly spotifyService = inject(SpotifyService);
 
   public logout(): void {
-    console.log('Logging out...');
     this.spotifyService.logout().subscribe({
       next: () => {
         window.location.href = '/login';

@@ -37,7 +37,6 @@ export class MostListenedArtists {
       medium_term: 'ostatnich 6 miesięcy',
       long_term: 'ostatniego roku',
     };
-    console.log(this.artists());
 
     return labels[this.timeRange()];
   });
