@@ -64,7 +64,6 @@ export class ListeningStatsFilters {
   public selectTimeRange(e: Event): void {
     const range = (e.target as HTMLSelectElement).value as TimeRange;
     this.timeRangeChange.emit(range);
-    console.log('Selected range:', range);
   }
 
   private clampRange(value: number): number {
