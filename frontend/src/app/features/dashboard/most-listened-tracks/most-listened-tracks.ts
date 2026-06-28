@@ -22,9 +22,6 @@ export class MostListenedTracks {
   public readonly audioFeatures = input<AudioFeatures[]>([]);
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly isLoading = input(false);
-  public readonly trackRowClasses =
-    'grid list-none grid-cols-[2.8rem_minmax(0,1.2fr)_minmax(0,0.9fr)_1.6rem] items-center gap-[1rem] px-[1rem] py-[1rem] max-[640px]:grid-cols-[2.4rem_minmax(0,1fr)_1.6rem] max-[640px]:gap-[0.8rem]';
-  public readonly expandableTrackRowClasses = `${this.trackRowClasses} cursor-pointer [&::-webkit-details-marker]:hidden`;
 
   public readonly audioFeaturesByTrackId = computed(() => {
     const featuresByTrackId = new Map<string, AudioFeatures>();
