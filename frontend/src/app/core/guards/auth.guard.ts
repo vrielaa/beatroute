@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { SpotifyService } from '@core/services/spotify.service';
 import { catchError, map, of } from 'rxjs';
-import { SpotifyService } from '../../spotify.service';
 
 export const authGuard: CanActivateFn = () => {
   const spotifyService = inject(SpotifyService);

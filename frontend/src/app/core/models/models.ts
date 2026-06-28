@@ -1,5 +1,32 @@
 export type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
+export interface SpotifyExternalUrls {
+  spotify: string;
+}
+
+export interface SpotifyImage {
+  url: string;
+  height: number | null;
+  width: number | null;
+}
+
+export interface SpotifyFollowers {
+  total: number;
+}
+
+export interface SpotifyUserProfile {
+  id: string;
+  display_name?: string | null;
+  email?: string | null;
+  country?: string | null;
+  images?: SpotifyImage[];
+  external_urls?: SpotifyExternalUrls;
+  followers?: SpotifyFollowers;
+  href?: string;
+  type?: string;
+  uri?: string;
+}
+
 export interface TopTracksResponse {
   href: string;
   items: {
@@ -21,10 +48,10 @@ export interface TopArtist {
   id: string;
   name: string;
   genres: string[];
-  images: { url: string; height: number | null; width: number | null }[];
-  followers: { total: number };
+  images: SpotifyImage[];
+  followers: SpotifyFollowers;
   popularity: number;
-  external_urls: { spotify: string };
+  external_urls: SpotifyExternalUrls;
 }
 
 export interface TopArtistsResponse {
@@ -38,19 +65,22 @@ export interface TopArtistsResponse {
 }
 
 export type AudioFeatures = {
+  id?: string;
+  spotifyId?: string;
   uuid?: string;
-  acousticness: number | null;
-  danceability: number | null;
-  energy: number | null;
-  instrumentalness: number | null;
-  key: number | null;
-  liveness: number | null;
-  loudness: number | null;
-  mode: number | null;
-  speechiness: number | null;
-  tempo: number | null;
-  time_signature: number | null;
-  valence: number | null;
+  acousticness?: number | null;
+  danceability?: number | null;
+  energy?: number | null;
+  instrumentalness?: number | null;
+  key?: number | null;
+  liveness?: number | null;
+  loudness?: number | null;
+  mode?: number | null;
+  speechiness?: number | null;
+  tempo?: number | null;
+  timeSignature?: number | null;
+  valence?: number | null;
+  error?: string;
 };
 
 export type MultipleAudioFeaturesResponse = {

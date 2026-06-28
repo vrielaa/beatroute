@@ -1,41 +1,36 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, httpResource } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import {
-  TimeRange,
-  TopTracksResponse,
-  MultipleAudioFeaturesResponse,
   AudioStats,
+  MultipleAudioFeaturesResponse,
+  SpotifyUserProfile,
+  TimeRange,
   TopArtistsResponse,
-} from './core/models/models';
-import { Observable } from 'rxjs/internal/Observable';
+  TopTracksResponse,
+} from '../models/models';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SpotifyService {
-  public loginWithSpotify(): void {
-    window.location.href = '/auth/spotify/login';
-  }
-
   private readonly http = inject(HttpClient);
 
-  public authResource = httpResource<{ isLoggedIn: boolean }>(() => ({
-    url: '/api/auth/me',
-    method: 'GET',
-    withCredentials: true,
-  }));
-
-  public checkAuth() {
-    return this.http.get<{ isLoggedIn: boolean }>('/api/auth/me', {
-      withCredentials: true,
-    });
-  }
-
-  public userProfileResource = httpResource<any>(() => ({
+  public readonly userProfileResource = httpResource<SpotifyUserProfile>(() => ({
     url: '/api/me/profile',
     method: 'GET',
     withCredentials: true,
   }));
+
+  public loginWithSpotify(): void {
+    window.location.href = '/auth/spotify/login';
+  }
+
+  public checkAuth(): Observable<{ isLoggedIn: boolean }> {
+    return this.http.get<{ isLoggedIn: boolean }>('/api/auth/me', {
+      withCredentials: true,
+    });
+  }
 
   public getTopTracks(timeRange: TimeRange, limit = 10): Observable<TopTracksResponse> {
     return this.http.get<TopTracksResponse>('/api/me/top-tracks', {
@@ -73,8 +68,8 @@ export class SpotifyService {
     );
   }
 
-  public logout() {
-    return this.http.post(
+  public logout(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
       '/api/auth/logout',
       {},
       {
@@ -82,5 +77,4 @@ export class SpotifyService {
       }
     );
   }
-  readonly userProfile = this.userProfileResource.value;
 }

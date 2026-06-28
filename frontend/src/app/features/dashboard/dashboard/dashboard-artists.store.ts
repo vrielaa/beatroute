@@ -4,8 +4,8 @@ import {
   TimeRange,
   TopArtistsResponse,
 } from '@src/app/core/models/models';
-import { LastfmService } from '@src/app/lastfm.service';
-import { SpotifyService } from '@src/app/spotify.service';
+import { LastfmService } from '@core/services/lastfm.service';
+import { SpotifyService } from '@core/services/spotify.service';
 import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
 import { mapArtistGenres, mapArtistsFoundRatio } from './dashboard.mappers';
 

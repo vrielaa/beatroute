@@ -6,7 +6,7 @@ import { UserProfile } from '../components/user-profile/user-profile';
 import { Logo } from '../components/logo/logo';
 import { DarkMode } from '../components/dark-mode/dark-mode';
 
-import { SpotifyService } from '@src/app/spotify.service';
+import { SpotifyService } from '@core/services/spotify.service';
 import { Icon } from '@shared/components/icon/icon';
 import { IconName } from '@shared/icons/icons';
 

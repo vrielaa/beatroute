@@ -1,5 +1,11 @@
 import { Router } from "express";
 import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
+import {
+  isRequestValidationError,
+  MAX_ARTISTS_LIMIT,
+  MAX_TRACKS_LIMIT,
+  parseSpotifyTopItemsQuery,
+} from "../spotify/spotify.validators.js";
 
 const router = Router();
 
@@ -9,11 +15,12 @@ const headers = (req) => ({
 
 router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
   try {
-    const limit = String(req.query.limit || 10);
-    const timeRange = String(req.query.time_range || "medium_term");
+    const { limit, timeRange } = parseSpotifyTopItemsQuery(req.query, {
+      maxLimit: MAX_TRACKS_LIMIT,
+    });
 
     const params = new URLSearchParams({
-      limit,
+      limit: String(limit),
       time_range: timeRange,
     });
 
@@ -30,6 +37,10 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
 
     res.json(data);
   } catch (error) {
+    if (isRequestValidationError(error)) {
+      return res.status(400).json({ message: error.message });
+    }
+
     console.error("Top tracks error:", error);
     res.status(500).json({ message: "Nie udało się pobrać top tracks" });
   }
@@ -37,11 +48,12 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
 
 router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
   try {
-    const limit = String(req.query.limit || 10);
-    const timeRange = String(req.query.time_range || "medium_term");
+    const { limit, timeRange } = parseSpotifyTopItemsQuery(req.query, {
+      maxLimit: MAX_ARTISTS_LIMIT,
+    });
 
     const params = new URLSearchParams({
-      limit,
+      limit: String(limit),
       time_range: timeRange,
     });
 
@@ -58,6 +70,10 @@ router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
 
     res.json(data);
   } catch (error) {
+    if (isRequestValidationError(error)) {
+      return res.status(400).json({ message: error.message });
+    }
+
     console.error("Top artists error:", error);
     res.status(500).json({ message: "Nie udało się pobrać top artists" });
   }
