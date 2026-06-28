@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import {
   ArtistGenreDistributionResponse,
   SpotifyLastfmTrackResponse,
-} from './core/models/models';
+} from '../models/models';
 
 @Injectable({
   providedIn: 'root',

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AudioStats, TimeRange, TopTracksResponse } from '@src/app/core/models/models';
-import { SpotifyService } from '@src/app/spotify.service';
+import { SpotifyService } from '@core/services/spotify.service';
 import { of, Subscription, switchMap, tap } from 'rxjs';
 import { mapAverageBpm, mapTracksFoundRatio } from './dashboard.mappers';
 

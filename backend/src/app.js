@@ -18,7 +18,13 @@ import {
 import {
   SOUNDCHARTS_APP_ID,
   SOUNDCHARTS_API_KEY,
-} from './config/soundcharts.config.js';
+} from "./config/soundcharts.config.js";
+
+import {
+  LASTFM_API_KEY,
+  LASTFM_REDIRECT_URI,
+  LASTFM_SHARED_SECRET,
+} from "./config/lastfm.config.js";
 
 import authRoutes from "./integrations/routes/auth.routes.js";
 import sessionRoutes from "./integrations/routes/session.routes.js";
@@ -34,9 +40,24 @@ const requiredEnvVars = {
   SESSION_SECRET,
   SOUNDCHARTS_APP_ID,
   SOUNDCHARTS_API_KEY,
+  LASTFM_API_KEY,
+  LASTFM_REDIRECT_URI,
+  LASTFM_SHARED_SECRET,
 };
 
 validateEnv(requiredEnvVars);
+
+function validateSessionConfig() {
+  if (!IS_PRODUCTION) {
+    return;
+  }
+
+  throw new Error(
+    "NODE_ENV=production wymaga zewnętrznego store dla express-session; MemoryStore jest tylko do lokalnego developmentu"
+  );
+}
+
+validateSessionConfig();
 
 export function createApp() {
   const app = express();

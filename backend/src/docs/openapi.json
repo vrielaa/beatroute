@@ -24,6 +24,10 @@
       "description": "Endpoints for the currently logged-in user"
     },
     {
+      "name": "Tracks",
+      "description": "Track audio features and aggregate audio statistics"
+    },
+    {
       "name": "Last.fm",
       "description": "Last.fm account connection and user data"
     }
@@ -251,6 +255,8 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "minimum": 1,
+              "maximum": 40,
               "default": 10
             }
           },
@@ -276,6 +282,9 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid limit or time range"
+          },
           "401": {
             "description": "User not logged in"
           }
@@ -293,6 +302,8 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "minimum": 1,
+              "maximum": 40,
               "default": 10
             }
           },
@@ -318,8 +329,105 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid limit or time range"
+          },
           "401": {
             "description": "User not logged in"
+          }
+        }
+      }
+    },
+    "/api/tracks/{spotifyTrackId}/audio-features": {
+      "get": {
+        "tags": ["Tracks"],
+        "summary": "Get Soundcharts audio features for a Spotify track",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SpotifyTrackId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio features for the supplied Spotify track",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioFeatures"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Soundcharts request failed"
+          }
+        }
+      }
+    },
+    "/api/tracks/audio-features": {
+      "post": {
+        "tags": ["Tracks"],
+        "summary": "Get ReccoBeats audio features for Spotify tracks",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackIdsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio features for the supplied Spotify tracks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultipleAudioFeaturesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid trackIds request body"
+          },
+          "500": {
+            "description": "ReccoBeats request failed"
+          }
+        }
+      }
+    },
+    "/api/tracks/audio-stats": {
+      "post": {
+        "tags": ["Tracks"],
+        "summary": "Calculate aggregate audio statistics for Spotify tracks",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackIdsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aggregate audio statistics for the supplied Spotify tracks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioStats"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid trackIds request body"
+          },
+          "500": {
+            "description": "ReccoBeats request failed"
           }
         }
       }
@@ -722,6 +830,181 @@
             },
             "required": ["items"]
           }
+        ]
+      },
+      "TrackIdsRequest": {
+        "type": "object",
+        "properties": {
+          "trackIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 40,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": ["trackIds"]
+      },
+      "AudioFeatures": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "spotifyId": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "acousticness": {
+            "type": ["number", "null"]
+          },
+          "danceability": {
+            "type": ["number", "null"]
+          },
+          "energy": {
+            "type": ["number", "null"]
+          },
+          "instrumentalness": {
+            "type": ["number", "null"]
+          },
+          "key": {
+            "type": ["integer", "null"]
+          },
+          "liveness": {
+            "type": ["number", "null"]
+          },
+          "loudness": {
+            "type": ["number", "null"]
+          },
+          "mode": {
+            "type": ["integer", "null"]
+          },
+          "speechiness": {
+            "type": ["number", "null"]
+          },
+          "tempo": {
+            "type": ["number", "null"]
+          },
+          "timeSignature": {
+            "type": ["integer", "null"]
+          },
+          "valence": {
+            "type": ["number", "null"]
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "MultipleAudioFeaturesResponse": {
+        "type": "object",
+        "properties": {
+          "audio_features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioFeatures"
+            }
+          }
+        },
+        "required": ["audio_features"]
+      },
+      "AudioStats": {
+        "type": "object",
+        "properties": {
+          "trackCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "averageBpm": {
+            "type": ["number", "null"]
+          },
+          "averageEnergy": {
+            "type": ["number", "null"]
+          },
+          "averageDanceability": {
+            "type": ["number", "null"]
+          },
+          "averageValence": {
+            "type": ["number", "null"]
+          },
+          "averageAcousticness": {
+            "type": ["number", "null"]
+          },
+          "averageInstrumentalness": {
+            "type": ["number", "null"]
+          },
+          "averageLiveness": {
+            "type": ["number", "null"]
+          },
+          "averageSpeechiness": {
+            "type": ["number", "null"]
+          },
+          "averageLoudness": {
+            "type": ["number", "null"]
+          },
+          "dominantKey": {
+            "type": ["integer", "null"]
+          },
+          "dominantMode": {
+            "type": ["integer", "null"]
+          },
+          "majorPercentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minorPercentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "dominantTimeSignature": {
+            "type": ["integer", "null"]
+          },
+          "liveTrackPercentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "instrumentalTrackPercentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "speechHeavyTrackPercentage": {
+            "type": "number",
+            "minimum": 0
+          },
+          "foundTracksCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalTracksCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "trackCount",
+          "averageBpm",
+          "averageEnergy",
+          "averageDanceability",
+          "averageValence",
+          "averageAcousticness",
+          "averageInstrumentalness",
+          "averageLiveness",
+          "averageSpeechiness",
+          "averageLoudness",
+          "dominantKey",
+          "dominantMode",
+          "majorPercentage",
+          "minorPercentage",
+          "dominantTimeSignature",
+          "liveTrackPercentage",
+          "instrumentalTrackPercentage",
+          "speechHeavyTrackPercentage",
+          "foundTracksCount",
+          "totalTracksCount"
         ]
       },
       "LastfmUserProfile": {

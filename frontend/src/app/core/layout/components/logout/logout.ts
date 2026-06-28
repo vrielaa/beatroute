@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { SpotifyService } from '@src/app/spotify.service';
+import { SpotifyService } from '@core/services/spotify.service';
 import { Icon } from '@shared/components/icon/icon';
 
 @Component({
