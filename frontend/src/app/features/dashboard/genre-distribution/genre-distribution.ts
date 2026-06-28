@@ -6,6 +6,7 @@ import {
   TimeRange,
 } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
+import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 
 interface GenreChartSegment extends ArtistGenreDistributionItem {
   color: string;
@@ -16,7 +17,7 @@ interface GenreChartSegment extends ArtistGenreDistributionItem {
   imports: [Icon],
   templateUrl: './genre-distribution.html',
   host: {
-    class: 'col-span-full flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
 export class GenreDistribution {

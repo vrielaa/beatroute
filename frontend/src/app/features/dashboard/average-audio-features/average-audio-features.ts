@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { AudioStats } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
+import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 
 type AudioFeatureItem = {
   label: string;
@@ -20,7 +21,7 @@ type AudioFeatureItem = {
   imports: [Icon],
   templateUrl: './average-audio-features.html',
   host: {
-    class: 'col-span-full flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
 export class AverageAudioFeatures {

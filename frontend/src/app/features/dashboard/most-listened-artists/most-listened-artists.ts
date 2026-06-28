@@ -10,13 +10,14 @@ import {
 } from '@angular/core';
 import { TimeRange, TopArtist } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
+import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 
 @Component({
   selector: 'app-most-listened-artists',
   imports: [Icon],
   templateUrl: './most-listened-artists.html',
   host: {
-    class: 'col-span-full flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
 export class MostListenedArtists {
