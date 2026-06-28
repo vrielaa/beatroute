@@ -23,7 +23,7 @@ export class MostListenedTracks {
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly isLoading = input(false);
   public readonly trackRowClasses =
-    'grid list-none grid-cols-[2.8rem_minmax(0,1.2fr)_minmax(0,0.9fr)_auto_1.6rem] items-center gap-[1rem] px-[1rem] py-[1rem] max-[640px]:grid-cols-[2.4rem_minmax(0,1fr)_1.6rem] max-[640px]:gap-[0.8rem]';
+    'grid list-none grid-cols-[2.8rem_minmax(0,1.2fr)_minmax(0,0.9fr)_1.6rem] items-center gap-[1rem] px-[1rem] py-[1rem] max-[640px]:grid-cols-[2.4rem_minmax(0,1fr)_1.6rem] max-[640px]:gap-[0.8rem]';
   public readonly expandableTrackRowClasses = `${this.trackRowClasses} cursor-pointer [&::-webkit-details-marker]:hidden`;
 
   public readonly audioFeaturesByTrackId = computed(() => {
@@ -50,10 +50,6 @@ export class MostListenedTracks {
 
   public artistNames(track: TopTrack): string {
     return track.artists.map((artist) => artist.name).join(', ');
-  }
-
-  public playCount(track: TopTrack): number | null {
-    return track.play_count ?? track.playcount ?? track.playCount ?? null;
   }
 
   public audioFeaturesFor(track: TopTrack): AudioFeatures | null {

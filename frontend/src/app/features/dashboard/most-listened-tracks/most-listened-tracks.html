@@ -53,12 +53,6 @@
           {{ artistNames(track) }}
         </span>
 
-        <span class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:hidden">
-          @if (playCount(track) !== null) {
-          {{ playCount(track) }} odsłuchań
-          }
-        </span>
-
         <span
           class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)] transition-transform duration-[160ms] ease-[ease] group-open:rotate-45"
           aria-hidden="true"
@@ -105,12 +99,6 @@
         class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
       >
         {{ artistNames(track) }}
-      </span>
-
-      <span class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:hidden">
-        @if (playCount(track) !== null) {
-        {{ playCount(track) }} odsłuchań
-        }
       </span>
 
       <span aria-hidden="true"></span>

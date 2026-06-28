@@ -34,9 +34,6 @@ export interface TopTrack {
   album: { name: string; images: SpotifyImage[] };
   duration_ms: number;
   popularity: number;
-  play_count?: number;
-  playcount?: number;
-  playCount?: number;
 }
 
 export interface TopTracksResponse {
