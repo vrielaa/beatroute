@@ -7,7 +7,7 @@ import { SpotifyService } from '@core/services/spotify.service';
   templateUrl: './login.html',
   host: {
     class:
-      'grid min-h-screen place-items-center bg-[var(--color-bg)] p-[2rem] text-[var(--color-text-primary)]',
+      'block min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]',
   },
 })
 export class Login {
