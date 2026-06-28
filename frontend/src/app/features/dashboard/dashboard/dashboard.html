@@ -17,6 +17,13 @@
   [audioStats]="audioStats()"
   [isLoading]="isAudioStatsLoading()"
 ></app-average-audio-features>
+<app-most-listened-tracks
+  class="card"
+  [timeRange]="selectedTimeRange()"
+  [tracks]="topTracks()?.items ?? []"
+  [audioFeatures]="audioFeatures()"
+  [isLoading]="isAudioStatsLoading()"
+></app-most-listened-tracks>
 <app-most-listened-artists
   class="card"
   [timeRange]="selectedTimeRange()"

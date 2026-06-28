@@ -3,6 +3,7 @@ import { ListeningStatsFilters } from '../listening-stats-filters/listening-stat
 import { TimeRange } from '@src/app/core/models/models';
 import { AverageBpm } from '../average-bpm/average-bpm';
 import { AverageAudioFeatures } from '../average-audio-features/average-audio-features';
+import { MostListenedTracks } from '../most-listened-tracks/most-listened-tracks';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
 import { GenreDistribution } from '../genre-distribution/genre-distribution';
 import { DashboardTracksStore } from './dashboard-tracks.store';
@@ -14,6 +15,7 @@ import { DashboardArtistsStore } from './dashboard-artists.store';
     ListeningStatsFilters,
     AverageBpm,
     AverageAudioFeatures,
+    MostListenedTracks,
     GenreDistribution,
     MostListenedArtists,
   ],
@@ -32,6 +34,7 @@ export class Dashboard {
   public readonly selectedTracksRange = signal(10);
   public readonly selectedArtistsRange = signal(10);
 
+  public readonly topTracks = this.tracksStore.topTracks;
   public readonly topArtists = this.artistsStore.topArtists;
   public readonly isTopArtistsLoading = this.artistsStore.isTopArtistsLoading;
   public readonly hasTopArtistsError = this.artistsStore.hasTopArtistsError;
@@ -39,6 +42,7 @@ export class Dashboard {
   public readonly isGenreDistributionLoading = this.artistsStore.isGenreDistributionLoading;
   public readonly hasGenreDistributionError = this.artistsStore.hasGenreDistributionError;
   public readonly audioStats = this.tracksStore.audioStats;
+  public readonly audioFeatures = this.tracksStore.audioFeatures;
   public readonly averageBpm = this.tracksStore.averageBpm;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
   public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;
