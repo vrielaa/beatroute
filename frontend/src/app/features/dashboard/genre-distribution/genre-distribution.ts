@@ -26,20 +26,6 @@ export class GenreDistribution {
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly isLoading = input(true);
   public readonly hasError = input(false);
-  public readonly chartLayoutClasses =
-    'grid min-w-[0] grid-cols-[minmax(16rem,24rem)_minmax(0,1fr)] items-center justify-center gap-[clamp(2.4rem,6vw,7rem)] max-[700px]:grid-cols-1 max-[700px]:gap-[2.4rem]';
-  public readonly chartVisualClasses =
-    'aspect-square w-[min(100%,24rem)] justify-self-center rounded-full max-[700px]:w-[min(72vw,22rem)]';
-  public readonly donutChartClasses = `${this.chartVisualClasses} relative grid place-items-center shadow-[0_1rem_2.8rem_var(--color-shadow)]`;
-  public readonly stateMessageClasses =
-    'grid min-h-[20rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]';
-  public readonly genreRowClasses =
-    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_5rem_0.8rem_1.6rem] items-center gap-[1rem] px-[1rem] py-[0.9rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_5rem_1.2rem] max-[420px]:gap-[0.8rem]';
-  public readonly summaryGenreRowClasses = `${this.genreRowClasses} cursor-pointer list-none [&::-webkit-details-marker]:hidden`;
-  public readonly subgenreListClasses =
-    'grid gap-[0.6rem] px-[1rem] pt-0 pb-[1rem]';
-  public readonly subgenreItemClasses =
-    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_5rem_0.8rem_1.6rem] items-center gap-[1rem] rounded-[var(--radius-sm)] py-[0.1rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)] [transition:background-color_var(--transition-fast),color_var(--transition-fast)] hover:bg-[var(--color-surface-tertiary)] hover:text-[var(--color-text-primary)] last:mb-[0.8rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_5rem_1.2rem] max-[420px]:gap-[0.8rem]';
 
   public readonly periodLabel = computed(() => {
     const labels: Record<TimeRange, string> = {

@@ -9,32 +9,32 @@
 <form
   class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-[0.8rem]"
 >
-  <label [class]="labelClasses" for="period-select">Wybierz zakres</label>
+  <label class="listening-stats-filter-label" for="period-select">Wybierz zakres</label>
   <select
     id="period-select"
-    [class]="selectClasses"
+    class="listening-stats-filter-select"
     (change)="selectTimeRange($event)"
     [value]="selectedTimeRange()"
   >
     <button>
       <selectedcontent></selectedcontent>
     </button>
-    <option [class]="firstOptionClasses" value="short_term">Ostatni miesiąc</option>
-    <option [class]="middleOptionClasses" value="medium_term">Ostatnie 6 miesięcy</option>
-    <option [class]="lastOptionClasses" value="long_term">Ostatni rok</option>
+    <option class="listening-stats-filter-option listening-stats-filter-option--first" value="short_term">Ostatni miesiąc</option>
+    <option class="listening-stats-filter-option listening-stats-filter-option--middle" value="medium_term">Ostatnie 6 miesięcy</option>
+    <option class="listening-stats-filter-option listening-stats-filter-option--last" value="long_term">Ostatni rok</option>
   </select>
 </form>
 
 <form
   class="grid grid-cols-2 gap-[1.6rem] text-[length:var(--text-sm)] max-[700px]:grid-cols-1"
 >
-  <div [class]="rangeFieldClasses">
-    <label [class]="labelClasses" for="tracks-range-input">Liczba utworów</label>
+  <div class="listening-stats-range-field">
+    <label class="listening-stats-filter-label" for="tracks-range-input">Liczba utworów</label>
 
-    <div [class]="rangeControlsClasses">
+    <div class="listening-stats-range-controls">
       <input
         id="tracks-range-input"
-        [class]="numberInputClasses"
+        class="listening-stats-number-input"
         type="number"
         min="1"
         max="40"
@@ -44,7 +44,7 @@
 
       <input
         id="tracks-range-slider"
-        [class]="rangeInputClasses"
+        class="listening-stats-range-input"
         type="range"
         min="1"
         max="40"
@@ -55,13 +55,13 @@
     </div>
   </div>
 
-  <div [class]="rangeFieldClasses">
-    <label [class]="labelClasses" for="artists-range-input">Liczba artystów</label>
+  <div class="listening-stats-range-field">
+    <label class="listening-stats-filter-label" for="artists-range-input">Liczba artystów</label>
 
-    <div [class]="rangeControlsClasses">
+    <div class="listening-stats-range-controls">
       <input
         id="artists-range-input"
-        [class]="numberInputClasses"
+        class="listening-stats-number-input"
         type="number"
         min="1"
         max="40"
@@ -71,7 +71,7 @@
 
       <input
         id="artists-range-slider"
-        [class]="rangeInputClasses"
+        class="listening-stats-range-input"
         type="range"
         min="1"
         max="40"
@@ -87,7 +87,7 @@
 showInsufficientArtistsHistoryWarning() ) {
 <div class="flex flex-col gap-[1rem]">
   @if (showInsufficientListeningHistoryWarning()) {
-  <div [class]="warningBannerClasses">
+  <div class="listening-stats-warning-banner">
     <p>
       <strong>Za mało danych w Spotify.</strong> Wybrano analizę
       {{ tracksFoundRatio()?.requestedTracksCount }} utworów, ale Spotify ma tylko
@@ -96,7 +96,7 @@ showInsufficientArtistsHistoryWarning() ) {
     </p>
   </div>
   } @if (showMissingAudioDataWarning()) {
-  <div [class]="warningBannerClasses">
+  <div class="listening-stats-warning-banner">
     <p>
       <strong>Brak danych audio w ReccoBeats.</strong> Wybrano analizę
       {{ tracksFoundRatio()?.requestedTracksCount }} utworów. Do analizy przekazano
@@ -105,7 +105,7 @@ showInsufficientArtistsHistoryWarning() ) {
     </p>
   </div>
   } @if (showInsufficientArtistsHistoryWarning()) {
-  <div [class]="warningBannerClasses">
+  <div class="listening-stats-warning-banner">
     <p>
       <strong>Za mało danych w Spotify.</strong> Wybrano analizę
       {{ artistsFoundRatio()?.requestedArtistsCount }} artystów, ale Spotify ma tylko
