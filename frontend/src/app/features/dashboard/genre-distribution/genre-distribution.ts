@@ -34,12 +34,12 @@ export class GenreDistribution {
   public readonly stateMessageClasses =
     'grid min-h-[20rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]';
   public readonly genreRowClasses =
-    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_auto_2.8rem_1.6rem] items-center gap-[1rem] px-[1rem] py-[0.9rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_auto_1.2rem] max-[420px]:gap-[0.8rem]';
+    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_5rem_0.8rem_1.6rem] items-center gap-[1rem] px-[1rem] py-[0.9rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_5rem_1.2rem] max-[420px]:gap-[0.8rem]';
   public readonly summaryGenreRowClasses = `${this.genreRowClasses} cursor-pointer list-none [&::-webkit-details-marker]:hidden`;
   public readonly subgenreListClasses =
-    'grid gap-[0.6rem] pt-0 pr-[1rem] pb-[1rem] pl-[3.2rem] max-[420px]:pl-[2.8rem]';
+    'grid gap-[0.6rem] px-[1rem] pt-0 pb-[1rem]';
   public readonly subgenreItemClasses =
-    'grid min-w-[0] grid-cols-[minmax(0,1fr)_auto_2.8rem] items-center gap-[0.8rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[420px]:grid-cols-[minmax(0,1fr)_auto]';
+    'grid min-w-[0] grid-cols-[1.2rem_minmax(0,1fr)_5rem_0.8rem_1.6rem] items-center gap-[1rem] rounded-[var(--radius-sm)] py-[0.1rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)] [transition:background-color_var(--transition-fast),color_var(--transition-fast)] hover:bg-[var(--color-surface-tertiary)] hover:text-[var(--color-text-primary)] last:mb-[0.8rem] max-[420px]:grid-cols-[1rem_minmax(0,1fr)_5rem_1.2rem] max-[420px]:gap-[0.8rem]';
 
   public readonly periodLabel = computed(() => {
     const labels: Record<TimeRange, string> = {
