@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { AudioFeatures, TimeRange, TopTrack } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
+import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 
 type TrackAudioFeatureRow = {
   label: string;
@@ -12,7 +13,7 @@ type TrackAudioFeatureRow = {
   imports: [Icon],
   templateUrl: './most-listened-tracks.html',
   host: {
-    class: 'col-span-full flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
 export class MostListenedTracks {
