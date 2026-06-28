@@ -1,0 +1,80 @@
+<div class="flex items-start gap-[1rem]">
+  <app-icon class="flex-none text-[var(--color-accent)]" name="settings" />
+
+  <div class="min-w-[0]">
+    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)]">
+      Średnie cechy audio
+    </h3>
+    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      Wartości pokazane w naturalnych zakresach parametrów
+    </p>
+  </div>
+</div>
+
+@if (isLoading()) {
+<div class="grid grid-cols-2 gap-[1.2rem] max-[700px]:grid-cols-1" aria-label="Ładowanie cech audio">
+  @for (item of [1, 2, 3, 4]; track item) {
+  <div class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[1.4rem]">
+    <span class="skeleton h-[1.6rem] w-[40%] rounded-[var(--radius-sm)]"></span>
+    <span class="skeleton mt-[1rem] h-[0.8rem] w-full rounded-[var(--radius-pill)]"></span>
+  </div>
+  }
+</div>
+} @else if (!hasAnyFeature()) {
+<div
+  class="grid min-h-[12rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+>
+  <p>Brak danych o średnich cechach audio.</p>
+</div>
+} @else {
+<ul class="grid grid-cols-2 gap-[1.2rem] max-[700px]:grid-cols-1">
+  @for (feature of features(); track feature.label) {
+  @if (feature.value !== null) {
+  <li
+    class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[1.4rem] [transition:background-color_var(--transition-fast)] hover:bg-[var(--color-surface-tertiary)]"
+  >
+    <div class="flex items-start justify-between gap-[1rem]">
+      <div class="min-w-[0]">
+        <h4 class="text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]">
+          <span
+            class="group/tooltip relative inline-flex cursor-help rounded-[var(--radius-xs)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+            tabindex="0"
+            [attr.aria-label]="tooltipText(feature)"
+          >
+            {{ feature.label }}
+            <span
+              class="pointer-events-none invisible absolute bottom-[calc(100%+0.8rem)] left-0 z-[5] w-[min(30rem,calc(100vw-4rem))] rounded-[var(--radius-md)] bg-[var(--color-text-primary)] px-[1rem] py-[0.8rem] text-left text-[length:var(--text-xs)] font-[var(--font-weight-normal)] leading-[var(--line-height-normal)] text-[var(--color-bg)] opacity-0 shadow-[0_0.8rem_2.4rem_var(--color-shadow-strong)] [transition:opacity_var(--transition-fast),visibility_var(--transition-fast)] group-hover/tooltip:visible group-hover/tooltip:opacity-100 group-focus/tooltip:visible group-focus/tooltip:opacity-100"
+              aria-hidden="true"
+            >
+              {{ tooltipText(feature) }}
+            </span>
+          </span>
+        </h4>
+        <p class="mt-[0.3rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+          {{ feature.description }}
+        </p>
+      </div>
+      <strong class="text-[length:var(--text-sm)] text-[var(--color-text-primary)]">
+        {{ displayValue(feature) }}
+      </strong>
+    </div>
+
+    <div
+      class="mt-[1.2rem] h-[0.8rem] overflow-hidden rounded-[var(--radius-pill)] bg-[var(--color-surface)]"
+      aria-hidden="true"
+    >
+      <span
+        class="block h-full rounded-[var(--radius-pill)] bg-[var(--color-accent)]"
+        [style.width]="barWidth(feature)"
+      ></span>
+    </div>
+
+    <div class="mt-[0.6rem] flex justify-between text-[length:var(--text-xs)] text-[var(--color-text-muted)]">
+      <span>{{ rangeStart(feature) }}</span>
+      <span>{{ rangeEnd(feature) }}</span>
+    </div>
+  </li>
+  }
+  }
+</ul>
+}

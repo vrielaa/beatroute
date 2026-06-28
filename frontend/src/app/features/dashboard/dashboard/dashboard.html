@@ -12,6 +12,11 @@
   [averageBpm]="averageBpm()"
   [isLoading]="isAudioStatsLoading()"
 ></app-average-bpm>
+<app-average-audio-features
+  class="card"
+  [audioStats]="audioStats()"
+  [isLoading]="isAudioStatsLoading()"
+></app-average-audio-features>
 <app-most-listened-artists
   class="card"
   [timeRange]="selectedTimeRange()"
