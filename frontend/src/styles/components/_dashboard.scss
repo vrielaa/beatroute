@@ -343,6 +343,34 @@
     background: var(--color-accent-hover);
   }
 
+  .most-listened-list-toggle {
+    display: block;
+    margin: 1.6rem auto 0;
+    justify-self: center;
+    align-self: center;
+    padding: 1rem 1.8rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    box-shadow: 0 0.8rem 2rem var(--color-shadow);
+    transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  .most-listened-list-toggle:hover,
+  .most-listened-list-toggle:focus-visible {
+    background: var(--color-accent-hover);
+    color: var(--color-text-on-accent);
+    box-shadow: 0 1rem 2.4rem var(--color-shadow-strong);
+    transform: translateY(-0.1rem);
+  }
+
+  .most-listened-list-toggle:active {
+    transform: translateY(0);
+  }
+
   .most-listened-track-row {
     display: grid;
     grid-template-columns: 2.8rem minmax(0, 1.2fr) minmax(0, 0.9fr) 1.6rem;

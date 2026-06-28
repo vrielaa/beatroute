@@ -37,7 +37,7 @@
   </div>
   } @else {
   <ol class="most-listened-artists-grid">
-    @for (artist of artists(); track artist.id; let position = $index) {
+    @for (artist of visibleArtists(); track artist.id; let position = $index) {
     <li class="most-listened-artist-card">
       <span
         class="most-listened-artist-rank"
@@ -85,5 +85,10 @@
     </li>
     }
   </ol>
+  @if (canToggleArtists()) {
+  <button type="button" class="most-listened-list-toggle" (click)="toggleExpanded()">
+    {{ toggleArtistsLabel() }}
+  </button>
+  }
   }
 </div>

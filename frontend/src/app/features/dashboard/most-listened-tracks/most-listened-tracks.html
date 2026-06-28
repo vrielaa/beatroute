@@ -25,7 +25,7 @@
 </div>
 } @else {
 <ol class="grid gap-[0.8rem]">
-  @for (track of tracks(); track track.id; let index = $index) {
+  @for (track of visibleTracks(); track track.id; let index = $index) {
   <li class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)]">
     @if (hasAudioFeatures(track)) {
     <details class="group min-w-[0]">
@@ -107,4 +107,9 @@
   </li>
   }
 </ol>
+@if (canToggleTracks()) {
+<button type="button" class="most-listened-list-toggle" (click)="toggleExpanded()">
+  {{ toggleTracksLabel() }}
+</button>
+}
 }

@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { AudioFeatures, TimeRange, TopTrack } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
@@ -17,12 +17,32 @@ type TrackAudioFeatureRow = {
   },
 })
 export class MostListenedTracks {
+  private readonly collapsedItemsLimit = 10;
   private readonly keyNames = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
 
   public readonly tracks = input<TopTrack[]>([]);
   public readonly audioFeatures = input<AudioFeatures[]>([]);
   public readonly timeRange = input<TimeRange>('short_term');
   public readonly isLoading = input(false);
+  public readonly isExpanded = signal(false);
+
+  public readonly visibleTracks = computed(() => {
+    const tracks = this.tracks();
+
+    return this.isExpanded() ? tracks : tracks.slice(0, this.collapsedItemsLimit);
+  });
+
+  public readonly hiddenTracksCount = computed(() =>
+    Math.max(this.tracks().length - this.collapsedItemsLimit, 0)
+  );
+
+  public readonly canToggleTracks = computed(() => this.hiddenTracksCount() > 0);
+  public readonly toggleTracksLabel = computed(() => {
+    if (this.isExpanded()) return 'Zwiń listę';
+
+    const hiddenCount = this.hiddenTracksCount();
+    return `Pokaż jeszcze ${hiddenCount} ${this.formatTrackCount(hiddenCount)}`;
+  });
 
   public readonly audioFeaturesByTrackId = computed(() => {
     const featuresByTrackId = new Map<string, AudioFeatures>();
@@ -48,6 +68,10 @@ export class MostListenedTracks {
 
   public artistNames(track: TopTrack): string {
     return track.artists.map((artist) => artist.name).join(', ');
+  }
+
+  public toggleExpanded(): void {
+    this.isExpanded.update((isExpanded) => !isExpanded);
   }
 
   public audioFeaturesFor(track: TopTrack): AudioFeatures | null {
@@ -104,5 +128,12 @@ export class MostListenedTracks {
 
   private formatTimeSignature(value: number | null | undefined): string {
     return typeof value === 'number' ? `${value}/4` : 'Brak danych';
+  }
+
+  private formatTrackCount(count: number): string {
+    if (count === 1) return 'utwór';
+    if (count > 1 && count < 5) return 'utwory';
+
+    return 'utworów';
   }
 }

@@ -21,6 +21,7 @@ import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-class
   },
 })
 export class MostListenedArtists {
+  private readonly collapsedItemsLimit = 10;
   private readonly skeletonGrid = viewChild<ElementRef<HTMLOListElement>>('skeletonGrid');
   private readonly skeletonCount = signal(1);
 
@@ -30,9 +31,25 @@ export class MostListenedArtists {
   public readonly isLoading = input(true);
   public readonly hasError = input(false);
   public readonly retryRequested = output<void>();
+  public readonly isExpanded = signal(false);
   public readonly skeletonItems = computed(() =>
     Array.from({ length: this.skeletonCount() }, (_, index) => index)
   );
+  public readonly visibleArtists = computed(() => {
+    const artists = this.artists();
+
+    return this.isExpanded() ? artists : artists.slice(0, this.collapsedItemsLimit);
+  });
+  public readonly hiddenArtistsCount = computed(() =>
+    Math.max(this.artists().length - this.collapsedItemsLimit, 0)
+  );
+  public readonly canToggleArtists = computed(() => this.hiddenArtistsCount() > 0);
+  public readonly toggleArtistsLabel = computed(() => {
+    if (this.isExpanded()) return 'Zwiń listę';
+
+    const hiddenCount = this.hiddenArtistsCount();
+    return `Pokaż jeszcze ${hiddenCount} ${this.formatArtistCount(hiddenCount)}`;
+  });
 
   public readonly periodLabel = computed(() => {
     const labels: Record<TimeRange, string> = {
@@ -64,6 +81,10 @@ export class MostListenedArtists {
     this.retryRequested.emit();
   }
 
+  public toggleExpanded(): void {
+    this.isExpanded.update((isExpanded) => !isExpanded);
+  }
+
   public artistInitial(artist: TopArtist): string {
     return artist.name.charAt(0).toUpperCase();
   }
@@ -83,5 +104,11 @@ export class MostListenedArtists {
     if (nextCount !== this.skeletonCount()) {
       this.skeletonCount.set(nextCount);
     }
+  }
+
+  private formatArtistCount(count: number): string {
+    if (count === 1) return 'artystę';
+
+    return 'artystów';
   }
 }
