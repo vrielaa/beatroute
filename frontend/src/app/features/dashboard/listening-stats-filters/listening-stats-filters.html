@@ -10,19 +10,19 @@
   class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-[0.8rem]"
 >
   <label class="listening-stats-filter-label" for="period-select">Wybierz zakres</label>
-  <select
-    id="period-select"
-    class="listening-stats-filter-select"
-    (change)="selectTimeRange($event)"
-    [value]="selectedTimeRange()"
-  >
-    <button>
-      <selectedcontent></selectedcontent>
-    </button>
-    <option class="listening-stats-filter-option listening-stats-filter-option--first" value="short_term">Ostatni miesiąc</option>
-    <option class="listening-stats-filter-option listening-stats-filter-option--middle" value="medium_term">Ostatnie 6 miesięcy</option>
-    <option class="listening-stats-filter-option listening-stats-filter-option--last" value="long_term">Ostatni rok</option>
-  </select>
+  <div class="listening-stats-filter-select-shell">
+    <select
+      id="period-select"
+      class="listening-stats-filter-select"
+      (change)="selectTimeRange($event)"
+      [value]="selectedTimeRange()"
+    >
+      <option class="listening-stats-filter-option" value="short_term">Ostatni miesiąc</option>
+      <option class="listening-stats-filter-option" value="medium_term">Ostatnie 6 miesięcy</option>
+      <option class="listening-stats-filter-option" value="long_term">Ostatni rok</option>
+    </select>
+    <span class="listening-stats-filter-select-arrow" aria-hidden="true"></span>
+  </div>
 </form>
 
 <form

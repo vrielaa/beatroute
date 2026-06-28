@@ -21,6 +21,13 @@ html.theme-light {
   --color-surface: #fff8ee;
   --color-surface-secondary: #efe3d2;
   --color-surface-tertiary: #e5d5bf;
+  --color-control-bg: #d1aa77;
+  --color-control-bg-hover: #c29861;
+  --color-control-border: #a97d4f;
+  --color-control-focus: rgba(155, 104, 66, 0.32);
+  --color-control-text: #2b241d;
+  --color-slider-track: #c5aa86;
+  --color-slider-track-hover: #b69367;
 
   --color-text-primary: #2b241d;
   --color-text-secondary: #756757;
@@ -101,6 +108,13 @@ html.theme-dark {
   --color-surface: #0c1d15;
   --color-surface-secondary: #13291e;
   --color-surface-tertiary: #20382c;
+  --color-control-bg: #315f45;
+  --color-control-bg-hover: #3d7053;
+  --color-control-border: #6d9878;
+  --color-control-focus: rgba(182, 138, 86, 0.34);
+  --color-control-text: #edf7ef;
+  --color-slider-track: #47765a;
+  --color-slider-track-hover: #5a8b6d;
 
   --color-surface-hover: #10271c;
   --color-surface-secondary-hover: #243f32;
