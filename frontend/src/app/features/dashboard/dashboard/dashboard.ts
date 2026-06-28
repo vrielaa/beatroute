@@ -2,6 +2,7 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { ListeningStatsFilters } from '../listening-stats-filters/listening-stats-filters';
 import { TimeRange } from '@src/app/core/models/models';
 import { AverageBpm } from '../average-bpm/average-bpm';
+import { AverageAudioFeatures } from '../average-audio-features/average-audio-features';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
 import { GenreDistribution } from '../genre-distribution/genre-distribution';
 import { DashboardTracksStore } from './dashboard-tracks.store';
@@ -9,7 +10,13 @@ import { DashboardArtistsStore } from './dashboard-artists.store';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ListeningStatsFilters, AverageBpm, GenreDistribution, MostListenedArtists],
+  imports: [
+    ListeningStatsFilters,
+    AverageBpm,
+    AverageAudioFeatures,
+    GenreDistribution,
+    MostListenedArtists,
+  ],
   providers: [DashboardTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
   host: {
@@ -31,6 +38,7 @@ export class Dashboard {
   public readonly genreDistribution = this.artistsStore.genreDistribution;
   public readonly isGenreDistributionLoading = this.artistsStore.isGenreDistributionLoading;
   public readonly hasGenreDistributionError = this.artistsStore.hasGenreDistributionError;
+  public readonly audioStats = this.tracksStore.audioStats;
   public readonly averageBpm = this.tracksStore.averageBpm;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
   public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;
