@@ -28,7 +28,7 @@ type NavLink = BaseNavLink & {
   templateUrl: './app-shell.html',
   host: {
     class:
-      'grid min-h-[100dvh] grid-cols-1 grid-rows-[8rem_8rem_minmax(0,1fr)] [font-family:var(--font-sons)] max-[900px]:grid-rows-[7rem_7rem_minmax(0,1fr)] max-[600px]:grid-rows-[6.4rem_6.4rem_minmax(0,1fr)]',
+      'grid min-h-[100dvh] grid-cols-1 grid-rows-[8rem_8rem_minmax(0,1fr)] [font-family:var(--default-font-family)] max-[900px]:grid-rows-[7rem_7rem_minmax(0,1fr)] max-[600px]:grid-rows-[6.4rem_6.4rem_minmax(0,1fr)]',
   },
 })
 export class AppShellComponent {
@@ -44,7 +44,7 @@ export class AppShellComponent {
   public readonly overlappedNavLinkContentSizeClasses = '-ml-[1rem] w-[calc(100%+1rem)]';
   public readonly activeNavLinkContentClasses = 'bg-[var(--color-surface-tertiary)]';
   public readonly navLinkLabelClasses =
-    'text-[length:var(--text-base)] font-[var(--font-weight-medium)] leading-[var(--line-height-tight)] max-[900px]:text-[length:1.5rem] max-[600px]:sr-only';
+    'text-[length:var(--text-sm)] font-[var(--font-weight-medium)] leading-[var(--line-height-tight)] max-[900px]:text-[length:1.4rem] max-[600px]:sr-only';
 
   private readonly baseNavLinks: BaseNavLink[] = [
     {
