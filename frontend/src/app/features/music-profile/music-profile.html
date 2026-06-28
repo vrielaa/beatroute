@@ -1,3 +1,11 @@
-<p class="text-[length:var(--text-lg)] font-[var(--font-weight-semibold)]">
-  Profil muzyczny jest w przygotowaniu
-</p>
+<app-average-bpm
+  class="card"
+  [averageBpm]="averageBpm()"
+  [isLoading]="isAudioStatsLoading()"
+></app-average-bpm>
+
+<app-average-audio-features
+  class="card"
+  [audioStats]="audioStats()"
+  [isLoading]="isAudioStatsLoading()"
+></app-average-audio-features>

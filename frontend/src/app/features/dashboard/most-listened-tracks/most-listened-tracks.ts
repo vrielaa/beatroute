@@ -17,7 +17,7 @@ type TrackAudioFeatureRow = {
   },
 })
 export class MostListenedTracks {
-  private readonly collapsedItemsLimit = 10;
+  private readonly collapsedItemsLimit = 5;
   private readonly keyNames = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
 
   public readonly tracks = input<TopTrack[]>([]);

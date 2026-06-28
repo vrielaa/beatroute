@@ -1,4 +1,4 @@
-import { Component, computed, input, model, output } from '@angular/core';
+import { Component, input, model, output } from '@angular/core';
 import { TimeRange } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
 
@@ -7,8 +7,7 @@ import { Icon } from '@shared/components/icon/icon';
   imports: [Icon],
   templateUrl: './listening-stats-filters.html',
   host: {
-    class:
-      'row-start-1 row-end-2 col-start-1 col-end-2 grid w-full min-w-[0] auto-rows-min grid-cols-1 gap-[1.6rem] max-[600px]:gap-[1.4rem]',
+    class: 'grid w-full min-w-[0] auto-rows-min grid-cols-1 gap-[1.6rem] max-[600px]:gap-[1.4rem]',
   },
 })
 export class ListeningStatsFilters {
@@ -21,48 +20,7 @@ export class ListeningStatsFilters {
 
   private readonly debounceTime = 300;
 
-  public readonly tracksFoundRatio = input<{
-    requestedTracksCount: number;
-    spotifyTotalTracksCount: number;
-    returnedTracksCount: number;
-    audioDataTracksCount: number | null;
-  } | null>(null);
-  public readonly artistsFoundRatio = input<{
-    requestedArtistsCount: number;
-    spotifyTotalArtistsCount: number;
-  } | null>(null);
   public readonly timeRangeChange = output<TimeRange>();
-
-  public readonly periodLabel = computed(() => {
-    const labels: Record<TimeRange, string> = {
-      short_term: 'w ostatnim miesiącu',
-      medium_term: 'w ostatnich 6 miesiącach',
-      long_term: 'w ostatnim roku',
-    };
-
-    return labels[this.selectedTimeRange()];
-  });
-
-  public readonly showInsufficientListeningHistoryWarning = computed(() => {
-    const ratio = this.tracksFoundRatio();
-    if (!ratio) return false;
-
-    return ratio.spotifyTotalTracksCount < ratio.requestedTracksCount;
-  });
-
-  public readonly showMissingAudioDataWarning = computed(() => {
-    const ratio = this.tracksFoundRatio();
-    if (!ratio || ratio.audioDataTracksCount === null) return false;
-
-    return ratio.audioDataTracksCount < ratio.returnedTracksCount;
-  });
-
-  public readonly showInsufficientArtistsHistoryWarning = computed(() => {
-    const ratio = this.artistsFoundRatio();
-    if (!ratio) return false;
-
-    return ratio.spotifyTotalArtistsCount < ratio.requestedArtistsCount;
-  });
 
   public selectTimeRange(e: Event): void {
     const range = (e.target as HTMLSelectElement).value as TimeRange;

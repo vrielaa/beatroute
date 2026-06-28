@@ -1,40 +1,11 @@
 import {
   ArtistGenreDistributionResponse,
-  AudioStats,
   TopArtistsResponse,
-  TopTracksResponse,
 } from '@src/app/core/models/models';
-
-export interface TracksFoundRatio {
-  requestedTracksCount: number;
-  spotifyTotalTracksCount: number;
-  returnedTracksCount: number;
-  audioDataTracksCount: number | null;
-}
 
 export interface ArtistsFoundRatio {
   requestedArtistsCount: number;
   spotifyTotalArtistsCount: number;
-}
-
-export function mapAverageBpm(audioStats: AudioStats | null): number | null {
-  const averageBpm = audioStats?.averageBpm;
-
-  return typeof averageBpm === 'number' ? Math.round(averageBpm) : null;
-}
-
-export function mapTracksFoundRatio(
-  topTracks: TopTracksResponse | null,
-  audioStats: AudioStats | null
-): TracksFoundRatio | null {
-  if (!topTracks) return null;
-
-  return {
-    requestedTracksCount: topTracks.limit,
-    spotifyTotalTracksCount: topTracks.total,
-    returnedTracksCount: topTracks.items.length,
-    audioDataTracksCount: audioStats?.foundTracksCount ?? null,
-  };
 }
 
 export function mapArtistsFoundRatio(

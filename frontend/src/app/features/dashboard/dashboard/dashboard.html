@@ -1,29 +1,8 @@
-<app-listening-stats-filters
-  class="card"
-  (timeRangeChange)="changeTimeRange($event)"
+<app-listening-stats-warnings
   [selectedTimeRange]="selectedTimeRange()"
-  [(selectedArtistsRange)]="selectedArtistsRange"
-  [(selectedTracksRange)]="selectedTracksRange"
   [tracksFoundRatio]="tracksFoundRatio()"
   [artistsFoundRatio]="artistsFoundRatio()"
-></app-listening-stats-filters>
-<app-average-bpm
-  class="card"
-  [averageBpm]="averageBpm()"
-  [isLoading]="isAudioStatsLoading()"
-></app-average-bpm>
-<app-average-audio-features
-  class="card"
-  [audioStats]="audioStats()"
-  [isLoading]="isAudioStatsLoading()"
-></app-average-audio-features>
-<app-most-listened-tracks
-  class="card"
-  [timeRange]="selectedTimeRange()"
-  [tracks]="topTracks()?.items ?? []"
-  [audioFeatures]="audioFeatures()"
-  [isLoading]="isAudioStatsLoading()"
-></app-most-listened-tracks>
+></app-listening-stats-warnings>
 <app-most-listened-artists
   class="card"
   [timeRange]="selectedTimeRange()"
@@ -33,6 +12,13 @@
   [hasError]="hasTopArtistsError()"
   (retryRequested)="retryTopArtists()"
 ></app-most-listened-artists>
+<app-most-listened-tracks
+  class="card"
+  [timeRange]="selectedTimeRange()"
+  [tracks]="topTracks()?.items ?? []"
+  [audioFeatures]="audioFeatures()"
+  [isLoading]="isAudioStatsLoading()"
+></app-most-listened-tracks>
 <app-genre-distribution
   class="card"
   [distribution]="genreDistribution()"

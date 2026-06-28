@@ -1,4 +1,4 @@
-import { Component, Signal, inject, signal } from '@angular/core';
+import { Component, Signal, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, isActive } from '@angular/router';
 
 import { Logout } from '../components/logout/logout';
@@ -7,6 +7,8 @@ import { Logo } from '../components/logo/logo';
 import { DarkMode } from '../components/dark-mode/dark-mode';
 
 import { SpotifyService } from '@core/services/spotify.service';
+import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
+import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filters/listening-stats-filters';
 import { Icon } from '@shared/components/icon/icon';
 import { IconName } from '@shared/icons/icons';
 
@@ -16,6 +18,7 @@ type BaseNavLink = {
   exact?: boolean;
   id: string;
   icon: IconName;
+  showAnalysisFilters?: boolean;
 };
 
 type NavLink = BaseNavLink & {
@@ -24,7 +27,7 @@ type NavLink = BaseNavLink & {
 
 @Component({
   selector: 'app-app-shell',
-  imports: [RouterOutlet, Logout, UserProfile, Logo, DarkMode, Icon],
+  imports: [RouterOutlet, Logout, UserProfile, Logo, DarkMode, Icon, ListeningStatsFilters],
   templateUrl: './app-shell.html',
   host: {
     class:
@@ -33,9 +36,11 @@ type NavLink = BaseNavLink & {
 })
 export class AppShellComponent {
   public readonly spotifyService = inject(SpotifyService);
+  public readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly router = inject(Router);
 
   public readonly isMenuOpen = signal(false);
+  public readonly isAnalysisFiltersOpen = signal(false);
 
   private readonly baseNavLinks: BaseNavLink[] = [
     {
@@ -44,18 +49,21 @@ export class AppShellComponent {
       id: 'dashboard-link',
       exact: true,
       icon: 'dashboard',
+      showAnalysisFilters: true,
     },
     {
       label: 'Profil Muzyczny',
       path: '/music-profile',
       id: 'music-profile-link',
       icon: 'musicProfile',
+      showAnalysisFilters: true,
     },
     {
       label: 'Mapa Muzyczna',
       path: '/music-map',
       id: 'music-map-link',
       icon: 'musicMap',
+      showAnalysisFilters: true,
     },
     {
       label: 'Generator Playlist',
@@ -75,11 +83,24 @@ export class AppShellComponent {
     }),
   }));
 
+  public readonly showAnalysisFilters = computed(() =>
+    this.navLinks.some((link) => link.showAnalysisFilters && link.isActive())
+  );
+
   public toggleMenu(): void {
     this.isMenuOpen.update((isOpen) => !isOpen);
   }
 
+  public toggleAnalysisFilters(): void {
+    this.isAnalysisFiltersOpen.update((isOpen) => !isOpen);
+  }
+
+  public closeAnalysisFilters(): void {
+    this.isAnalysisFiltersOpen.set(false);
+  }
+
   public navigateTo(path: string): void {
+    this.closeAnalysisFilters();
     this.router.navigateByUrl(path);
   }
 }

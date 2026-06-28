@@ -1,25 +1,21 @@
-import { Component, effect, inject, signal } from '@angular/core';
-import { ListeningStatsFilters } from '../listening-stats-filters/listening-stats-filters';
-import { TimeRange } from '@src/app/core/models/models';
-import { AverageBpm } from '../average-bpm/average-bpm';
-import { AverageAudioFeatures } from '../average-audio-features/average-audio-features';
+import { Component, effect, inject } from '@angular/core';
 import { MostListenedTracks } from '../most-listened-tracks/most-listened-tracks';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
 import { GenreDistribution } from '../genre-distribution/genre-distribution';
-import { DashboardTracksStore } from './dashboard-tracks.store';
+import { ListeningTracksStore } from '@core/stores/listening-tracks.store';
 import { DashboardArtistsStore } from './dashboard-artists.store';
+import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
+import { ListeningStatsWarnings } from '../listening-stats-warnings/listening-stats-warnings';
 
 @Component({
   selector: 'app-dashboard',
   imports: [
-    ListeningStatsFilters,
-    AverageBpm,
-    AverageAudioFeatures,
+    ListeningStatsWarnings,
     MostListenedTracks,
     GenreDistribution,
     MostListenedArtists,
   ],
-  providers: [DashboardTracksStore, DashboardArtistsStore],
+  providers: [ListeningTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
   host: {
     class:
@@ -27,12 +23,13 @@ import { DashboardArtistsStore } from './dashboard-artists.store';
   },
 })
 export class Dashboard {
-  private readonly tracksStore = inject(DashboardTracksStore);
+  private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
+  private readonly tracksStore = inject(ListeningTracksStore);
   private readonly artistsStore = inject(DashboardArtistsStore);
 
-  public readonly selectedTimeRange = signal<TimeRange>('short_term');
-  public readonly selectedTracksRange = signal(10);
-  public readonly selectedArtistsRange = signal(10);
+  public readonly selectedTimeRange = this.analysisFiltersStore.selectedTimeRange;
+  public readonly selectedTracksRange = this.analysisFiltersStore.selectedTracksRange;
+  public readonly selectedArtistsRange = this.analysisFiltersStore.selectedArtistsRange;
 
   public readonly topTracks = this.tracksStore.topTracks;
   public readonly topArtists = this.artistsStore.topArtists;
@@ -41,9 +38,7 @@ export class Dashboard {
   public readonly genreDistribution = this.artistsStore.genreDistribution;
   public readonly isGenreDistributionLoading = this.artistsStore.isGenreDistributionLoading;
   public readonly hasGenreDistributionError = this.artistsStore.hasGenreDistributionError;
-  public readonly audioStats = this.tracksStore.audioStats;
   public readonly audioFeatures = this.tracksStore.audioFeatures;
-  public readonly averageBpm = this.tracksStore.averageBpm;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
   public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;
   public readonly artistsFoundRatio = this.artistsStore.artistsFoundRatio;
@@ -69,18 +64,6 @@ export class Dashboard {
 
       onCleanup(() => subscription.unsubscribe());
     });
-  }
-
-  public changeTimeRange(timeRange: TimeRange): void {
-    this.selectedTimeRange.set(timeRange);
-  }
-
-  public changeTracksRange(tracksRange: number): void {
-    this.selectedTracksRange.set(tracksRange);
-  }
-
-  public changeArtistsRange(artistsRange: number): void {
-    this.selectedArtistsRange.set(artistsRange);
   }
 
   public retryTopArtists(): void {

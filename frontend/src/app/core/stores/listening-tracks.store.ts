@@ -1,16 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import {
-  AudioFeatures,
-  AudioStats,
-  TimeRange,
-  TopTracksResponse,
-} from '@src/app/core/models/models';
+import { AudioFeatures, AudioStats, TimeRange, TopTracksResponse } from '@core/models/models';
 import { SpotifyService } from '@core/services/spotify.service';
 import { forkJoin, map, of, Subscription, switchMap, tap } from 'rxjs';
-import { mapAverageBpm, mapTracksFoundRatio } from './dashboard.mappers';
+
+export interface TracksFoundRatio {
+  requestedTracksCount: number;
+  spotifyTotalTracksCount: number;
+  returnedTracksCount: number;
+  audioDataTracksCount: number | null;
+}
 
 @Injectable()
-export class DashboardTracksStore {
+export class ListeningTracksStore {
   private readonly spotifyService = inject(SpotifyService);
 
   public readonly topTracks = signal<TopTracksResponse | null>(null);
@@ -18,12 +19,16 @@ export class DashboardTracksStore {
   public readonly audioFeatures = signal<AudioFeatures[]>([]);
   public readonly isAudioStatsLoading = signal(true);
 
-  public readonly averageBpm = computed(() => mapAverageBpm(this.audioStats()));
+  public readonly averageBpm = computed(() => this.mapAverageBpm(this.audioStats()));
   public readonly tracksFoundRatio = computed(() =>
-    mapTracksFoundRatio(this.topTracks(), this.audioStats())
+    this.mapTracksFoundRatio(this.topTracks(), this.audioStats())
   );
 
-  public load(timeRange: TimeRange, tracksRange: number): Subscription {
+  public load(
+    timeRange: TimeRange,
+    tracksRange: number,
+    includeAudioFeatures = true
+  ): Subscription {
     this.topTracks.set(null);
     this.audioStats.set(null);
     this.audioFeatures.set([]);
@@ -38,6 +43,12 @@ export class DashboardTracksStore {
 
           if (!trackIds.length) {
             return of({ stats: null, audioFeatures: [] });
+          }
+
+          if (!includeAudioFeatures) {
+            return this.spotifyService
+              .getTracksAudioStats(trackIds)
+              .pipe(map((stats) => ({ stats, audioFeatures: [] })));
           }
 
           return forkJoin({
@@ -64,5 +75,25 @@ export class DashboardTracksStore {
           this.isAudioStatsLoading.set(false);
         },
       });
+  }
+
+  private mapAverageBpm(audioStats: AudioStats | null): number | null {
+    const averageBpm = audioStats?.averageBpm;
+
+    return typeof averageBpm === 'number' ? Math.round(averageBpm) : null;
+  }
+
+  private mapTracksFoundRatio(
+    topTracks: TopTracksResponse | null,
+    audioStats: AudioStats | null
+  ): TracksFoundRatio | null {
+    if (!topTracks) return null;
+
+    return {
+      requestedTracksCount: topTracks.limit,
+      spotifyTotalTracksCount: topTracks.total,
+      returnedTracksCount: topTracks.items.length,
+      audioDataTracksCount: audioStats?.foundTracksCount ?? null,
+    };
   }
 }
