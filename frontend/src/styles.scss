@@ -283,6 +283,32 @@ app-root {
   color: var(--color-accent);
 }
 
+@layer components {
+  .most-listened-track-row {
+    display: grid;
+    grid-template-columns: 2.8rem minmax(0, 1.2fr) minmax(0, 0.9fr) 1.6rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    list-style: none;
+  }
+
+  .most-listened-track-row--expandable {
+    cursor: pointer;
+  }
+
+  .most-listened-track-row--expandable::-webkit-details-marker {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .most-listened-track-row {
+      grid-template-columns: 2.4rem minmax(0, 1fr) 1.6rem;
+      gap: 0.8rem;
+    }
+  }
+}
+
 .skeleton {
   display: block;
   background: linear-gradient(

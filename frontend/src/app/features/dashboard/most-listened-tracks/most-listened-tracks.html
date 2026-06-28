@@ -29,7 +29,7 @@
   <li class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)]">
     @if (hasAudioFeatures(track)) {
     <details class="group min-w-[0]">
-      <summary [class]="expandableTrackRowClasses">
+      <summary class="most-listened-track-row most-listened-track-row--expandable">
         <span
           class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
         >
@@ -77,7 +77,7 @@
       </div>
     </details>
     } @else {
-    <div [class]="trackRowClasses">
+    <div class="most-listened-track-row">
       <span
         class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
       >
