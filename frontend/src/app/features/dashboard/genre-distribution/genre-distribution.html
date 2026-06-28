@@ -3,7 +3,7 @@
 
   <div class="min-w-[0]">
     <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)] max-[420px]:leading-[var(--line-height-tight)]">
-      Skład gatunków muzycznych
+      Rozkład gatunków muzycznych
     </h3>
     <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
       Główne gatunki Twoich top artystów z {{ periodLabel() }}
@@ -13,7 +13,7 @@
 
 <div class="grid min-h-[24rem] items-center" aria-live="polite">
   @if (isLoading()) {
-  <div [class]="chartLayoutClasses" aria-label="Ładowanie składu gatunków">
+  <div [class]="chartLayoutClasses" aria-label="Ładowanie rozkładu gatunków">
     <div [class]="'skeleton ' + chartVisualClasses"></div>
     <div class="grid gap-[1rem]">
       @for (item of [1, 2, 3, 4]; track item) {
