@@ -27,16 +27,21 @@ export interface SpotifyUserProfile {
   uri?: string;
 }
 
+export interface TopTrack {
+  id: string;
+  name: string;
+  artists: { name: string }[];
+  album: { name: string; images: SpotifyImage[] };
+  duration_ms: number;
+  popularity: number;
+  play_count?: number;
+  playcount?: number;
+  playCount?: number;
+}
+
 export interface TopTracksResponse {
   href: string;
-  items: {
-    id: string;
-    name: string;
-    artists: { name: string }[];
-    album: { name: string; images: { url: string }[] };
-    duration_ms: number;
-    popularity: number;
-  }[];
+  items: TopTrack[];
   limit: number;
   next: string | null;
   offset: number;

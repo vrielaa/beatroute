@@ -1,0 +1,122 @@
+<div class="flex items-start gap-[1rem]">
+  <app-icon class="flex-none text-[var(--color-accent)]" name="dashboard" viewBox="0 0 16 16" />
+
+  <div class="min-w-[0]">
+    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)]">
+      Najczęściej słuchane utwory
+    </h3>
+    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      Top utwory z {{ periodLabel() }} z możliwością rozwinięcia cech audio
+    </p>
+  </div>
+</div>
+
+@if (isLoading()) {
+<div class="grid gap-[0.8rem]" aria-label="Ładowanie najczęściej słuchanych utworów">
+  @for (item of [1, 2, 3, 4, 5]; track item) {
+  <span class="skeleton h-[5.6rem] rounded-[var(--radius-lg)]"></span>
+  }
+</div>
+} @else if (!tracks().length) {
+<div
+  class="grid min-h-[12rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+>
+  <p>Brak utworów dla wybranego okresu.</p>
+</div>
+} @else {
+<ol class="grid gap-[0.8rem]">
+  @for (track of tracks(); track track.id; let index = $index) {
+  <li class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)]">
+    @if (hasAudioFeatures(track)) {
+    <details class="group min-w-[0]">
+      <summary [class]="expandableTrackRowClasses">
+        <span
+          class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
+        >
+          {{ index + 1 }}
+        </span>
+
+        <span class="min-w-[0]">
+          <span
+            class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
+          >
+            {{ track.name }}
+          </span>
+          <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
+            {{ artistNames(track) }}
+          </span>
+        </span>
+
+        <span
+          class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
+        >
+          {{ artistNames(track) }}
+        </span>
+
+        <span class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:hidden">
+          @if (playCount(track) !== null) {
+          {{ playCount(track) }} odsłuchań
+          }
+        </span>
+
+        <span
+          class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)] transition-transform duration-[160ms] ease-[ease] group-open:rotate-45"
+          aria-hidden="true"
+        >
+          +
+        </span>
+      </summary>
+
+      <div class="px-[1rem] pb-[1rem]">
+        <dl class="grid grid-cols-3 gap-[0.8rem] max-[820px]:grid-cols-2 max-[480px]:grid-cols-1">
+          @for (feature of audioFeatureRows(track); track feature.label) {
+          <div class="rounded-[var(--radius-md)] bg-[var(--color-surface)] px-[1rem] py-[0.8rem]">
+            <dt class="text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+              {{ feature.label }}
+            </dt>
+            <dd class="mt-[0.3rem] text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]">
+              {{ feature.value }}
+            </dd>
+          </div>
+          }
+        </dl>
+      </div>
+    </details>
+    } @else {
+    <div [class]="trackRowClasses">
+      <span
+        class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
+      >
+        {{ index + 1 }}
+      </span>
+
+      <span class="min-w-[0]">
+        <span
+          class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
+        >
+          {{ track.name }}
+        </span>
+        <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
+          {{ artistNames(track) }}
+        </span>
+      </span>
+
+      <span
+        class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
+      >
+        {{ artistNames(track) }}
+      </span>
+
+      <span class="text-right text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:hidden">
+        @if (playCount(track) !== null) {
+        {{ playCount(track) }} odsłuchań
+        }
+      </span>
+
+      <span aria-hidden="true"></span>
+    </div>
+    }
+  </li>
+  }
+</ol>
+}
