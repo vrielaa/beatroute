@@ -197,7 +197,9 @@ button,
 input,
 textarea,
 select {
-  font: inherit;
+  font-family: inherit;
+  font-style: inherit;
+  line-height: inherit;
   color: inherit;
 }
 
@@ -311,8 +313,27 @@ app-root {
   }
 }
 
+.login-background-image {
+  animation: login-background-drift 18s ease-in-out infinite;
+}
+
+@keyframes login-background-drift {
+  0%,
+  100% {
+    transform: scale(1) rotate(-4deg) translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: scale(1.08) rotate(4deg) translate3d(1.2rem, -1rem, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
+    animation: none;
+  }
+
+  .login-background-image {
     animation: none;
   }
 }
