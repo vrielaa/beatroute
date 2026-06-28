@@ -17,18 +17,16 @@
       @for (link of navLinks; track link.path; let isFirst = $first) {
       <button
         type="button"
-        [class]="navLinkClasses"
+        class="app-shell-nav-link"
         [attr.aria-label]="link.label"
         [id]="link.id"
         (click)="navigateTo(link.path)"
       >
         <span
-          [class]="
-            navLinkContentClasses +
-            ' ' +
-            (isFirst ? firstNavLinkContentSizeClasses : overlappedNavLinkContentSizeClasses) +
-            (link.isActive() ? ' ' + activeNavLinkContentClasses : '')
-          "
+          class="app-shell-nav-link-content"
+          [class.app-shell-nav-link-content--first]="isFirst"
+          [class.app-shell-nav-link-content--overlapped]="!isFirst"
+          [class.app-shell-nav-link-content--active]="link.isActive()"
         >
           <app-icon
             class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
@@ -38,7 +36,7 @@
             [strokeWidth]="1.33333"
           />
 
-          <span [class]="navLinkLabelClasses">{{ link.label }}</span>
+          <span class="app-shell-nav-link-label">{{ link.label }}</span>
         </span>
       </button>
       }

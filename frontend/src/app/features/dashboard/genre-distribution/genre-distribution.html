@@ -13,8 +13,8 @@
 
 <div class="grid min-h-[24rem] items-center" aria-live="polite">
   @if (isLoading()) {
-  <div [class]="chartLayoutClasses" aria-label="Ładowanie rozkładu gatunków">
-    <div [class]="'skeleton ' + chartVisualClasses"></div>
+  <div class="genre-distribution-layout" aria-label="Ładowanie rozkładu gatunków">
+    <div class="skeleton genre-distribution-chart-visual"></div>
     <div class="grid gap-[1rem]">
       @for (item of [1, 2, 3, 4]; track item) {
       <span class="skeleton h-[3.8rem] rounded-[var(--radius-md)]"></span>
@@ -22,17 +22,17 @@
     </div>
   </div>
   } @else if (hasError()) {
-  <div [class]="stateMessageClasses">
+  <div class="genre-distribution-state-message">
     <p>Nie udało się pobrać gatunków artystów.</p>
   </div>
   } @else if (!distribution()?.matchedArtists) {
-  <div [class]="stateMessageClasses">
+  <div class="genre-distribution-state-message">
     <p>Last.fm nie znalazł gatunków dla artystów z wybranego okresu.</p>
   </div>
   } @else {
-  <div [class]="chartLayoutClasses">
+  <div class="genre-distribution-layout">
     <div
-      [class]="donutChartClasses"
+      class="genre-distribution-chart-visual genre-distribution-donut"
       role="img"
       [attr.aria-label]="chartAriaLabel()"
       [style.background]="chartBackground()"
@@ -59,7 +59,7 @@
         >
           @if (hasExpandableSubgenres(segment)) {
           <details class="group min-w-[0]">
-            <summary [class]="summaryGenreRowClasses">
+            <summary class="genre-distribution-row genre-distribution-row--expandable">
               <span class="h-[1.2rem] w-[1.2rem] rounded-full" [style.background-color]="segment.color"></span>
               <span
                 class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-medium)]"
@@ -80,9 +80,9 @@
               </span>
             </summary>
 
-            <ul [class]="subgenreListClasses" [attr.aria-label]="'Podgatunki dla ' + segment.name">
+            <ul class="genre-distribution-subgenre-list" [attr.aria-label]="'Podgatunki dla ' + segment.name">
               @for (subgenre of segment.subgenres; track subgenre.name) {
-              <li [class]="subgenreItemClasses" [title]="subgenre.artists.join(', ')">
+              <li class="genre-distribution-subgenre-row" [title]="subgenre.artists.join(', ')">
                 <span aria-hidden="true"></span>
                 <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ subgenre.name }}</span>
                 <strong class="text-right text-[var(--color-text-primary)]">{{ subgenre.percentage }}%</strong>
@@ -98,7 +98,7 @@
             </ul>
           </details>
           } @else {
-          <div [class]="genreRowClasses">
+          <div class="genre-distribution-row">
             <span class="h-[1.2rem] w-[1.2rem] rounded-full" [style.background-color]="segment.color"></span>
             <span
               class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-medium)]"

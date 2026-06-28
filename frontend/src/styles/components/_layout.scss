@@ -1,0 +1,77 @@
+@layer components {
+  .app-shell-nav-link {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    color: var(--color-text-primary);
+  }
+
+  .app-shell-nav-link-content {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem clamp(1rem, 3vw, 6rem);
+    border-radius: 2rem;
+    transition: background-color var(--transition-fast);
+  }
+
+  .app-shell-nav-link-content--first {
+    width: 100%;
+  }
+
+  .app-shell-nav-link-content--overlapped {
+    width: calc(100% + 1rem);
+    margin-left: -1rem;
+  }
+
+  .app-shell-nav-link:hover .app-shell-nav-link-content,
+  .app-shell-nav-link:active .app-shell-nav-link-content,
+  .app-shell-nav-link-content--active {
+    background: var(--color-surface-tertiary);
+  }
+
+  .app-shell-nav-link-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-tight);
+  }
+
+  @media (max-width: 900px) {
+    .app-shell-nav-link-content {
+      gap: 0.6rem;
+      padding-inline: 1rem;
+    }
+
+    .app-shell-nav-link-label {
+      font-size: 1.4rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .app-shell-nav-link-content {
+      padding: 0.6rem;
+    }
+
+    .app-shell-nav-link-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  }
+}

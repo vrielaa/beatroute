@@ -15,9 +15,9 @@
 
 <div class="min-h-[18rem]" aria-live="polite">
   @if (isLoading()) {
-  <ol #skeletonGrid [class]="artistsGridClasses" aria-label="Ładowanie artystów">
+  <ol #skeletonGrid class="most-listened-artists-grid" aria-label="Ładowanie artystów">
     @for (item of skeletonItems(); track item) {
-    <li [class]="skeletonCardClasses">
+    <li class="most-listened-artist-card most-listened-artist-card--skeleton">
       <span
         class="skeleton absolute left-[1rem] top-[1rem] h-[2.6rem] w-[2.6rem] rounded-full"
       ></span>
@@ -27,23 +27,27 @@
     }
   </ol>
   } @else if (hasError()) {
-  <div [class]="stateMessageClasses">
+  <div class="most-listened-artists-state">
     <p>Nie udało się pobrać listy artystów.</p>
-    <button type="button" [class]="retryButtonClasses" (click)="retry()">Spróbuj ponownie</button>
+    <button type="button" class="most-listened-artists-retry" (click)="retry()">Spróbuj ponownie</button>
   </div>
   } @else if (artists().length === 0) {
-  <div [class]="stateMessageClasses">
+  <div class="most-listened-artists-state">
     <p>Brak danych o artystach dla wybranego okresu.</p>
   </div>
   } @else {
-  <ol [class]="artistsGridClasses">
+  <ol class="most-listened-artists-grid">
     @for (artist of artists(); track artist.id; let position = $index) {
-    <li [class]="artistCardClasses">
-      <span [class]="position < 3 ? topArtistRankClasses : artistRankClasses">
+    <li class="most-listened-artist-card">
+      <span
+        class="most-listened-artist-rank"
+        [class.most-listened-artist-rank--top]="position < 3"
+        [class.most-listened-artist-rank--default]="position >= 3"
+      >
         {{ position + 1 }}
       </span>
 
-      <div [class]="artistImageClasses">
+      <div class="most-listened-artist-image">
         @if (artist.images[0]?.url; as imageUrl) {
         <img
           class="h-full w-full object-cover"
