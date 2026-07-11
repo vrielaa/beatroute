@@ -36,19 +36,9 @@
     <div class="flex items-start justify-between gap-[1rem]">
       <div class="min-w-[0]">
         <h4 class="text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]">
-          <span
-            class="group/tooltip relative inline-flex cursor-help rounded-[var(--radius-xs)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-            tabindex="0"
-            [attr.aria-label]="tooltipText(feature)"
-          >
+          <app-tooltip [content]="feature.tooltip">
             {{ feature.label }}
-            <span
-              class="pointer-events-none invisible absolute bottom-[calc(100%+0.8rem)] left-0 z-[5] w-[min(30rem,calc(100vw-4rem))] rounded-[var(--radius-md)] bg-[var(--color-text-primary)] px-[1rem] py-[0.8rem] text-left text-[length:var(--text-xs)] font-[var(--font-weight-normal)] leading-[var(--line-height-normal)] text-[var(--color-bg)] opacity-0 shadow-[0_0.8rem_2.4rem_var(--color-shadow-strong)] [transition:opacity_var(--transition-fast),visibility_var(--transition-fast)] group-hover/tooltip:visible group-hover/tooltip:opacity-100 group-focus/tooltip:visible group-focus/tooltip:opacity-100"
-              aria-hidden="true"
-            >
-              {{ tooltipText(feature) }}
-            </span>
-          </span>
+          </app-tooltip>
         </h4>
         <p class="mt-[0.3rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
           {{ feature.description }}

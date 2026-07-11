@@ -65,7 +65,9 @@
         <dl class="most-listened-track-features">
           @for (feature of audioFeatureRows(track); track feature.label) {
           <div class="most-listened-track-feature-card">
-            <dt>{{ feature.label }}</dt>
+            <dt>
+              <app-tooltip [content]="feature.tooltip">{{ feature.label }}</app-tooltip>
+            </dt>
             <dd>{{ feature.value }}</dd>
           </div>
           }

@@ -1,7 +1,9 @@
 <div class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:items-start">
   <app-icon class="shrink-0" name="bpm" />
   <div class="flex min-w-[0] flex-col max-[600px]:leading-[var(--line-height-tight)]">
-    <h3>Średnie BPM</h3>
+    <h3>
+      <app-tooltip [content]="tempoTooltip">Średnie BPM</app-tooltip>
+    </h3>
     <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
       Obliczane na podstawie Twoich ulubionych utworów
     </p>

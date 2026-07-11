@@ -11,20 +11,34 @@
   </div>
 </div>
 
-<div class="audio-features-comparison-controls" aria-label="Wybierz cechy do wyświetlenia">
-  @for (feature of features; track feature.key) {
-  <label class="audio-features-comparison-option">
-    <input
-      class="audio-features-comparison-checkbox"
-      type="checkbox"
-      [checked]="isFeatureSelected(feature.key)"
-      [disabled]="isLastSelectedFeature(feature.key)"
-      (change)="toggleFeature(feature.key, $event)"
-    />
-    <span class="audio-features-comparison-dot" [style.background]="feature.color"></span>
-    <span>{{ feature.label }}</span>
-  </label>
-  }
+<div class="audio-features-comparison-controls">
+  <div class="audio-features-comparison-actions">
+    <label class="audio-features-comparison-action-check">
+      <input
+        class="audio-features-comparison-checkbox"
+        type="checkbox"
+        [checked]="isSelectAllFeaturesChecked()"
+        (click)="toggleSelectAllFeatures($event)"
+      />
+      <span>Zaznacz wszystkie cechy</span>
+    </label>
+    <button type="button" (click)="clearSelectedFeatures()">Wyczyść cechy</button>
+  </div>
+
+  <div class="audio-features-comparison-options" aria-label="Wybierz cechy do wyświetlenia">
+    @for (feature of features; track feature.key) {
+    <label class="audio-features-comparison-option">
+      <input
+        class="audio-features-comparison-checkbox"
+        type="checkbox"
+        [checked]="isFeatureSelected(feature.key)"
+        (change)="toggleFeature(feature.key, $event)"
+      />
+      <span class="audio-features-comparison-dot" [style.background]="feature.color"></span>
+      <app-tooltip [content]="feature.tooltip">{{ feature.label }}</app-tooltip>
+    </label>
+    }
+  </div>
 </div>
 
 @if (featureRows().length) {
@@ -38,7 +52,7 @@
   </summary>
 
   <div class="audio-features-comparison-track-picker-body">
-    <div class="audio-features-comparison-track-picker-actions">
+    <div class="audio-features-comparison-actions">
       <button type="button" (click)="selectAllTracks()">Zaznacz wszystkie</button>
       <button type="button" (click)="clearSelectedTracks()">Wyczyść</button>
     </div>
@@ -75,6 +89,12 @@
   class="grid min-h-[18rem] place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[2rem] text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
 >
   <p>Zaznacz minimum dwa utwory, żeby porównać ich cechy audio.</p>
+</div>
+} @else if (needsSelectedFeatures()) {
+<div
+  class="grid min-h-[18rem] place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[2rem] text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+>
+  <p>Zaznacz minimum jedną cechę audio, żeby wyświetlić wykres.</p>
 </div>
 } @else if (!hasChartData()) {
 <div

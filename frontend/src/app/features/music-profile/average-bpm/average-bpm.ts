@@ -1,9 +1,11 @@
 import { Component, input } from '@angular/core';
+import { audioFeatureTooltip } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
+import { Tooltip } from '@shared/components/tooltip/tooltip';
 
 @Component({
   selector: 'app-average-bpm',
-  imports: [Icon],
+  imports: [Icon, Tooltip],
   templateUrl: './average-bpm.html',
   host: {
     class:
@@ -13,4 +15,5 @@ import { Icon } from '@shared/components/icon/icon';
 export class AverageBpm {
   public readonly averageBpm = input<number | null>(null);
   public readonly isLoading = input(false);
+  public readonly tempoTooltip = audioFeatureTooltip('tempo');
 }

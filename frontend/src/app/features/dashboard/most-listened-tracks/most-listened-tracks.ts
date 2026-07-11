@@ -1,16 +1,25 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { AudioFeatures, TimeRange, TopTrack } from '@src/app/core/models/models';
+import {
+  AUDIO_FEATURE_INFO,
+  AudioFeatureInfoKey,
+  audioFeatureTooltip,
+} from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
+import { Tooltip } from '@shared/components/tooltip/tooltip';
+import { TooltipContent } from '@shared/tooltip/tooltip-content';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 
 type TrackAudioFeatureRow = {
+  key: AudioFeatureInfoKey;
   label: string;
   value: string;
+  tooltip: TooltipContent;
 };
 
 @Component({
   selector: 'app-most-listened-tracks',
-  imports: [Icon],
+  imports: [Icon, Tooltip],
   templateUrl: './most-listened-tracks.html',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
@@ -92,19 +101,28 @@ export class MostListenedTracks {
     }
 
     return [
-      { label: 'BPM', value: this.formatNumber(features.tempo, 0, ' BPM') },
-      { label: 'Energia', value: this.formatNumber(features.energy, 2) },
-      { label: 'Taneczność', value: this.formatNumber(features.danceability, 2) },
-      { label: 'Nastrój', value: this.formatNumber(features.valence, 2) },
-      { label: 'Akustyczność', value: this.formatNumber(features.acousticness, 2) },
-      { label: 'Instrumentalność', value: this.formatNumber(features.instrumentalness, 2) },
-      { label: 'Live', value: this.formatNumber(features.liveness, 2) },
-      { label: 'Mowa', value: this.formatNumber(features.speechiness, 2) },
-      { label: 'Głośność', value: this.formatNumber(features.loudness, 1, ' dB') },
-      { label: 'Tonacja', value: this.formatKey(features.key) },
-      { label: 'Tryb', value: this.formatMode(features.mode) },
-      { label: 'Metrum', value: this.formatTimeSignature(features.timeSignature) },
+      this.audioFeatureRow('tempo', this.formatNumber(features.tempo, 0, ' BPM')),
+      this.audioFeatureRow('energy', this.formatNumber(features.energy, 2)),
+      this.audioFeatureRow('danceability', this.formatNumber(features.danceability, 2)),
+      this.audioFeatureRow('valence', this.formatNumber(features.valence, 2)),
+      this.audioFeatureRow('acousticness', this.formatNumber(features.acousticness, 2)),
+      this.audioFeatureRow('instrumentalness', this.formatNumber(features.instrumentalness, 2)),
+      this.audioFeatureRow('liveness', this.formatNumber(features.liveness, 2)),
+      this.audioFeatureRow('speechiness', this.formatNumber(features.speechiness, 2)),
+      this.audioFeatureRow('loudness', this.formatNumber(features.loudness, 1, ' dB')),
+      this.audioFeatureRow('key', this.formatKey(features.key)),
+      this.audioFeatureRow('mode', this.formatMode(features.mode)),
+      this.audioFeatureRow('timeSignature', this.formatTimeSignature(features.timeSignature)),
     ];
+  }
+
+  private audioFeatureRow(key: AudioFeatureInfoKey, value: string): TrackAudioFeatureRow {
+    return {
+      key,
+      label: AUDIO_FEATURE_INFO[key].label,
+      value,
+      tooltip: audioFeatureTooltip(key),
+    };
   }
 
   private formatNumber(value: number | null | undefined, decimals: number, unit = ''): string {

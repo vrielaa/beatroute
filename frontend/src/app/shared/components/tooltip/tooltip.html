@@ -1,0 +1,59 @@
+<span
+  class="app-tooltip-trigger"
+  tabindex="0"
+  cdkOverlayOrigin
+  #tooltipOrigin="cdkOverlayOrigin"
+  [attr.aria-label]="tooltipText()"
+  [attr.aria-describedby]="isOpen() ? tooltipId : null"
+  (mouseenter)="show()"
+  (focus)="show()"
+  (mouseleave)="hide()"
+  (blur)="hide()"
+  (keydown.escape)="hide()"
+>
+  <ng-content></ng-content>
+</span>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="tooltipOrigin"
+  [cdkConnectedOverlayOpen]="isOpen()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayPush]="true"
+  [cdkConnectedOverlayViewportMargin]="12"
+  [cdkConnectedOverlayPanelClass]="'app-tooltip-overlay-pane'"
+>
+  <div class="app-tooltip-panel" [id]="tooltipId" role="tooltip">
+    @if (structuredContent(); as tooltip) {
+    @if (tooltip.title) {
+    <strong class="app-tooltip-title">{{ tooltip.title }}</strong>
+    }
+
+    <p class="app-tooltip-body">{{ tooltip.body }}</p>
+
+    @if (tooltip.range) {
+    <div class="app-tooltip-range">
+      <div class="app-tooltip-range-header">
+        <span class="app-tooltip-range-label">{{ tooltip.range.label }}</span>
+        <strong class="app-tooltip-range-value">
+          {{ tooltip.range.min }} - {{ tooltip.range.max }}
+        </strong>
+      </div>
+
+      <div class="app-tooltip-range-meanings">
+        <p class="app-tooltip-range-meaning">
+          <strong>Nisko</strong>
+          {{ tooltip.range.lowMeaning }}
+        </p>
+        <p class="app-tooltip-range-meaning">
+          <strong>Wysoko</strong>
+          {{ tooltip.range.highMeaning }}
+        </p>
+      </div>
+    </div>
+    }
+    } @else {
+    {{ plainContent() }}
+    }
+  </div>
+</ng-template>
