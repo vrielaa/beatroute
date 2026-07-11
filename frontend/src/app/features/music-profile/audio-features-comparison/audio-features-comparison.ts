@@ -2,54 +2,23 @@ import { Component, computed, effect, input, signal } from '@angular/core';
 import { AudioFeatures, TopTrack } from '@core/models/models';
 import {
   AUDIO_FEATURE_INFO,
-  AudioFeatureInfoKey,
   audioFeatureTooltip,
 } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
-import { Tooltip } from '@shared/components/tooltip/tooltip';
-import { TooltipContent } from '@shared/tooltip/tooltip-content';
-
-type ComparableAudioFeatureKey = Extract<
-  AudioFeatureInfoKey,
-  'energy' | 'danceability' | 'valence' | 'acousticness' | 'liveness' | 'speechiness'
->;
-
-type ComparableAudioFeature = {
-  key: ComparableAudioFeatureKey;
-  label: string;
-  color: string;
-  tooltip: TooltipContent;
-};
-
-type ChartRow = {
-  id: string;
-  axisLabel: string;
-  trackName: string;
-  artists: string;
-  values: Record<ComparableAudioFeatureKey, number | null>;
-};
-
-type ChartPoint = {
-  id: string;
-  x: number;
-  y: number;
-  value: number;
-  tooltip: string;
-};
-
-const CHART_WIDTH = 1000;
-const CHART_HEIGHT = 360;
-const CHART_PADDING = {
-  top: 16,
-  right: 24,
-  bottom: 104,
-  left: 52,
-} as const;
-const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
+import { AudioFeatureControls } from './audio-feature-controls/audio-feature-controls';
+import { AudioFeaturesChart } from './audio-features-chart/audio-features-chart';
+import {
+  AudioComparisonFeature,
+  AudioComparisonFeatureKey,
+  AudioComparisonFeatureToggle,
+  AudioComparisonChartRow,
+  AudioComparisonTrackToggle,
+} from './audio-features-comparison.models';
+import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
 
 @Component({
   selector: 'app-audio-features-comparison',
-  imports: [Icon, Tooltip],
+  imports: [AudioFeatureControls, AudioFeaturesChart, AudioTrackPicker, Icon],
   templateUrl: './audio-features-comparison.html',
   host: {
     class: 'flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
@@ -58,7 +27,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
 export class AudioFeaturesComparison {
   private readonly maxChartTracks = 10;
   private lastAvailableTrackIdsKey = '';
-  private readonly selectedFeatureKeys = signal<ComparableAudioFeatureKey[]>([
+  private readonly selectedFeatureKeys = signal<AudioComparisonFeatureKey[]>([
     'energy',
     'danceability',
     'valence',
@@ -72,15 +41,7 @@ export class AudioFeaturesComparison {
   public readonly audioFeatures = input<AudioFeatures[]>([]);
   public readonly isLoading = input(false);
 
-  public readonly chartViewBox = `0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`;
-  public readonly chartPlot = {
-    left: CHART_PADDING.left,
-    top: CHART_PADDING.top,
-    width: CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right,
-    height: CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom,
-  };
-
-  public readonly features: ComparableAudioFeature[] = [
+  public readonly features: AudioComparisonFeature[] = [
     this.comparableFeature('energy', '#8b5cf6'),
     this.comparableFeature('danceability', '#ec4899'),
     this.comparableFeature('valence', '#3b82f6'),
@@ -92,6 +53,7 @@ export class AudioFeaturesComparison {
   public readonly selectedFeatures = computed(() =>
     this.features.filter((feature) => this.selectedFeatureKeys().includes(feature.key))
   );
+  public readonly selectedFeatureKeyList = computed(() => this.selectedFeatureKeys());
 
   public readonly featureRows = computed(() => {
     const featuresByTrackId = this.audioFeaturesByTrackId();
@@ -120,7 +82,7 @@ export class AudioFeaturesComparison {
           },
         };
       })
-      .filter((row): row is ChartRow => row !== null);
+      .filter((row): row is AudioComparisonChartRow => row !== null);
   });
 
   private readonly effectiveSelectedTrackIds = computed(
@@ -132,27 +94,13 @@ export class AudioFeaturesComparison {
 
     return this.featureRows().filter((row) => selectedTrackIds.has(row.id));
   });
-
-  public readonly xAxisLabels = computed(() => {
-    const rows = this.selectedFeatureRows();
-
-    return rows.map((row, index) => ({
-      id: row.id,
-      label: row.axisLabel,
-      title: `${row.trackName} - ${row.artists}`,
-      x: this.chartX(index, rows.length),
-    }));
-  });
-
-  public readonly yAxisTicks = CHART_TICKS.map((value) => ({
-    value,
-    label: value.toFixed(value % 1 === 0 ? 0 : 2),
-    y: this.chartY(value),
-  }));
+  public readonly selectedTrackIdList = computed(() => this.effectiveSelectedTrackIds());
 
   public readonly hasChartData = computed(() =>
     this.hasEnoughSelectedTracks() &&
-    this.selectedFeatures().some((feature) => this.seriesPoints(feature.key).length > 0)
+    this.selectedFeatures().some((feature) =>
+      this.selectedFeatureRows().some((row) => row.values[feature.key] !== null)
+    )
   );
   public readonly hasSelectedFeatures = computed(() => this.selectedFeatures().length > 0);
   public readonly isSelectAllFeaturesChecked = computed(() => this.selectAllFeaturesChecked());
@@ -194,8 +142,7 @@ export class AudioFeaturesComparison {
     });
   }
 
-  public toggleFeature(featureKey: ComparableAudioFeatureKey, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
+  public toggleFeature({ featureKey, checked }: AudioComparisonFeatureToggle): void {
     const selectedKeys = this.selectedFeatureKeys();
 
     if (checked) {
@@ -210,17 +157,11 @@ export class AudioFeaturesComparison {
     this.selectAllFeaturesChecked.set(false);
   }
 
-  public isFeatureSelected(featureKey: ComparableAudioFeatureKey): boolean {
-    return this.selectedFeatureKeys().includes(featureKey);
-  }
-
   public selectAllFeatures(): void {
     this.selectedFeatureKeys.set(this.features.map((feature) => feature.key));
   }
 
-  public toggleSelectAllFeatures(event: Event): void {
-    event.preventDefault();
-
+  public toggleSelectAllFeatures(): void {
     if (this.selectAllFeaturesChecked()) {
       return;
     }
@@ -234,14 +175,13 @@ export class AudioFeaturesComparison {
     this.selectedFeatureKeys.set([]);
   }
 
-  private areAllFeaturesSelected(selectedKeys: ComparableAudioFeatureKey[]): boolean {
+  private areAllFeaturesSelected(selectedKeys: AudioComparisonFeatureKey[]): boolean {
     const selectedKeysSet = new Set(selectedKeys);
 
     return this.features.every((feature) => selectedKeysSet.has(feature.key));
   }
 
-  public toggleTrack(trackId: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
+  public toggleTrack({ trackId, checked }: AudioComparisonTrackToggle): void {
     const selectedTrackIds = this.effectiveSelectedTrackIds();
 
     if (checked) {
@@ -252,44 +192,12 @@ export class AudioFeaturesComparison {
     this.selectedTrackIds.set(selectedTrackIds.filter((selectedTrackId) => selectedTrackId !== trackId));
   }
 
-  public isTrackSelected(trackId: string): boolean {
-    return this.effectiveSelectedTrackIds().includes(trackId);
-  }
-
   public selectAllTracks(): void {
     this.selectedTrackIds.set(this.featureRows().map((row) => row.id));
   }
 
   public clearSelectedTracks(): void {
     this.selectedTrackIds.set([]);
-  }
-
-  public seriesPoints(featureKey: ComparableAudioFeatureKey): ChartPoint[] {
-    const rows = this.selectedFeatureRows();
-
-    return rows.reduce<ChartPoint[]>((points, row, index) => {
-      const value = row.values[featureKey];
-
-      if (value === null) {
-        return points;
-      }
-
-      points.push({
-        id: `${featureKey}-${row.id}`,
-        x: this.chartX(index, rows.length),
-        y: this.chartY(value),
-        value,
-        tooltip: `${row.trackName} - ${row.artists}, ${this.featureLabel(featureKey)} ${value.toFixed(2)}`,
-      });
-
-      return points;
-    }, []);
-  }
-
-  public polylinePoints(featureKey: ComparableAudioFeatureKey): string {
-    return this.seriesPoints(featureKey)
-      .map((point) => `${point.x},${point.y}`)
-      .join(' ');
   }
 
   private audioFeaturesByTrackId(): Map<string, AudioFeatures> {
@@ -308,18 +216,6 @@ export class AudioFeaturesComparison {
     return featuresByTrackId;
   }
 
-  private chartX(index: number, total: number): number {
-    if (total <= 1) {
-      return this.chartPlot.left + this.chartPlot.width / 2;
-    }
-
-    return this.chartPlot.left + (index / (total - 1)) * this.chartPlot.width;
-  }
-
-  private chartY(value: number): number {
-    return this.chartPlot.top + (1 - value) * this.chartPlot.height;
-  }
-
   private clampFeatureValue(value: number | null | undefined): number | null {
     if (typeof value !== 'number') {
       return null;
@@ -328,11 +224,7 @@ export class AudioFeaturesComparison {
     return Math.min(Math.max(value, 0), 1);
   }
 
-  private featureLabel(featureKey: ComparableAudioFeatureKey): string {
-    return this.features.find((feature) => feature.key === featureKey)?.label ?? featureKey;
-  }
-
-  private comparableFeature(key: ComparableAudioFeatureKey, color: string): ComparableAudioFeature {
+  private comparableFeature(key: AudioComparisonFeatureKey, color: string): AudioComparisonFeature {
     return {
       key,
       color,

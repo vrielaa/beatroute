@@ -1,0 +1,29 @@
+<div class="audio-features-comparison-controls">
+  <div class="audio-features-comparison-actions">
+    <label class="audio-features-comparison-action-check">
+      <input
+        class="audio-features-comparison-checkbox"
+        type="checkbox"
+        [checked]="isSelectAllChecked()"
+        (click)="toggleSelectAll($event)"
+      />
+      <span>Zaznacz wszystkie cechy</span>
+    </label>
+    <button type="button" (click)="clearSelection.emit()">Wyczyść cechy</button>
+  </div>
+
+  <div class="audio-features-comparison-options" aria-label="Wybierz cechy do wyświetlenia">
+    @for (feature of features(); track feature.key) {
+    <label class="audio-features-comparison-option">
+      <input
+        class="audio-features-comparison-checkbox"
+        type="checkbox"
+        [checked]="isFeatureSelected(feature.key)"
+        (change)="toggleFeature(feature.key, $event)"
+      />
+      <span class="audio-features-comparison-dot" [style.background]="feature.color"></span>
+      <app-tooltip [content]="feature.tooltip">{{ feature.label }}</app-tooltip>
+    </label>
+    }
+  </div>
+</div>

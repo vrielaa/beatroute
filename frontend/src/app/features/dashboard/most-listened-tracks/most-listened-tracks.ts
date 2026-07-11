@@ -6,20 +6,13 @@ import {
   audioFeatureTooltip,
 } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
-import { Tooltip } from '@shared/components/tooltip/tooltip';
-import { TooltipContent } from '@shared/tooltip/tooltip-content';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
-
-type TrackAudioFeatureRow = {
-  key: AudioFeatureInfoKey;
-  label: string;
-  value: string;
-  tooltip: TooltipContent;
-};
+import { MostListenedTrackItem } from './most-listened-track-item/most-listened-track-item';
+import { TrackAudioFeatureRow } from './most-listened-tracks.models';
 
 @Component({
   selector: 'app-most-listened-tracks',
-  imports: [Icon, Tooltip],
+  imports: [Icon, MostListenedTrackItem],
   templateUrl: './most-listened-tracks.html',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
@@ -75,22 +68,12 @@ export class MostListenedTracks {
     return labels[this.timeRange()];
   });
 
-  public artistNames(track: TopTrack): string {
-    return track.artists.map((artist) => artist.name).join(', ');
-  }
-
   public toggleExpanded(): void {
     this.isExpanded.update((isExpanded) => !isExpanded);
   }
 
   public audioFeaturesFor(track: TopTrack): AudioFeatures | null {
     return this.audioFeaturesByTrackId().get(track.id) ?? null;
-  }
-
-  public hasAudioFeatures(track: TopTrack): boolean {
-    const features = this.audioFeaturesFor(track);
-
-    return Boolean(features && !features.error);
   }
 
   public audioFeatureRows(track: TopTrack): TrackAudioFeatureRow[] {

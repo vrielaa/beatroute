@@ -1,0 +1,36 @@
+<details class="audio-features-comparison-track-picker">
+  <summary class="audio-features-comparison-track-picker-summary">
+    <span>
+      <strong>Wybierz utwory do porównania</strong>
+      <span>{{ selectionSummary() }}</span>
+    </span>
+    <span class="audio-features-comparison-track-picker-arrow" aria-hidden="true">+</span>
+  </summary>
+
+  <div class="audio-features-comparison-track-picker-body">
+    <div class="audio-features-comparison-actions">
+      <button type="button" (click)="selectAll.emit()">Zaznacz wszystkie</button>
+      <button type="button" (click)="clearSelection.emit()">Wyczyść</button>
+    </div>
+
+    <div class="audio-features-comparison-track-options">
+      @for (row of rows(); track row.id) {
+      <label
+        class="audio-features-comparison-track-option"
+        [title]="row.trackName + ' - ' + row.artists"
+      >
+        <input
+          class="audio-features-comparison-checkbox"
+          type="checkbox"
+          [checked]="isTrackSelected(row.id)"
+          (change)="toggleTrack(row.id, $event)"
+        />
+        <span>
+          <strong>{{ row.trackName }}</strong>
+          <span>{{ row.artists }}</span>
+        </span>
+      </label>
+      }
+    </div>
+  </div>
+</details>

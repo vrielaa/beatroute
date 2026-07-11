@@ -1,0 +1,18 @@
+<div
+  class="genre-distribution-chart-visual genre-distribution-donut"
+  role="img"
+  [attr.aria-label]="chartAriaLabel()"
+  [style.background]="chartBackground()"
+>
+  <div
+    class="flex aspect-square w-[58%] flex-col items-center justify-center rounded-full bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+    aria-hidden="true"
+  >
+    <strong class="text-[length:clamp(var(--text-2xl),4vw,var(--text-4xl))] leading-none">
+      {{ matchedArtists() }}
+    </strong>
+    <span class="mt-[0.5rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      artystów
+    </span>
+  </div>
+</div>

@@ -1,111 +1,22 @@
-<header
-  class="row-start-1 row-end-2 grid h-full w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-[clamp(1rem,2vw,2.4rem)] bg-[var(--color-surface)] px-[max(2rem,calc((100%_-_120rem)/2))] text-[var(--color-text-primary)] max-[900px]:px-[2rem] max-[600px]:gap-[1.2rem] max-[600px]:px-[1.2rem]"
->
-  <div class="col-start-1 col-end-2 flex min-w-[0] items-center gap-[1.2rem] justify-self-start">
-    @if (showAnalysisFilters()) {
-    <button
-      type="button"
-      class="analysis-filters-header-button"
-      [class.analysis-filters-header-button--open]="isAnalysisFiltersOpen()"
-      [attr.aria-expanded]="isAnalysisFiltersOpen()"
-      aria-controls="analysis-filters-drawer"
-      aria-label="Otwórz ustawienia analizy"
-      (click)="toggleAnalysisFilters()"
-    >
-      <app-icon name="settings" [size]="22" [strokeWidth]="1.8" />
-    </button>
-    }
+<app-shell-header
+  [showAnalysisFilters]="showAnalysisFilters()"
+  [isAnalysisFiltersOpen]="isAnalysisFiltersOpen()"
+  (analysisFiltersToggle)="toggleAnalysisFilters()"
+/>
 
-    <app-logo class="min-w-[0]" />
-  </div>
-
-  <div class="col-start-2 col-end-3 flex items-center gap-[clamp(1rem,1.6vw,1.8rem)]">
-    <app-dark-mode />
-
-    <app-user-profile class="max-[600px]:hidden" />
-    <app-logout />
-  </div>
-</header>
-
-<div class="grid h-full w-full grid-rows-[1fr_4rem_1fr] max-[600px]:grid-rows-[1fr_4.4rem_1fr]">
-  <div
-    class="row-start-2 row-end-3 flex h-full w-full justify-center px-[2rem] text-[var(--color-text-primary)] max-[900px]:px-[1.6rem] max-[600px]:px-[1rem]"
-  >
-    <nav
-      class="grid h-full w-[min(100%,120rem)] grid-cols-4 grid-rows-1 items-stretch overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface)] p-[0.4rem] shadow-[0_0.8rem_2.4rem_var(--color-shadow)] max-[600px]:rounded-[var(--radius-lg)]"
-    >
-      @for (link of navLinks; track link.path; let isFirst = $first) {
-      <button
-        type="button"
-        class="app-shell-nav-link"
-        [attr.aria-label]="link.label"
-        [id]="link.id"
-        (click)="navigateTo(link.path)"
-      >
-        <span
-          class="app-shell-nav-link-content"
-          [class.app-shell-nav-link-content--first]="isFirst"
-          [class.app-shell-nav-link-content--overlapped]="!isFirst"
-          [class.app-shell-nav-link-content--active]="link.isActive()"
-        >
-          <app-icon
-            class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
-            [name]="link.icon"
-            [size]="16"
-            viewBox="0 0 16 16"
-            [strokeWidth]="1.33333"
-          />
-
-          <span class="app-shell-nav-link-label">{{ link.label }}</span>
-        </span>
-      </button>
-      }
-    </nav>
-  </div>
-</div>
+<app-shell-nav [navLinks]="navLinks" (navigate)="navigateTo($event)" />
 
 @if (showAnalysisFilters()) {
-@if (isAnalysisFiltersOpen()) {
-<button
-  type="button"
-  class="analysis-filters-backdrop"
-  aria-label="Zamknij ustawienia analizy"
-  (click)="closeAnalysisFilters()"
-></button>
-}
-
-<aside
-  id="analysis-filters-drawer"
-  class="analysis-filters-drawer"
-  [class.analysis-filters-drawer--open]="isAnalysisFiltersOpen()"
-  [attr.aria-hidden]="!isAnalysisFiltersOpen()"
-  aria-label="Ustawienia analizy"
->
-  <div class="analysis-filters-drawer-header">
-    <div>
-      <p class="analysis-filters-drawer-eyebrow">Filtry</p>
-      <h2 class="analysis-filters-drawer-title">Ustawienia analizy</h2>
-    </div>
-
-    <button
-      type="button"
-      class="analysis-filters-drawer-close"
-      aria-label="Zamknij ustawienia analizy"
-      (click)="closeAnalysisFilters()"
-    >
-      ×
-    </button>
-  </div>
-
-  <app-listening-stats-filters
-    [selectedTimeRange]="analysisFiltersStore.selectedTimeRange()"
-    [selectedTracksRange]="analysisFiltersStore.selectedTracksRange()"
-    [selectedArtistsRange]="analysisFiltersStore.selectedArtistsRange()"
-    (timeRangeChange)="analysisFiltersStore.setTimeRange($event)"
-    (selectedTracksRangeChange)="analysisFiltersStore.setTracksRange($event)"
-    (selectedArtistsRangeChange)="analysisFiltersStore.setArtistsRange($event)"
-  ></app-listening-stats-filters>
-</aside>
+<app-analysis-filters-drawer
+  [isOpen]="isAnalysisFiltersOpen()"
+  [selectedTimeRange]="analysisFiltersStore.selectedTimeRange()"
+  [selectedTracksRange]="analysisFiltersStore.selectedTracksRange()"
+  [selectedArtistsRange]="analysisFiltersStore.selectedArtistsRange()"
+  (close)="closeAnalysisFilters()"
+  (timeRangeChange)="analysisFiltersStore.setTimeRange($event)"
+  (selectedTracksRangeChange)="analysisFiltersStore.setTracksRange($event)"
+  (selectedArtistsRangeChange)="analysisFiltersStore.setArtistsRange($event)"
+/>
 }
 
 <main

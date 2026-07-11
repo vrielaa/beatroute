@@ -1,0 +1,41 @@
+@if (isOpen()) {
+<button
+  type="button"
+  class="analysis-filters-backdrop"
+  aria-label="Zamknij ustawienia analizy"
+  (click)="close.emit()"
+></button>
+}
+
+<aside
+  id="analysis-filters-drawer"
+  class="analysis-filters-drawer"
+  [class.analysis-filters-drawer--open]="isOpen()"
+  [attr.aria-hidden]="!isOpen()"
+  aria-label="Ustawienia analizy"
+>
+  <div class="analysis-filters-drawer-header">
+    <div>
+      <p class="analysis-filters-drawer-eyebrow">Filtry</p>
+      <h2 class="analysis-filters-drawer-title">Ustawienia analizy</h2>
+    </div>
+
+    <button
+      type="button"
+      class="analysis-filters-drawer-close"
+      aria-label="Zamknij ustawienia analizy"
+      (click)="close.emit()"
+    >
+      ×
+    </button>
+  </div>
+
+  <app-listening-stats-filters
+    [selectedTimeRange]="selectedTimeRange()"
+    [selectedTracksRange]="selectedTracksRange()"
+    [selectedArtistsRange]="selectedArtistsRange()"
+    (timeRangeChange)="timeRangeChange.emit($event)"
+    (selectedTracksRangeChange)="selectedTracksRangeChange.emit($event)"
+    (selectedArtistsRangeChange)="selectedArtistsRangeChange.emit($event)"
+  ></app-listening-stats-filters>
+</aside>

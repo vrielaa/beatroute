@@ -1,20 +1,19 @@
 import { Component, computed, input } from '@angular/core';
 import {
-  ArtistGenreDistributionItem,
   ArtistGenreDistributionSubgenreItem,
+  ArtistGenreDistributionItem,
   ArtistGenreDistributionResponse,
   TimeRange,
 } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
-
-interface GenreChartSegment extends ArtistGenreDistributionItem {
-  color: string;
-}
+import { GenreDistributionDonut } from './genre-distribution-donut/genre-distribution-donut';
+import { GenreDistributionList } from './genre-distribution-list/genre-distribution-list';
+import { GenreChartSegment } from './genre-distribution.models';
 
 @Component({
   selector: 'app-genre-distribution',
-  imports: [Icon],
+  imports: [GenreDistributionDonut, GenreDistributionList, Icon],
   templateUrl: './genre-distribution.html',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
@@ -96,13 +95,6 @@ export class GenreDistribution {
     return segments.map((segment) => `${segment.name}: ${segment.percentage}%`).join(', ');
   });
 
-  public hasExpandableSubgenres(segment: GenreChartSegment): boolean {
-    return segment.subgenres.some(
-      (subgenre) =>
-        this.normalizeGenreLabel(subgenre.name) !== this.normalizeGenreLabel(segment.name)
-    );
-  }
-
   private buildOtherGenreSubgenres(
     genres: ArtistGenreDistributionItem[],
     totalCount: number
@@ -113,10 +105,6 @@ export class GenreDistribution {
       percentage: totalCount ? Number(((genre.count / totalCount) * 100).toFixed(1)) : 0,
       artists: genre.artists,
     }));
-  }
-
-  private normalizeGenreLabel(genre: string): string {
-    return genre.toLocaleLowerCase().replace(/\s+/g, ' ').trim();
   }
 
   private totalGenreMatches(distribution: ArtistGenreDistributionResponse): number {

@@ -27,81 +27,11 @@
 <ol class="grid gap-[0.8rem]">
   @for (track of visibleTracks(); track track.id; let index = $index) {
   <li class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)]">
-    @if (hasAudioFeatures(track)) {
-    <details class="group min-w-[0]">
-      <summary class="most-listened-track-row most-listened-track-row--expandable">
-        <span
-          class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
-        >
-          {{ index + 1 }}
-        </span>
-
-        <span class="min-w-[0]">
-          <span
-            class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
-          >
-            {{ track.name }}
-          </span>
-          <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
-            {{ artistNames(track) }}
-          </span>
-        </span>
-
-        <span
-          class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
-        >
-          {{ artistNames(track) }}
-        </span>
-
-        <span
-          class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)] transition-transform duration-[160ms] ease-[ease] group-open:rotate-45"
-          aria-hidden="true"
-        >
-          +
-        </span>
-      </summary>
-
-      <div class="px-[1rem] pb-[1rem]">
-        <dl class="most-listened-track-features">
-          @for (feature of audioFeatureRows(track); track feature.label) {
-          <div class="most-listened-track-feature-card">
-            <dt>
-              <app-tooltip [content]="feature.tooltip">{{ feature.label }}</app-tooltip>
-            </dt>
-            <dd>{{ feature.value }}</dd>
-          </div>
-          }
-        </dl>
-      </div>
-    </details>
-    } @else {
-    <div class="most-listened-track-row">
-      <span
-        class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
-      >
-        {{ index + 1 }}
-      </span>
-
-      <span class="min-w-[0]">
-        <span
-          class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
-        >
-          {{ track.name }}
-        </span>
-        <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
-          {{ artistNames(track) }}
-        </span>
-      </span>
-
-      <span
-        class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
-      >
-        {{ artistNames(track) }}
-      </span>
-
-      <span aria-hidden="true"></span>
-    </div>
-    }
+    <app-most-listened-track-item
+      [track]="track"
+      [index]="index"
+      [featureRows]="audioFeatureRows(track)"
+    />
   </li>
   }
 </ol>

@@ -1,33 +1,16 @@
-import { Component, Signal, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, isActive } from '@angular/router';
-
-import { Logout } from '../components/logout/logout';
-import { UserProfile } from '../components/user-profile/user-profile';
-import { Logo } from '../components/logo/logo';
-import { DarkMode } from '../components/dark-mode/dark-mode';
 
 import { SpotifyService } from '@core/services/spotify.service';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
-import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filters/listening-stats-filters';
-import { Icon } from '@shared/components/icon/icon';
-import { IconName } from '@shared/icons/icons';
-
-type BaseNavLink = {
-  label: string;
-  path: string;
-  exact?: boolean;
-  id: string;
-  icon: IconName;
-  showAnalysisFilters?: boolean;
-};
-
-type NavLink = BaseNavLink & {
-  isActive: Signal<boolean>;
-};
+import { AnalysisFiltersDrawer } from './analysis-filters-drawer/analysis-filters-drawer';
+import { AppShellHeader } from './app-shell-header/app-shell-header';
+import { AppShellNav } from './app-shell-nav/app-shell-nav';
+import { BaseNavLink, NavLink } from './app-shell.models';
 
 @Component({
   selector: 'app-app-shell',
-  imports: [RouterOutlet, Logout, UserProfile, Logo, DarkMode, Icon, ListeningStatsFilters],
+  imports: [AnalysisFiltersDrawer, AppShellHeader, AppShellNav, RouterOutlet],
   templateUrl: './app-shell.html',
   host: {
     class:
