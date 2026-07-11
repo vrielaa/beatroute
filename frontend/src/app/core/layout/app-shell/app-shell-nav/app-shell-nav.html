@@ -1,7 +1,7 @@
 <div class="app-shell-navigation-region">
   <div class="app-shell-navigation-container">
     <nav class="app-shell-navigation-list">
-      @for (link of navLinks(); track link.path; let isFirst = $first) {
+      @for (link of navLinks(); track link.path) {
       <button
         type="button"
         class="app-shell-nav-link"
@@ -11,8 +11,6 @@
       >
         <span
           class="app-shell-nav-link-content"
-          [class.app-shell-nav-link-content--first]="isFirst"
-          [class.app-shell-nav-link-content--overlapped]="!isFirst"
           [class.app-shell-nav-link-content--active]="link.isActive()"
         >
           <app-icon
