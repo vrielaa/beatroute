@@ -1,0 +1,168 @@
+<div class="flex items-start gap-[1rem]">
+  <app-icon class="flex-none text-[var(--color-accent)]" name="dashboard" viewBox="0 0 16 16" />
+
+  <div class="min-w-[0]">
+    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)]">
+      Porównanie cech audio utworów
+    </h3>
+    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+      {{ subtitle() }}
+    </p>
+  </div>
+</div>
+
+<div class="audio-features-comparison-controls" aria-label="Wybierz cechy do wyświetlenia">
+  @for (feature of features; track feature.key) {
+  <label class="audio-features-comparison-option">
+    <input
+      class="audio-features-comparison-checkbox"
+      type="checkbox"
+      [checked]="isFeatureSelected(feature.key)"
+      [disabled]="isLastSelectedFeature(feature.key)"
+      (change)="toggleFeature(feature.key, $event)"
+    />
+    <span class="audio-features-comparison-dot" [style.background]="feature.color"></span>
+    <span>{{ feature.label }}</span>
+  </label>
+  }
+</div>
+
+@if (featureRows().length) {
+<details class="audio-features-comparison-track-picker">
+  <summary class="audio-features-comparison-track-picker-summary">
+    <span>
+      <strong>Wybierz utwory do porównania</strong>
+      <span>{{ trackSelectionSummary() }}</span>
+    </span>
+    <span class="audio-features-comparison-track-picker-arrow" aria-hidden="true">+</span>
+  </summary>
+
+  <div class="audio-features-comparison-track-picker-body">
+    <div class="audio-features-comparison-track-picker-actions">
+      <button type="button" (click)="selectAllTracks()">Zaznacz wszystkie</button>
+      <button type="button" (click)="clearSelectedTracks()">Wyczyść</button>
+    </div>
+
+    <div class="audio-features-comparison-track-options">
+      @for (row of featureRows(); track row.id) {
+      <label
+        class="audio-features-comparison-track-option"
+        [title]="row.trackName + ' - ' + row.artists"
+      >
+        <input
+          class="audio-features-comparison-checkbox"
+          type="checkbox"
+          [checked]="isTrackSelected(row.id)"
+          (change)="toggleTrack(row.id, $event)"
+        />
+        <span>
+          <strong>{{ row.trackName }}</strong>
+          <span>{{ row.artists }}</span>
+        </span>
+      </label>
+      }
+    </div>
+  </div>
+</details>
+}
+
+@if (isLoading()) {
+<div class="audio-features-comparison-chart-shell" aria-label="Ładowanie porównania cech audio">
+  <span class="skeleton h-[28rem] w-full rounded-[var(--radius-lg)]"></span>
+</div>
+} @else if (needsMoreSelectedTracks()) {
+<div
+  class="grid min-h-[18rem] place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[2rem] text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+>
+  <p>Zaznacz minimum dwa utwory, żeby porównać ich cechy audio.</p>
+</div>
+} @else if (!hasChartData()) {
+<div
+  class="grid min-h-[18rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
+>
+  <p>Brak danych do porównania cech audio.</p>
+</div>
+} @else {
+<div class="audio-features-comparison-chart-shell">
+  <svg
+    class="audio-features-comparison-chart"
+    [attr.viewBox]="chartViewBox"
+    role="img"
+    aria-label="Wykres liniowy porównujący cechy audio najczęściej słuchanych utworów"
+  >
+    @for (tick of yAxisTicks; track tick.value) {
+    <line
+      class="audio-features-comparison-grid-line"
+      [attr.x1]="chartPlot.left"
+      [attr.x2]="chartPlot.left + chartPlot.width"
+      [attr.y1]="tick.y"
+      [attr.y2]="tick.y"
+      vector-effect="non-scaling-stroke"
+    />
+    <text class="audio-features-comparison-axis-label" x="12" [attr.y]="tick.y + 5">
+      {{ tick.label }}
+    </text>
+    }
+
+    <line
+      class="audio-features-comparison-axis-line"
+      [attr.x1]="chartPlot.left"
+      [attr.x2]="chartPlot.left"
+      [attr.y1]="chartPlot.top"
+      [attr.y2]="chartPlot.top + chartPlot.height"
+      vector-effect="non-scaling-stroke"
+    />
+    <line
+      class="audio-features-comparison-axis-line"
+      [attr.x1]="chartPlot.left"
+      [attr.x2]="chartPlot.left + chartPlot.width"
+      [attr.y1]="chartPlot.top + chartPlot.height"
+      [attr.y2]="chartPlot.top + chartPlot.height"
+      vector-effect="non-scaling-stroke"
+    />
+
+    @for (label of xAxisLabels(); track label.id) {
+    <line
+      class="audio-features-comparison-grid-line"
+      [attr.x1]="label.x"
+      [attr.x2]="label.x"
+      [attr.y1]="chartPlot.top"
+      [attr.y2]="chartPlot.top + chartPlot.height"
+      vector-effect="non-scaling-stroke"
+    />
+    <text
+      class="audio-features-comparison-axis-label audio-features-comparison-x-label"
+      [attr.x]="label.x"
+      [attr.y]="chartPlot.top + chartPlot.height + 32"
+      [attr.transform]="'rotate(-35 ' + label.x + ' ' + (chartPlot.top + chartPlot.height + 32) + ')'"
+    >
+      <title>{{ label.title }}</title>
+      {{ label.label }}
+    </text>
+    }
+
+    @for (feature of selectedFeatures(); track feature.key) {
+    <polyline
+      class="audio-features-comparison-line"
+      [attr.points]="polylinePoints(feature.key)"
+      [attr.stroke]="feature.color"
+      vector-effect="non-scaling-stroke"
+    />
+
+    @for (point of seriesPoints(feature.key); track point.id) {
+    <g>
+      <title>{{ point.tooltip }}</title>
+      <circle
+        class="audio-features-comparison-point"
+        r="4.5"
+        [attr.cx]="point.x"
+        [attr.cy]="point.y"
+        [attr.stroke]="feature.color"
+        vector-effect="non-scaling-stroke"
+      />
+    </g>
+    }
+    }
+  </svg>
+</div>
+}

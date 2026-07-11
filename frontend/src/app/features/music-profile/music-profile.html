@@ -9,3 +9,10 @@
   [audioStats]="audioStats()"
   [isLoading]="isAudioStatsLoading()"
 ></app-average-audio-features>
+
+<app-audio-features-comparison
+  class="card"
+  [tracks]="topTracks()?.items ?? []"
+  [audioFeatures]="audioFeatures()"
+  [isLoading]="isAudioStatsLoading()"
+></app-audio-features-comparison>
