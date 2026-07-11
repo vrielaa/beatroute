@@ -1,11 +1,11 @@
-<div class="flex items-start gap-[1rem]">
-  <app-icon class="flex-none text-[var(--color-accent)]" name="dashboard" viewBox="0 0 16 16" />
+<div class="section-header">
+  <app-icon class="section-header-icon" name="dashboard" viewBox="0 0 16 16" />
 
-  <div class="min-w-[0]">
-    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)]">
+  <div class="section-header-text">
+    <h3 class="section-header-title">
       Porównanie cech audio utworów
     </h3>
-    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <p class="section-header-subtitle">
       {{ subtitle() }}
     </p>
   </div>
@@ -33,24 +33,18 @@
 
 @if (isLoading()) {
 <div class="audio-features-comparison-chart-shell" aria-label="Ładowanie porównania cech audio">
-  <span class="skeleton h-[28rem] w-full rounded-[var(--radius-lg)]"></span>
+  <span class="skeleton audio-features-comparison-chart-skeleton"></span>
 </div>
 } @else if (needsMoreSelectedTracks()) {
-<div
-  class="grid min-h-[18rem] place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[2rem] text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
->
+<div class="audio-features-comparison-state audio-features-comparison-state--surface">
   <p>Zaznacz minimum dwa utwory, żeby porównać ich cechy audio.</p>
 </div>
 } @else if (needsSelectedFeatures()) {
-<div
-  class="grid min-h-[18rem] place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)] p-[2rem] text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
->
+<div class="audio-features-comparison-state audio-features-comparison-state--surface">
   <p>Zaznacz minimum jedną cechę audio, żeby wyświetlić wykres.</p>
 </div>
 } @else if (!hasChartData()) {
-<div
-  class="grid min-h-[18rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
->
+<div class="audio-features-comparison-state">
   <p>Brak danych do porównania cech audio.</p>
 </div>
 } @else {

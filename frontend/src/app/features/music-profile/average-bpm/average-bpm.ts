@@ -8,8 +8,7 @@ import { Tooltip } from '@shared/components/tooltip/tooltip';
   imports: [Icon, Tooltip],
   templateUrl: './average-bpm.html',
   host: {
-    class:
-      'grid min-h-[20rem] w-full min-w-[0] grid-cols-1 grid-rows-[auto_minmax(10rem,1fr)] gap-[1rem] max-[960px]:min-h-[16rem] max-[960px]:grid-rows-[auto_minmax(7rem,1fr)] max-[600px]:min-h-[14rem]',
+    class: 'average-bpm-card-content',
   },
 })
 export class AverageBpm {

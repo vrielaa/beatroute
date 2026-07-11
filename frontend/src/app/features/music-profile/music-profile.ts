@@ -11,8 +11,7 @@ import { AverageBpm } from './average-bpm/average-bpm';
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
   host: {
-    class:
-      'grid w-full min-w-[0] auto-rows-min grid-cols-1 gap-[1.6rem] [&>.card]:min-w-[0] max-[600px]:gap-[1rem] max-[600px]:[&>.card]:rounded-[var(--radius-lg)] max-[600px]:[&>.card]:p-[1.4rem] max-[380px]:[&>.card]:p-[1.2rem]',
+    class: 'music-profile-grid',
   },
 })
 export class MusicProfile {

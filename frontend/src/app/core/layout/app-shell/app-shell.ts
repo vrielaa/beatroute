@@ -13,8 +13,7 @@ import { BaseNavLink, NavLink } from './app-shell.models';
   imports: [AnalysisFiltersDrawer, AppShellHeader, AppShellNav, RouterOutlet],
   templateUrl: './app-shell.html',
   host: {
-    class:
-      'grid min-h-[100dvh] grid-cols-1 grid-rows-[8rem_8rem_minmax(0,1fr)] [font-family:var(--default-font-family)] max-[900px]:grid-rows-[7rem_7rem_minmax(0,1fr)] max-[600px]:grid-rows-[6.4rem_6.4rem_minmax(0,1fr)]',
+    class: 'app-shell',
   },
 })
 export class AppShellComponent {

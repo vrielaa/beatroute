@@ -21,7 +21,7 @@ import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
   imports: [AudioFeatureControls, AudioFeaturesChart, AudioTrackPicker, Icon],
   templateUrl: './audio-features-comparison.html',
   host: {
-    class: 'flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: 'audio-features-comparison',
   },
 })
 export class AudioFeaturesComparison {

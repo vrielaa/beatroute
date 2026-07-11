@@ -8,7 +8,7 @@ import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
   imports: [Tooltip],
   templateUrl: './most-listened-track-item.html',
   host: {
-    class: 'block min-w-[0]',
+    class: 'most-listened-track-item',
   },
 })
 export class MostListenedTrackItem {

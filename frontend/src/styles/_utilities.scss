@@ -6,6 +6,31 @@
   padding: 2rem;
 }
 
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.section-header-icon {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.section-header-text {
+  min-width: 0;
+}
+
+.section-header-title {
+  font-size: var(--text-lg);
+}
+
+.section-header-subtitle {
+  margin-top: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
 .spinner {
   width: 3.2rem;
   height: 3.2rem;
@@ -31,5 +56,12 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .section-header-title {
+    font-size: var(--text-base);
+    line-height: var(--line-height-tight);
   }
 }

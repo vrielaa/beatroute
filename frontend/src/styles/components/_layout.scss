@@ -1,4 +1,338 @@
 @layer components {
+  .app-shell {
+    display: grid;
+    min-height: 100dvh;
+    grid-template-columns: 1fr;
+    grid-template-rows: 8rem 8rem minmax(0, 1fr);
+    font-family: var(--default-font-family);
+  }
+
+  .app-shell-header-host,
+  .app-shell-navigation-host,
+  .analysis-filters-drawer-host {
+    display: contents;
+  }
+
+  .app-shell-header {
+    display: grid;
+    grid-row: 1 / 2;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: clamp(1rem, 2vw, 2.4rem);
+    padding-inline: max(2rem, calc((100% - 120rem) / 2));
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+
+  .app-shell-header-brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 1.2rem;
+    justify-self: start;
+  }
+
+  .app-shell-header-actions {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 1.6vw, 1.8rem);
+  }
+
+  .app-shell-main {
+    display: grid;
+    min-height: 0;
+    width: 100%;
+    grid-row: 3 / 4;
+    grid-template-columns: minmax(2rem, 1fr) minmax(0, 120rem) minmax(2rem, 1fr);
+    align-items: start;
+    overflow-y: auto;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+  }
+
+  .app-shell-navigation-region {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-row: 2 / 3;
+    grid-template-rows: 1fr 4rem 1fr;
+  }
+
+  .app-shell-navigation-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    grid-row: 2 / 3;
+    justify-content: center;
+    padding-inline: 2rem;
+    color: var(--color-text-primary);
+  }
+
+  .app-shell-navigation-list {
+    display: grid;
+    width: min(100%, 120rem);
+    height: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: 1fr;
+    align-items: stretch;
+    overflow: hidden;
+    padding: 0.4rem;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
+  }
+
+  .app-shell-navigation-icon {
+    flex: none;
+  }
+
+  .theme-toggle-host {
+    display: grid;
+    place-items: center;
+    color: var(--color-text-primary);
+  }
+
+  .theme-toggle-button {
+    color: var(--color-text-primary);
+    transition: transform 0.3s ease, color 0.3s ease;
+  }
+
+  .theme-toggle-button:hover {
+    transform: scale(1.1);
+  }
+
+  .theme-toggle-button:active {
+    transform: translateY(0.1rem);
+  }
+
+  .brand-logo {
+    display: grid;
+    width: min(35rem, 100%);
+    min-width: 0;
+    height: 100%;
+    grid-template-columns: 6rem minmax(0, auto);
+    align-items: center;
+    color: inherit;
+  }
+
+  .brand-logo-image {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .brand-logo-text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .brand-logo-name {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .brand-logo-subtitle {
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+  }
+
+  .logout-action {
+    display: grid;
+    height: 3.5rem;
+    grid-template-columns: 1.5rem auto;
+    place-self: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    font-size: var(--text-base);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+
+  .logout-action:hover {
+    background: var(--color-surface-tertiary);
+    transform: scale(1.05);
+  }
+
+  .logout-action:active {
+    background: var(--color-surface-tertiary);
+    transform: translateY(0.2rem);
+  }
+
+  .logout-action-button {
+    cursor: pointer;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .user-profile-summary {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, auto) 5rem;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 2rem;
+    row-gap: 0.1rem;
+    padding-right: 2rem;
+    color: var(--color-text-primary);
+  }
+
+  .user-profile-display-name,
+  .user-profile-email {
+    justify-self: end;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-profile-display-name {
+    max-width: 18rem;
+    align-self: end;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .user-profile-avatar {
+    width: 5rem;
+    height: 5rem;
+    grid-column: 2 / 3;
+    grid-row: 1 / -1;
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  .user-profile-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .user-profile-email {
+    max-width: 22rem;
+    align-self: start;
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+  }
+
+  .login-page-host {
+    display: block;
+    min-height: 100vh;
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  .login-page {
+    position: relative;
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    overflow: hidden;
+    padding: 4rem 2rem;
+  }
+
+  .login-background {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+
+  .login-background-image {
+    width: min(82rem, 135vw);
+    height: min(82rem, 135vw);
+    background: url('/logo.png') center / contain no-repeat;
+    opacity: 0.08;
+  }
+
+  .login-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    max-width: 34rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .login-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .spotify-login-button {
+    display: inline-flex;
+    min-height: 6.4rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    margin-top: 3.6rem;
+    padding: 1.5rem 3rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    box-shadow: 0 1.2rem 3.2rem rgba(255, 255, 255, 0.22);
+    cursor: pointer;
+    font-size: 2rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.1;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+      background-color var(--transition-fast);
+  }
+
+  .spotify-login-button:hover {
+    background: var(--color-surface-secondary);
+    box-shadow: 0 1.6rem 4rem rgba(255, 255, 255, 0.32);
+    transform: translateY(-0.2rem);
+  }
+
+  .spotify-login-button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0.4rem;
+  }
+
+  .spotify-login-button:active {
+    transform: translateY(0);
+  }
+
+  .placeholder-page {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 24rem;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
+    text-align: center;
+  }
+
+  .placeholder-page-message {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .inline-icon {
+    display: inline-flex;
+    flex: none;
+    color: inherit;
+  }
+
   .app-shell-nav-link {
     position: relative;
     display: flex;
@@ -30,7 +364,7 @@
   }
 
   .app-shell-nav-link-content--overlapped {
-    width: calc(100% + 1rem);
+    width: 100%;
     margin-left: -1rem;
   }
 
@@ -143,6 +477,24 @@
   }
 
   @media (max-width: 900px) {
+    .app-shell {
+      grid-template-rows: 7rem 7rem minmax(0, 1fr);
+    }
+
+    .app-shell-header {
+      padding-inline: 2rem;
+    }
+
+    .app-shell-main {
+      grid-template-columns: 1.6rem minmax(0, 1fr) 1.6rem;
+      padding-top: 1.6rem;
+      padding-bottom: 3rem;
+    }
+
+    .app-shell-navigation-container {
+      padding-inline: 1.6rem;
+    }
+
     .app-shell-nav-link-content {
       gap: 0.6rem;
       padding-inline: 1rem;
@@ -159,6 +511,83 @@
   }
 
   @media (max-width: 600px) {
+    .app-shell {
+      grid-template-rows: 6.4rem 6.4rem minmax(0, 1fr);
+    }
+
+    .app-shell-header {
+      gap: 1.2rem;
+      padding-inline: 1.2rem;
+    }
+
+    .app-shell-header-actions {
+      gap: 1rem;
+    }
+
+    .app-shell-user-profile {
+      display: none;
+    }
+
+    .app-shell-main {
+      grid-template-columns: 1rem minmax(0, 1fr) 1rem;
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+    }
+
+    .app-shell-navigation-region {
+      grid-template-rows: 1fr 4.4rem 1fr;
+    }
+
+    .app-shell-navigation-container {
+      padding-inline: 1rem;
+    }
+
+    .app-shell-navigation-list {
+      border-radius: var(--radius-lg);
+    }
+
+    .app-shell-navigation-icon {
+      width: 1.8rem;
+      height: 1.8rem;
+    }
+
+    .brand-logo {
+      width: auto;
+      grid-template-columns: 4.6rem minmax(0, auto);
+    }
+
+    .brand-logo-image {
+      width: 4.4rem;
+      height: 4.4rem;
+    }
+
+    .brand-logo-name {
+      font-size: var(--text-lg);
+    }
+
+    .brand-logo-subtitle {
+      display: none;
+    }
+
+    .logout-action {
+      position: relative;
+      width: 3.6rem;
+      grid-template-columns: 1fr;
+      padding: 0.6rem;
+    }
+
+    .logout-action-icon {
+      justify-self: center;
+    }
+
+    .logout-action-button {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+    }
+
     .app-shell-nav-link-content {
       padding: 0.6rem;
     }
@@ -178,6 +607,39 @@
     .analysis-filters-drawer {
       width: min(31rem, calc(100vw - 1.2rem));
       padding: 1.6rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .brand-logo {
+      grid-template-columns: 4rem;
+    }
+
+    .brand-logo-image {
+      width: 4rem;
+      height: 4rem;
+    }
+
+    .brand-logo-text {
+      display: none;
+    }
+  }
+
+  @media (max-width: 1050px) {
+    .user-profile-summary {
+      grid-template-columns: 4.4rem;
+      padding-right: 0;
+    }
+
+    .user-profile-display-name,
+    .user-profile-email {
+      display: none;
+    }
+
+    .user-profile-avatar {
+      width: 4.4rem;
+      height: 4.4rem;
+      grid-column: 1 / 2;
     }
   }
 }

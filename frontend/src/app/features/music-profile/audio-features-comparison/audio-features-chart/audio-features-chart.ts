@@ -25,7 +25,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
   imports: [AudioFeaturesChartPoint],
   templateUrl: './audio-features-chart.html',
   host: {
-    class: 'block min-w-[0]',
+    class: 'audio-features-chart-host',
   },
 })
 export class AudioFeaturesChart {

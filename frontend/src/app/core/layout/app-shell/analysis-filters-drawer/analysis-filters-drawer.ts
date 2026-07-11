@@ -7,7 +7,7 @@ import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filte
   imports: [ListeningStatsFilters],
   templateUrl: './analysis-filters-drawer.html',
   host: {
-    class: 'contents',
+    class: 'analysis-filters-drawer-host',
   },
 })
 export class AnalysisFiltersDrawer {

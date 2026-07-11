@@ -1,4 +1,15 @@
 @layer components {
+  .listening-stats-warnings-host {
+    display: contents;
+  }
+
+  .listening-stats-warnings-card {
+    display: flex;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
   .listening-stats-warning-banner {
     display: flex;
     min-height: 5rem;

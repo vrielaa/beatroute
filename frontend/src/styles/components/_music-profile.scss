@@ -1,4 +1,208 @@
 @layer components {
+  .music-profile-grid {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    gap: 1.6rem;
+  }
+
+  .music-profile-grid > .card {
+    min-width: 0;
+  }
+
+  .average-bpm-card-content {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 20rem;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(10rem, 1fr);
+    gap: 1rem;
+  }
+
+  .average-bpm-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--text-sm);
+  }
+
+  .average-bpm-header-icon {
+    flex-shrink: 0;
+  }
+
+  .average-bpm-heading-text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .average-bpm-subtitle {
+    margin-top: 0.4rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .average-bpm-value-container {
+    display: flex;
+    width: 100%;
+    min-height: 10rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+
+  .average-bpm-skeleton {
+    width: clamp(12rem, 60%, 18rem);
+    height: clamp(3.6rem, 5vw, 4.8rem);
+    border-radius: var(--radius-md);
+  }
+
+  .average-bpm-value {
+    color: var(--color-success);
+    font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+    font-weight: var(--font-weight-bold);
+    text-align: center;
+  }
+
+  .average-bpm-empty-state {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .average-audio-features,
+  .audio-features-comparison {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .average-audio-feature-skeleton-list,
+  .average-audio-feature-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+  }
+
+  .average-audio-feature-skeleton-card,
+  .average-audio-feature-card {
+    padding: 1.4rem;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-secondary);
+  }
+
+  .average-audio-feature-label-skeleton {
+    width: 40%;
+    height: 1.6rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .average-audio-feature-bar-skeleton {
+    width: 100%;
+    height: 0.8rem;
+    margin-top: 1rem;
+    border-radius: var(--radius-pill);
+  }
+
+  .average-audio-features-empty-state {
+    display: grid;
+    min-height: 12rem;
+    place-items: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  .average-audio-feature-card {
+    transition: background-color var(--transition-fast);
+  }
+
+  .average-audio-feature-card:hover {
+    background: var(--color-surface-tertiary);
+  }
+
+  .average-audio-feature-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .average-audio-feature-description {
+    min-width: 0;
+  }
+
+  .average-audio-feature-name {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .average-audio-feature-summary {
+    margin-top: 0.3rem;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .average-audio-feature-value {
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+  }
+
+  .average-audio-feature-range-bar {
+    height: 0.8rem;
+    margin-top: 1.2rem;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+  }
+
+  .average-audio-feature-range-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+  }
+
+  .average-audio-feature-range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .audio-feature-controls-host,
+  .audio-track-picker-host,
+  .audio-features-chart-host {
+    display: block;
+    min-width: 0;
+  }
+
+  .audio-features-comparison-chart-skeleton {
+    width: 100%;
+    height: 28rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .audio-features-comparison-state {
+    display: grid;
+    min-height: 18rem;
+    place-items: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  .audio-features-comparison-state--surface {
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-secondary);
+  }
+
   .audio-features-comparison-controls {
     display: grid;
     gap: 1rem;
@@ -273,4 +477,77 @@
     font-weight: var(--font-weight-bold);
   }
 
+  @keyframes bpm-pulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.12);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .average-bpm-value {
+      animation: bpm-pulse 1s ease-in-out 3;
+    }
+  }
+
+  @media (max-width: 960px) {
+    .average-bpm-card-content {
+      min-height: 16rem;
+      grid-template-rows: auto minmax(7rem, 1fr);
+    }
+
+    .average-bpm-value-container {
+      min-height: 7rem;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .average-audio-feature-skeleton-list,
+    .average-audio-feature-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .music-profile-grid {
+      gap: 1rem;
+    }
+
+    .music-profile-grid > .card {
+      padding: 1.4rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .average-bpm-card-content {
+      min-height: 14rem;
+    }
+
+    .average-bpm-header {
+      align-items: flex-start;
+    }
+
+    .average-bpm-heading-text {
+      line-height: var(--line-height-tight);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .average-audio-features,
+    .audio-features-comparison {
+      gap: 1.4rem;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .music-profile-grid > .card {
+      padding: 1.2rem;
+    }
+  }
 }

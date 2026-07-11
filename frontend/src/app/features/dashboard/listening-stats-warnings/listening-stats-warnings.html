@@ -1,6 +1,6 @@
 @if ( showInsufficientListeningHistoryWarning() || showMissingAudioDataWarning() ||
 showInsufficientArtistsHistoryWarning() ) {
-<div class="card col-span-full flex flex-col gap-[1rem]">
+<div class="card listening-stats-warnings-card">
   @if (showInsufficientListeningHistoryWarning()) {
   <div class="listening-stats-warning-banner">
     <p>

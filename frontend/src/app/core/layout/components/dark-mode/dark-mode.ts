@@ -6,7 +6,7 @@ import { ThemeService } from '@src/app/shared/utils/theme.service';
   imports: [],
   templateUrl: './dark-mode.html',
   host: {
-    class: 'grid items-center justify-items-center text-[var(--color-text-primary)]',
+    class: 'theme-toggle-host',
   },
 })
 export class DarkMode {

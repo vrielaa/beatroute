@@ -10,7 +10,7 @@ import { UserProfile } from '../../components/user-profile/user-profile';
   imports: [DarkMode, Icon, Logo, Logout, UserProfile],
   templateUrl: './app-shell-header.html',
   host: {
-    class: 'contents',
+    class: 'app-shell-header-host',
   },
 })
 export class AppShellHeader {

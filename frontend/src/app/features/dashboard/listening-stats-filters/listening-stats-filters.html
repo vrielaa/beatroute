@@ -1,14 +1,12 @@
-<div class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:items-start">
-  <app-icon class="flex-none" name="settings" />
+<div class="listening-stats-filters-heading">
+  <app-icon class="listening-stats-filters-heading-icon" name="settings" />
 
-  <h3 class="max-[600px]:leading-[var(--line-height-tight)]">
+  <h3 class="listening-stats-filters-title">
     Ustawienia parametrów do analizy
   </h3>
 </div>
 
-<form
-  class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-[0.8rem]"
->
+<form class="listening-stats-time-range-field">
   <label class="listening-stats-filter-label" for="period-select">Wybierz zakres</label>
   <div class="listening-stats-filter-select-shell">
     <select
@@ -25,7 +23,7 @@
   </div>
 </form>
 
-<form class="grid grid-cols-1 gap-[1.6rem] text-[length:var(--text-sm)]">
+<form class="listening-stats-range-form">
   <div class="listening-stats-range-field">
     <label class="listening-stats-filter-label" for="tracks-range-input">Liczba utworów</label>
 

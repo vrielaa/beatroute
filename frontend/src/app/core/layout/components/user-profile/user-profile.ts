@@ -6,8 +6,7 @@ import { SpotifyService } from '@core/services/spotify.service';
   imports: [],
   templateUrl: './user-profile.html',
   host: {
-    class:
-      'grid min-w-[0] grid-cols-[minmax(0,auto)_5rem] grid-rows-[auto_auto] items-center gap-x-[2rem] gap-y-[0.1rem] pr-[2rem] text-[var(--color-text-primary)] max-[1050px]:grid-cols-[4.4rem] max-[1050px]:pr-0',
+    class: 'user-profile-summary',
   },
 })
 export class UserProfile {

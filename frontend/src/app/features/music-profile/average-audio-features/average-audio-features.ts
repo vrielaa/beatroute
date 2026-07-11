@@ -27,7 +27,7 @@ type AudioFeatureItem = {
   imports: [Icon, Tooltip],
   templateUrl: './average-audio-features.html',
   host: {
-    class: 'flex w-full min-w-[0] flex-col gap-[2rem] max-[420px]:gap-[1.4rem]',
+    class: 'average-audio-features',
   },
 })
 export class AverageAudioFeatures {

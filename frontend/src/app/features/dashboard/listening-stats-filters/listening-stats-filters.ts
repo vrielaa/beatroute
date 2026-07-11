@@ -7,7 +7,7 @@ import { Icon } from '@shared/components/icon/icon';
   imports: [Icon],
   templateUrl: './listening-stats-filters.html',
   host: {
-    class: 'grid w-full min-w-[0] auto-rows-min grid-cols-1 gap-[1.6rem] max-[600px]:gap-[1.4rem]',
+    class: 'listening-stats-filters',
   },
 })
 export class ListeningStatsFilters {

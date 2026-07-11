@@ -11,7 +11,7 @@ import {
   imports: [Tooltip],
   templateUrl: './audio-feature-controls.html',
   host: {
-    class: 'block min-w-[0]',
+    class: 'audio-feature-controls-host',
   },
 })
 export class AudioFeatureControls {

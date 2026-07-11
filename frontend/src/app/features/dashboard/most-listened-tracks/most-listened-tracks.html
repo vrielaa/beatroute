@@ -1,32 +1,30 @@
-<div class="flex items-start gap-[1rem]">
-  <app-icon class="flex-none text-[var(--color-accent)]" name="dashboard" viewBox="0 0 16 16" />
+<div class="section-header">
+  <app-icon class="section-header-icon" name="dashboard" viewBox="0 0 16 16" />
 
-  <div class="min-w-[0]">
-    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)]">
+  <div class="section-header-text">
+    <h3 class="section-header-title">
       Najczęściej słuchane utwory
     </h3>
-    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <p class="section-header-subtitle">
       Top utwory z {{ periodLabel() }} z możliwością rozwinięcia cech audio
     </p>
   </div>
 </div>
 
 @if (isLoading()) {
-<div class="grid gap-[0.8rem]" aria-label="Ładowanie najczęściej słuchanych utworów">
+<div class="most-listened-track-skeleton-list" aria-label="Ładowanie najczęściej słuchanych utworów">
   @for (item of [1, 2, 3, 4, 5]; track item) {
-  <span class="skeleton h-[5.6rem] rounded-[var(--radius-lg)]"></span>
+  <span class="skeleton most-listened-track-skeleton"></span>
   }
 </div>
 } @else if (!tracks().length) {
-<div
-  class="grid min-h-[12rem] place-items-center text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)]"
->
+<div class="most-listened-tracks-state">
   <p>Brak utworów dla wybranego okresu.</p>
 </div>
 } @else {
-<ol class="grid gap-[0.8rem]">
+<ol class="most-listened-track-list">
   @for (track of visibleTracks(); track track.id; let index = $index) {
-  <li class="rounded-[var(--radius-lg)] bg-[var(--color-surface-secondary)]">
+  <li class="most-listened-track-card">
     <app-most-listened-track-item
       [track]="track"
       [index]="index"

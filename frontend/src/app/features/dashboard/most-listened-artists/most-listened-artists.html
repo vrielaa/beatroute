@@ -1,28 +1,26 @@
-<div class="flex items-start gap-[1rem]">
-  <div class="flex-none text-[var(--color-accent)]" aria-hidden="true">
+<div class="section-header">
+  <div class="section-header-icon" aria-hidden="true">
     <app-icon name="artists" />
   </div>
 
-  <div class="min-w-[0]">
-    <h3 class="text-[length:var(--text-lg)] leading-[inherit] max-[420px]:text-[length:var(--text-base)] max-[420px]:leading-[var(--line-height-tight)]">
+  <div class="section-header-text">
+    <h3 class="section-header-title">
       Najczęściej słuchani artyści
     </h3>
-    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <p class="section-header-subtitle">
       Twoi ulubieni wykonawcy z {{ periodLabel() }}
     </p>
   </div>
 </div>
 
-<div class="min-h-[18rem]" aria-live="polite">
+<div class="most-listened-artists-content" aria-live="polite">
   @if (isLoading()) {
   <ol #skeletonGrid class="most-listened-artists-grid" aria-label="Ładowanie artystów">
     @for (item of skeletonItems(); track item) {
     <li class="most-listened-artist-card most-listened-artist-card--skeleton">
-      <span
-        class="skeleton absolute left-[1rem] top-[1rem] h-[2.6rem] w-[2.6rem] rounded-full"
-      ></span>
-      <span class="skeleton h-[9.6rem] w-[9.6rem] rounded-full max-[420px]:h-[7.2rem] max-[420px]:w-[7.2rem]"></span>
-      <span class="skeleton h-[1.6rem] w-3/4 rounded-[var(--radius-xs)]"></span>
+      <span class="skeleton most-listened-artist-rank-skeleton"></span>
+      <span class="skeleton most-listened-artist-image-skeleton"></span>
+      <span class="skeleton most-listened-artist-name-skeleton"></span>
     </li>
     }
   </ol>
@@ -50,7 +48,7 @@
       <div class="most-listened-artist-image">
         @if (artist.images[0]?.url; as imageUrl) {
         <img
-          class="h-full w-full object-cover"
+          class="most-listened-artist-photo"
           [src]="imageUrl"
           [alt]="'Zdjęcie artysty ' + artist.name"
           loading="lazy"
@@ -60,22 +58,20 @@
         }
       </div>
 
-      <div class="flex w-max max-w-full min-w-[0] flex-col items-center gap-[0.6rem] text-center">
+      <div class="most-listened-artist-details">
         <p
-          class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
+          class="most-listened-artist-name"
           [title]="artist.name"
         >
           {{ artist.name }}
         </p>
         @if (artistGenresFor(artist).length) {
         <div
-          class="flex max-w-full flex-wrap justify-center gap-[0.4rem]"
+          class="most-listened-artist-genre-list"
           [attr.aria-label]="'Gatunki artysty ' + artist.name"
         >
           @for (genre of artistGenresFor(artist); track genre) {
-          <span
-            class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[var(--radius-pill)] bg-[var(--color-accent-soft)] px-[0.8rem] py-[0.4rem] text-[length:var(--text-xs)] font-[var(--font-weight-semibold)] text-[var(--color-accent)]"
-          >
+          <span class="most-listened-artist-genre-badge">
             {{ genre }}
           </span>
           }

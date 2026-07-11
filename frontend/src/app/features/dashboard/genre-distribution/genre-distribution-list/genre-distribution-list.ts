@@ -7,7 +7,7 @@ import { GenreChartSegment } from '../genre-distribution.models';
   imports: [],
   templateUrl: './genre-distribution-list.html',
   host: {
-    class: 'block min-w-[0]',
+    class: 'genre-distribution-list-host',
   },
 })
 export class GenreDistributionList {

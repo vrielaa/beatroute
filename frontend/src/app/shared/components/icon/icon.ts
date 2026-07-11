@@ -6,7 +6,7 @@ import { ICONS, IconName } from '@shared/icons/icons';
   imports: [],
   templateUrl: './icon.html',
   host: {
-    class: 'inline-flex flex-none text-inherit',
+    class: 'inline-icon',
   },
 })
 export class Icon {

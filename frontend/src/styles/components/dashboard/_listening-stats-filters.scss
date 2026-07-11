@@ -1,4 +1,38 @@
 @layer components {
+  .listening-stats-filters {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    gap: 1.6rem;
+  }
+
+  .listening-stats-filters-heading {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--text-sm);
+  }
+
+  .listening-stats-filters-heading-icon {
+    flex: none;
+  }
+
+  .listening-stats-time-range-field {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--text-sm);
+  }
+
+  .listening-stats-range-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+    font-size: var(--text-sm);
+  }
+
   .listening-stats-filter-label {
     width: fit-content;
     font-weight: var(--font-weight-medium);
@@ -164,6 +198,24 @@
   }
 
   @media (max-width: 600px) {
+    .listening-stats-filters {
+      gap: 1.4rem;
+    }
+
+    .listening-stats-filters-heading {
+      align-items: flex-start;
+    }
+
+    .listening-stats-filters-title {
+      line-height: var(--line-height-tight);
+    }
+
+    .listening-stats-time-range-field {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.8rem;
+    }
+
     .listening-stats-filter-select-shell {
       width: 100%;
     }

@@ -7,7 +7,7 @@ import { NavLink } from '../app-shell.models';
   imports: [Icon],
   templateUrl: './app-shell-nav.html',
   host: {
-    class: 'contents',
+    class: 'app-shell-navigation-host',
   },
 })
 export class AppShellNav {

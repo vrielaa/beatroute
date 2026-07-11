@@ -5,7 +5,7 @@ import { Component, input } from '@angular/core';
   imports: [],
   templateUrl: './genre-distribution-donut.html',
   host: {
-    class: 'grid min-w-[0]',
+    class: 'genre-distribution-donut-host',
   },
 })
 export class GenreDistributionDonut {

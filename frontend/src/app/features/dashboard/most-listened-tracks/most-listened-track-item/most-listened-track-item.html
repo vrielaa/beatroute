@@ -1,38 +1,29 @@
 @if (hasAudioFeatures()) {
-<details class="group min-w-[0]">
+<details class="most-listened-track-details">
   <summary class="most-listened-track-row most-listened-track-row--expandable">
-    <span
-      class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
-    >
+    <span class="most-listened-track-rank">
       {{ index() + 1 }}
     </span>
 
-    <span class="min-w-[0]">
-      <span
-        class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
-      >
+    <span class="most-listened-track-primary-info">
+      <span class="most-listened-track-name">
         {{ track().name }}
       </span>
-      <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
+      <span class="most-listened-track-mobile-artists">
         {{ artistNames() }}
       </span>
     </span>
 
-    <span
-      class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
-    >
+    <span class="most-listened-track-desktop-artists">
       {{ artistNames() }}
     </span>
 
-    <span
-      class="text-center text-[length:var(--text-sm)] text-[var(--color-text-secondary)] transition-transform duration-[160ms] ease-[ease] group-open:rotate-45"
-      aria-hidden="true"
-    >
+    <span class="most-listened-track-expand-indicator" aria-hidden="true">
       +
     </span>
   </summary>
 
-  <div class="px-[1rem] pb-[1rem]">
+  <div class="most-listened-track-feature-panel">
     <dl class="most-listened-track-features">
       @for (feature of featureRows(); track feature.label) {
       <div class="most-listened-track-feature-card">
@@ -47,26 +38,20 @@
 </details>
 } @else {
 <div class="most-listened-track-row">
-  <span
-    class="grid h-[2.4rem] min-w-[2.4rem] place-items-center rounded-[var(--radius-pill)] bg-[var(--color-surface)] text-[length:var(--text-xs)] font-[var(--font-weight-bold)] text-[var(--color-text-secondary)]"
-  >
+  <span class="most-listened-track-rank">
     {{ index() + 1 }}
   </span>
 
-  <span class="min-w-[0]">
-    <span
-      class="block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]"
-    >
+  <span class="most-listened-track-primary-info">
+    <span class="most-listened-track-name">
       {{ track().name }}
     </span>
-    <span class="mt-[0.2rem] block overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-xs)] text-[var(--color-text-secondary)] max-[640px]:block">
+    <span class="most-listened-track-mobile-artists">
       {{ artistNames() }}
     </span>
   </span>
 
-  <span
-    class="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-sm)] text-[var(--color-text-secondary)] max-[640px]:hidden"
-  >
+  <span class="most-listened-track-desktop-artists">
     {{ artistNames() }}
   </span>
 

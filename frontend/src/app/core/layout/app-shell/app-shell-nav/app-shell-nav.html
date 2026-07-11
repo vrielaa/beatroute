@@ -1,10 +1,6 @@
-<div class="grid h-full w-full grid-rows-[1fr_4rem_1fr] max-[600px]:grid-rows-[1fr_4.4rem_1fr]">
-  <div
-    class="row-start-2 row-end-3 flex h-full w-full justify-center px-[2rem] text-[var(--color-text-primary)] max-[900px]:px-[1.6rem] max-[600px]:px-[1rem]"
-  >
-    <nav
-      class="grid h-full w-[min(100%,120rem)] grid-cols-4 grid-rows-1 items-stretch overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-surface)] p-[0.4rem] shadow-[0_0.8rem_2.4rem_var(--color-shadow)] max-[600px]:rounded-[var(--radius-lg)]"
-    >
+<div class="app-shell-navigation-region">
+  <div class="app-shell-navigation-container">
+    <nav class="app-shell-navigation-list">
       @for (link of navLinks(); track link.path; let isFirst = $first) {
       <button
         type="button"
@@ -20,7 +16,7 @@
           [class.app-shell-nav-link-content--active]="link.isActive()"
         >
           <app-icon
-            class="max-[600px]:h-[1.8rem] max-[600px]:w-[1.8rem]"
+            class="app-shell-navigation-icon"
             [name]="link.icon"
             [size]="16"
             viewBox="0 0 16 16"

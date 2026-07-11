@@ -1,30 +1,26 @@
-<div class="flex items-center gap-[1rem] text-[length:var(--text-sm)] max-[600px]:items-start">
-  <app-icon class="shrink-0" name="bpm" />
-  <div class="flex min-w-[0] flex-col max-[600px]:leading-[var(--line-height-tight)]">
+<div class="average-bpm-header">
+  <app-icon class="average-bpm-header-icon" name="bpm" />
+  <div class="average-bpm-heading-text">
     <h3>
       <app-tooltip [content]="tempoTooltip">Średnie BPM</app-tooltip>
     </h3>
-    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <p class="average-bpm-subtitle">
       Obliczane na podstawie Twoich ulubionych utworów
     </p>
   </div>
 </div>
 
-<div
-  class="flex min-h-[10rem] w-full items-center justify-center p-[0.5rem] max-[960px]:min-h-[7rem]"
->
+<div class="average-bpm-value-container">
   @if (isLoading()) {
   <div
-    class="skeleton h-[clamp(3.6rem,5vw,4.8rem)] w-[clamp(12rem,60%,18rem)] rounded-[var(--radius-md)]"
+    class="skeleton average-bpm-skeleton"
     aria-label="Ładowanie średniego BPM"
   ></div>
   } @else if (averageBpm() !== null) {
-  <p
-    class="text-center text-[length:clamp(var(--text-3xl),5vw,var(--text-5xl))] font-[var(--font-weight-bold)] text-[var(--color-success)] motion-safe:animate-[bpm-pulse_1s_ease-in-out_3]"
-  >
+  <p class="average-bpm-value">
     {{ averageBpm() }} BPM
   </p>
   } @else {
-  <p class="text-[length:var(--text-sm)] text-[var(--color-text-secondary)]">Brak danych</p>
+  <p class="average-bpm-empty-state">Brak danych</p>
   }
 </div>

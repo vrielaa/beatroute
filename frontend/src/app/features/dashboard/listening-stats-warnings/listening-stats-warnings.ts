@@ -5,7 +5,7 @@ import { TimeRange } from '@core/models/models';
   selector: 'app-listening-stats-warnings',
   templateUrl: './listening-stats-warnings.html',
   host: {
-    class: 'contents',
+    class: 'listening-stats-warnings-host',
   },
 })
 export class ListeningStatsWarnings {

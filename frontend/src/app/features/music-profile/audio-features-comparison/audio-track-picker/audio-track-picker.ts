@@ -9,7 +9,7 @@ import {
   imports: [],
   templateUrl: './audio-track-picker.html',
   host: {
-    class: 'block min-w-[0]',
+    class: 'audio-track-picker-host',
   },
 })
 export class AudioTrackPicker {

@@ -1,7 +1,5 @@
-<header
-  class="row-start-1 row-end-2 grid h-full w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-[clamp(1rem,2vw,2.4rem)] bg-[var(--color-surface)] px-[max(2rem,calc((100%_-_120rem)/2))] text-[var(--color-text-primary)] max-[900px]:px-[2rem] max-[600px]:gap-[1.2rem] max-[600px]:px-[1.2rem]"
->
-  <div class="col-start-1 col-end-2 flex min-w-[0] items-center gap-[1.2rem] justify-self-start">
+<header class="app-shell-header">
+  <div class="app-shell-header-brand">
     @if (showAnalysisFilters()) {
     <button
       type="button"
@@ -16,12 +14,12 @@
     </button>
     }
 
-    <app-logo class="min-w-[0]" />
+    <app-logo class="app-shell-logo" />
   </div>
 
-  <div class="col-start-2 col-end-3 flex items-center gap-[clamp(1rem,1.6vw,1.8rem)]">
+  <div class="app-shell-header-actions">
     <app-dark-mode />
-    <app-user-profile class="max-[600px]:hidden" />
+    <app-user-profile class="app-shell-user-profile" />
     <app-logout />
   </div>
 </header>

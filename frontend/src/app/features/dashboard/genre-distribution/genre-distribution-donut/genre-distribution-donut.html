@@ -5,13 +5,13 @@
   [style.background]="chartBackground()"
 >
   <div
-    class="flex aspect-square w-[58%] flex-col items-center justify-center rounded-full bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+    class="genre-distribution-donut-center"
     aria-hidden="true"
   >
-    <strong class="text-[length:clamp(var(--text-2xl),4vw,var(--text-4xl))] leading-none">
+    <strong class="genre-distribution-donut-value">
       {{ matchedArtists() }}
     </strong>
-    <span class="mt-[0.5rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <span class="genre-distribution-donut-label">
       artystów
     </span>
   </div>

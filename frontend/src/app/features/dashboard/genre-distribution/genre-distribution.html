@@ -1,23 +1,23 @@
-<div class="flex items-start gap-[1rem]">
-  <app-icon class="flex-none text-[var(--color-accent)]" name="genres" />
+<div class="section-header">
+  <app-icon class="section-header-icon" name="genres" />
 
-  <div class="min-w-[0]">
-    <h3 class="text-[length:var(--text-lg)] max-[420px]:text-[length:var(--text-base)] max-[420px]:leading-[var(--line-height-tight)]">
+  <div class="section-header-text">
+    <h3 class="section-header-title">
       Rozkład gatunków muzycznych
     </h3>
-    <p class="mt-[0.4rem] text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
+    <p class="section-header-subtitle">
       Główne gatunki Twoich top artystów z {{ periodLabel() }}
     </p>
   </div>
 </div>
 
-<div class="grid min-h-[24rem] items-center" aria-live="polite">
+<div class="genre-distribution-content" aria-live="polite">
   @if (isLoading()) {
   <div class="genre-distribution-layout" aria-label="Ładowanie rozkładu gatunków">
     <div class="skeleton genre-distribution-chart-visual"></div>
-    <div class="grid gap-[1rem]">
+    <div class="genre-distribution-skeleton-list">
       @for (item of [1, 2, 3, 4]; track item) {
-      <span class="skeleton h-[3.8rem] rounded-[var(--radius-md)]"></span>
+      <span class="skeleton genre-distribution-row-skeleton"></span>
       }
     </div>
   </div>
