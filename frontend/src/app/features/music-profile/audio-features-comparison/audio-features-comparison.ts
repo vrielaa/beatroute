@@ -25,7 +25,6 @@ import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
   },
 })
 export class AudioFeaturesComparison {
-  private readonly maxChartTracks = 10;
   private lastAvailableTrackIdsKey = '';
   private readonly selectedFeatureKeys = signal<AudioComparisonFeatureKey[]>([
     'energy',
@@ -59,7 +58,6 @@ export class AudioFeaturesComparison {
     const featuresByTrackId = this.audioFeaturesByTrackId();
 
     return this.tracks()
-      .slice(0, this.maxChartTracks)
       .map((track, index) => {
         const features = featuresByTrackId.get(track.id);
 
@@ -121,10 +119,15 @@ export class AudioFeaturesComparison {
     }
 
     const tracksCount = this.featureRows().length;
+    const requestedTracksCount = this.tracks().length;
 
-    return tracksCount
+    if (!tracksCount) {
+      return 'Brak utworów z dostępnymi cechami audio';
+    }
+
+    return tracksCount === requestedTracksCount
       ? `Top ${tracksCount} utworów z dostępnymi cechami audio`
-      : 'Brak utworów z dostępnymi cechami audio';
+      : `${tracksCount} z ${requestedTracksCount} wybranych utworów ma dostępne cechy audio`;
   });
 
   constructor() {

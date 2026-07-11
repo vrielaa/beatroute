@@ -26,6 +26,8 @@ export type AudioComparisonChartPoint = {
   x: number;
   y: number;
   value: number;
+  featureLabel: string;
+  formattedValue: string;
   tooltip: string;
 };
 

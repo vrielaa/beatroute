@@ -224,6 +224,10 @@
     dominant-baseline: central;
   }
 
+  .audio-features-comparison-y-label-right {
+    text-anchor: start;
+  }
+
   .audio-features-comparison-line {
     fill: none;
     stroke-linecap: round;
@@ -234,6 +238,39 @@
   .audio-features-comparison-point {
     fill: var(--color-surface);
     stroke-width: 2.2;
+  }
+
+  .audio-features-comparison-point-group {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .audio-features-comparison-point-group:focus-visible .audio-features-comparison-point,
+  .audio-features-comparison-point-group:hover .audio-features-comparison-point {
+    fill: var(--color-accent-soft);
+    stroke-width: 3;
+  }
+
+  .audio-features-comparison-point-hitbox {
+    fill: transparent;
+    stroke: transparent;
+  }
+
+  .audio-features-comparison-point-tooltip {
+    pointer-events: none;
+  }
+
+  .audio-features-comparison-point-tooltip-bg {
+    fill: var(--color-surface);
+    stroke: var(--color-border-strong);
+    stroke-width: 1;
+    filter: drop-shadow(0 0.8rem 1.8rem var(--color-shadow-strong));
+  }
+
+  .audio-features-comparison-point-tooltip-title {
+    fill: var(--color-text-primary);
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-bold);
   }
 
 }

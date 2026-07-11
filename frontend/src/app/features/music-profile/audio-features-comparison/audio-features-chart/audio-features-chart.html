@@ -1,15 +1,16 @@
 <div class="audio-features-comparison-chart-shell">
   <svg
     class="audio-features-comparison-chart"
-    [attr.viewBox]="chartViewBox"
+    [attr.viewBox]="chartViewBox()"
+    [style.min-width.px]="chartWidth()"
     role="img"
     aria-label="Wykres liniowy porównujący cechy audio najczęściej słuchanych utworów"
   >
-    @for (tick of yAxisTicks; track tick.value) {
+    @for (tick of yAxisTicks(); track tick.value) {
     <line
       class="audio-features-comparison-grid-line"
-      [attr.x1]="chartPlot.left"
-      [attr.x2]="chartPlot.left + chartPlot.width"
+      [attr.x1]="chartPlot().left"
+      [attr.x2]="chartPlot().left + chartPlot().width"
       [attr.y1]="tick.y"
       [attr.y2]="tick.y"
       vector-effect="non-scaling-stroke"
@@ -17,22 +18,37 @@
     <text class="audio-features-comparison-axis-label" x="12" [attr.y]="tick.y + 5">
       {{ tick.label }}
     </text>
+    <text
+      class="audio-features-comparison-axis-label audio-features-comparison-y-label-right"
+      [attr.x]="chartPlot().left + chartPlot().width + 16"
+      [attr.y]="tick.y + 5"
+    >
+      {{ tick.label }}
+    </text>
     }
 
     <line
       class="audio-features-comparison-axis-line"
-      [attr.x1]="chartPlot.left"
-      [attr.x2]="chartPlot.left"
-      [attr.y1]="chartPlot.top"
-      [attr.y2]="chartPlot.top + chartPlot.height"
+      [attr.x1]="chartPlot().left"
+      [attr.x2]="chartPlot().left"
+      [attr.y1]="chartPlot().top"
+      [attr.y2]="chartPlot().top + chartPlot().height"
       vector-effect="non-scaling-stroke"
     />
     <line
       class="audio-features-comparison-axis-line"
-      [attr.x1]="chartPlot.left"
-      [attr.x2]="chartPlot.left + chartPlot.width"
-      [attr.y1]="chartPlot.top + chartPlot.height"
-      [attr.y2]="chartPlot.top + chartPlot.height"
+      [attr.x1]="chartPlot().left + chartPlot().width"
+      [attr.x2]="chartPlot().left + chartPlot().width"
+      [attr.y1]="chartPlot().top"
+      [attr.y2]="chartPlot().top + chartPlot().height"
+      vector-effect="non-scaling-stroke"
+    />
+    <line
+      class="audio-features-comparison-axis-line"
+      [attr.x1]="chartPlot().left"
+      [attr.x2]="chartPlot().left + chartPlot().width"
+      [attr.y1]="chartPlot().top + chartPlot().height"
+      [attr.y2]="chartPlot().top + chartPlot().height"
       vector-effect="non-scaling-stroke"
     />
 
@@ -41,15 +57,15 @@
       class="audio-features-comparison-grid-line"
       [attr.x1]="label.x"
       [attr.x2]="label.x"
-      [attr.y1]="chartPlot.top"
-      [attr.y2]="chartPlot.top + chartPlot.height"
+      [attr.y1]="chartPlot().top"
+      [attr.y2]="chartPlot().top + chartPlot().height"
       vector-effect="non-scaling-stroke"
     />
     <text
       class="audio-features-comparison-axis-label audio-features-comparison-x-label"
       [attr.x]="label.x"
-      [attr.y]="chartPlot.top + chartPlot.height + 32"
-      [attr.transform]="'rotate(-35 ' + label.x + ' ' + (chartPlot.top + chartPlot.height + 32) + ')'"
+      [attr.y]="chartPlot().top + chartPlot().height + 32"
+      [attr.transform]="'rotate(-35 ' + label.x + ' ' + (chartPlot().top + chartPlot().height + 32) + ')'"
     >
       <title>{{ label.title }}</title>
       {{ label.label }}
@@ -65,17 +81,12 @@
     />
 
     @for (point of seriesPoints(feature.key); track point.id) {
-    <g>
-      <title>{{ point.tooltip }}</title>
-      <circle
-        class="audio-features-comparison-point"
-        r="4.5"
-        [attr.cx]="point.x"
-        [attr.cy]="point.y"
-        [attr.stroke]="feature.color"
-        vector-effect="non-scaling-stroke"
-      />
-    </g>
+    <g
+      appAudioFeaturesChartPoint
+      [point]="point"
+      [feature]="feature"
+      [chartWidth]="chartWidth()"
+    ></g>
     }
     }
   </svg>
