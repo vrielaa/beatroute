@@ -1,0 +1,15 @@
+{
+  "name": "beat-route",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --raw \"npm run frontend:start\" \"npm run backend:dev \"",
+    "frontend:start": "cd frontend && bash -o pipefail -c 'ng serve --host 127.0.0.1 --poll=1000 \"$@\" 2>&1 | sed \"/https:\\/\\/localhost:/d\"' --",
+    "backend:dev": "cd backend && bash -o pipefail -c 'node --watch src/server.js 2>&1 | sed \"/^Completed running /d\"'",
+    "frontend:build": "npm --prefix frontend run build",
+    "format": "npm --prefix frontend run format && npm --prefix backend run format"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
