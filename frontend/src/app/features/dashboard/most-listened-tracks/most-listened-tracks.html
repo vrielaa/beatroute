@@ -62,15 +62,11 @@
       </summary>
 
       <div class="px-[1rem] pb-[1rem]">
-        <dl class="grid grid-cols-3 gap-[0.8rem] max-[820px]:grid-cols-2 max-[480px]:grid-cols-1">
+        <dl class="most-listened-track-features">
           @for (feature of audioFeatureRows(track); track feature.label) {
-          <div class="rounded-[var(--radius-md)] bg-[var(--color-surface)] px-[1rem] py-[0.8rem]">
-            <dt class="text-[length:var(--text-xs)] text-[var(--color-text-secondary)]">
-              {{ feature.label }}
-            </dt>
-            <dd class="mt-[0.3rem] text-[length:var(--text-sm)] font-[var(--font-weight-semibold)]">
-              {{ feature.value }}
-            </dd>
+          <div class="most-listened-track-feature-card">
+            <dt>{{ feature.label }}</dt>
+            <dd>{{ feature.value }}</dd>
           </div>
           }
         </dl>

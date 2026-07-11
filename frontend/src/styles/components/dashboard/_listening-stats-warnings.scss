@@ -1,0 +1,23 @@
+@layer components {
+  .listening-stats-warning-banner {
+    display: flex;
+    min-height: 5rem;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+    overflow-wrap: anywhere;
+    border-left: 0.4rem solid #ff8c00;
+    border-radius: var(--radius-md);
+    background: rgba(255, 165, 0, 0.15);
+    color: #d97706;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+  }
+
+  @media (max-width: 600px) {
+    .listening-stats-warning-banner {
+      min-height: 0;
+      font-size: var(--text-xs);
+    }
+  }
+}
