@@ -1,0 +1,40 @@
+:host {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 2fr) minmax(26rem, 1fr);
+  grid-auto-rows: min-content;
+  gap: 1.6rem;
+}
+
+:host > .card {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  :host {
+    grid-template-columns: 1fr;
+  }
+
+  :host > .card {
+    grid-column: 1 / auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  :host {
+    gap: 1rem;
+  }
+
+  :host > .card {
+    padding: 1.4rem;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (max-width: 380px) {
+  :host > .card {
+    padding: 1.2rem;
+  }
+}

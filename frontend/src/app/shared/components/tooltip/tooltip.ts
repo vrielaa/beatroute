@@ -1,5 +1,5 @@
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, ViewEncapsulation, computed, input, signal } from '@angular/core';
 import {
   TooltipContent,
   isStructuredTooltipContent,
@@ -12,6 +12,8 @@ let tooltipId = 0;
   selector: 'app-tooltip',
   imports: [OverlayModule],
   templateUrl: './tooltip.html',
+  styleUrl: './tooltip.scss',
+  encapsulation: ViewEncapsulation.None,
   host: {
     class: 'app-tooltip-host',
   },

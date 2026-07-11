@@ -8,6 +8,7 @@ import {
   selector: 'app-audio-track-picker',
   imports: [],
   templateUrl: './audio-track-picker.html',
+  styleUrl: './audio-track-picker.scss',
   host: {
     class: 'audio-track-picker-host',
   },

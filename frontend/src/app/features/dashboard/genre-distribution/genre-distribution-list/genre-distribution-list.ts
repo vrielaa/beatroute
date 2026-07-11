@@ -6,6 +6,7 @@ import { GenreChartSegment } from '../genre-distribution.models';
   selector: 'app-genre-distribution-list',
   imports: [],
   templateUrl: './genre-distribution-list.html',
+  styleUrl: './genre-distribution-list.scss',
   host: {
     class: 'genre-distribution-list-host',
   },

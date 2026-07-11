@@ -7,6 +7,7 @@ import { Tooltip } from '@shared/components/tooltip/tooltip';
   selector: 'app-average-bpm',
   imports: [Icon, Tooltip],
   templateUrl: './average-bpm.html',
+  styleUrl: './average-bpm.scss',
   host: {
     class: 'average-bpm-card-content',
   },

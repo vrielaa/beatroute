@@ -1,0 +1,16 @@
+<svg:rect
+  class="audio-features-comparison-point-tooltip-bg"
+  [attr.width]="tooltip().width"
+  height="44"
+  rx="12"
+/>
+<svg:rect width="4" height="20" x="14" y="12" rx="2" [attr.fill]="tooltip().color" />
+<svg:text
+  class="audio-features-comparison-point-tooltip-title"
+  x="28"
+  y="27"
+  [attr.textLength]="tooltip().textLength"
+  lengthAdjust="spacingAndGlyphs"
+>
+  {{ tooltip().title }}
+</svg:text>

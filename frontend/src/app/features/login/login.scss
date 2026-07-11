@@ -1,0 +1,85 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.login-page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  padding: 4rem 2rem;
+}
+
+.login-background {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.login-background-image {
+  width: min(82rem, 135vw);
+  height: min(82rem, 135vw);
+  background: url('/logo.png') center / contain no-repeat;
+  opacity: 0.08;
+}
+
+.login-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: 34rem;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.login-title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.spotify-login-button {
+  display: inline-flex;
+  min-height: 6.4rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3.6rem;
+  padding: 1.5rem 3rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 1.2rem 3.2rem rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.spotify-login-button:hover {
+  background: var(--color-surface-secondary);
+  box-shadow: 0 1.6rem 4rem rgba(255, 255, 255, 0.32);
+  transform: translateY(-0.2rem);
+}
+
+.spotify-login-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0.4rem;
+}
+
+.spotify-login-button:active {
+  transform: translateY(0);
+}

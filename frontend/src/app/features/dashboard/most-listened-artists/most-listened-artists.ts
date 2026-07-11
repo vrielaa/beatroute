@@ -16,6 +16,7 @@ import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-class
   selector: 'app-most-listened-artists',
   imports: [Icon],
   templateUrl: './most-listened-artists.html',
+  styleUrl: './most-listened-artists.scss',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },

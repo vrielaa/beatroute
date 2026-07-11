@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.audio-features-comparison-chart-shell {
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+
+.audio-features-comparison-chart {
+  width: 100%;
+  min-width: 68rem;
+  height: auto;
+  overflow: visible;
+}
+
+.audio-features-comparison-grid-line {
+  stroke: var(--color-border);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.audio-features-comparison-axis-line {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.audio-features-comparison-axis-label {
+  fill: var(--color-text-secondary);
+  font-size: 1.2rem;
+}
+
+.audio-features-comparison-x-label {
+  dominant-baseline: central;
+  text-anchor: end;
+}
+
+.audio-features-comparison-y-label-right {
+  text-anchor: start;
+}
+
+.audio-features-comparison-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}

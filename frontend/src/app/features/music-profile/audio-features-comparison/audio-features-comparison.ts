@@ -20,6 +20,7 @@ import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
   selector: 'app-audio-features-comparison',
   imports: [AudioFeatureControls, AudioFeaturesChart, AudioTrackPicker, Icon],
   templateUrl: './audio-features-comparison.html',
+  styleUrl: './audio-features-comparison.scss',
   host: {
     class: 'audio-features-comparison',
   },

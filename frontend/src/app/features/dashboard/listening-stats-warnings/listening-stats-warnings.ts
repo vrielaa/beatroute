@@ -4,6 +4,7 @@ import { TimeRange } from '@core/models/models';
 @Component({
   selector: 'app-listening-stats-warnings',
   templateUrl: './listening-stats-warnings.html',
+  styleUrl: './listening-stats-warnings.scss',
   host: {
     class: 'listening-stats-warnings-host',
   },

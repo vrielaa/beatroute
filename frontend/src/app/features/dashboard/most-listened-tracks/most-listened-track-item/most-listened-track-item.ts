@@ -7,6 +7,7 @@ import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
   selector: 'app-most-listened-track-item',
   imports: [Tooltip],
   templateUrl: './most-listened-track-item.html',
+  styleUrl: './most-listened-track-item.scss',
   host: {
     class: 'most-listened-track-item',
   },

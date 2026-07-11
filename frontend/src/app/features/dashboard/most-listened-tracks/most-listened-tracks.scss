@@ -1,0 +1,99 @@
+:host {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.section-header-icon {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.section-header-text {
+  min-width: 0;
+}
+
+.section-header-title {
+  font-size: var(--text-lg);
+}
+
+.section-header-subtitle {
+  margin-top: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.most-listened-track-list,
+.most-listened-track-skeleton-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.most-listened-track-card {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-secondary);
+}
+
+.most-listened-track-skeleton {
+  height: 5.6rem;
+  border-radius: var(--radius-lg);
+}
+
+.most-listened-tracks-state {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.most-listened-list-toggle {
+  display: block;
+  margin: 1.6rem auto 0;
+  justify-self: center;
+  align-self: center;
+  padding: 1rem 1.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 0.8rem 2rem var(--color-shadow);
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.most-listened-list-toggle:hover,
+.most-listened-list-toggle:focus-visible {
+  background: var(--color-accent-hover);
+  color: var(--color-text-on-accent);
+  box-shadow: 0 1rem 2.4rem var(--color-shadow-strong);
+  transform: translateY(-0.1rem);
+}
+
+.most-listened-list-toggle:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 420px) {
+  :host {
+    gap: 1.4rem;
+  }
+
+  .section-header-title {
+    font-size: var(--text-base);
+    line-height: var(--line-height-tight);
+  }
+}

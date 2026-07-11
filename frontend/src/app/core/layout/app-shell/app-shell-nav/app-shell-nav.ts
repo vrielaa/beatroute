@@ -6,6 +6,7 @@ import { NavLink } from '../app-shell.models';
   selector: 'app-shell-nav',
   imports: [Icon],
   templateUrl: './app-shell-nav.html',
+  styleUrl: './app-shell-nav.scss',
   host: {
     class: 'app-shell-navigation-host',
   },

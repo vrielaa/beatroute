@@ -1,0 +1,20 @@
+:host {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 24rem;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
+  text-align: center;
+}
+
+.placeholder-page-message {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}

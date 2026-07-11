@@ -6,6 +6,7 @@ import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filte
   selector: 'app-analysis-filters-drawer',
   imports: [ListeningStatsFilters],
   templateUrl: './analysis-filters-drawer.html',
+  styleUrl: './analysis-filters-drawer.scss',
   host: {
     class: 'analysis-filters-drawer-host',
   },

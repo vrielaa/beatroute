@@ -5,6 +5,7 @@ import { ThemeService } from '@src/app/shared/utils/theme.service';
   selector: 'app-dark-mode',
   imports: [],
   templateUrl: './dark-mode.html',
+  styleUrl: './dark-mode.scss',
   host: {
     class: 'theme-toggle-host',
   },

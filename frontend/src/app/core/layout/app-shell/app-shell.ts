@@ -12,6 +12,7 @@ import { BaseNavLink, NavLink } from './app-shell.models';
   selector: 'app-app-shell',
   imports: [AnalysisFiltersDrawer, AppShellHeader, AppShellNav, RouterOutlet],
   templateUrl: './app-shell.html',
+  styleUrl: './app-shell.scss',
   host: {
     class: 'app-shell',
   },

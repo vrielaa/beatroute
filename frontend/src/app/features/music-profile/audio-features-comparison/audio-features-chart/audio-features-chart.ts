@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import {
   AudioComparisonChartPlot,
   AudioComparisonChartPoint,
@@ -7,6 +7,12 @@ import {
   AudioComparisonChartRow,
 } from '../audio-features-comparison.models';
 import { AudioFeaturesChartPoint } from '../audio-features-chart-point/audio-features-chart-point';
+import { AudioFeaturesChartTooltip } from '../audio-features-chart-tooltip/audio-features-chart-tooltip';
+
+type ActiveChartPointTooltip = {
+  point: AudioComparisonChartPoint;
+  feature: AudioComparisonFeature;
+};
 
 const CHART_MIN_WIDTH = 1000;
 const CHART_ROW_WIDTH = 92;
@@ -22,8 +28,9 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
 
 @Component({
   selector: 'app-audio-features-chart',
-  imports: [AudioFeaturesChartPoint],
+  imports: [AudioFeaturesChartPoint, AudioFeaturesChartTooltip],
   templateUrl: './audio-features-chart.html',
+  styleUrl: './audio-features-chart.scss',
   host: {
     class: 'audio-features-chart-host',
   },
@@ -31,6 +38,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
 export class AudioFeaturesChart {
   public readonly rows = input.required<AudioComparisonChartRow[]>();
   public readonly features = input.required<AudioComparisonFeature[]>();
+  public readonly activePointTooltip = signal<ActiveChartPointTooltip | null>(null);
 
   public readonly chartWidth = computed(() =>
     Math.max(
@@ -92,6 +100,16 @@ export class AudioFeaturesChart {
     return this.seriesPoints(featureKey)
       .map((point) => `${point.x},${point.y}`)
       .join(' ');
+  }
+
+  public showPointTooltip(point: AudioComparisonChartPoint, feature: AudioComparisonFeature): void {
+    this.activePointTooltip.set({ point, feature });
+  }
+
+  public hidePointTooltip(point: AudioComparisonChartPoint): void {
+    if (this.activePointTooltip()?.point.id === point.id) {
+      this.activePointTooltip.set(null);
+    }
   }
 
   private chartX(index: number, total: number): number {

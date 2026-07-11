@@ -9,6 +9,7 @@ import { UserProfile } from '../../components/user-profile/user-profile';
   selector: 'app-shell-header',
   imports: [DarkMode, Icon, Logo, Logout, UserProfile],
   templateUrl: './app-shell-header.html',
+  styleUrl: './app-shell-header.scss',
   host: {
     class: 'app-shell-header-host',
   },

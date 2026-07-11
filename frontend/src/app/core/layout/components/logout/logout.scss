@@ -1,0 +1,52 @@
+:host {
+  display: grid;
+  height: 3.5rem;
+  grid-template-columns: 1.5rem auto;
+  place-self: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: var(--text-base);
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+:host(:hover) {
+  background: var(--color-surface-tertiary);
+  transform: scale(1.05);
+}
+
+:host(:active) {
+  background: var(--color-surface-tertiary);
+  transform: translateY(0.2rem);
+}
+
+.logout-action-button {
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (max-width: 600px) {
+  :host {
+    position: relative;
+    width: 3.6rem;
+    grid-template-columns: 1fr;
+    padding: 0.6rem;
+  }
+
+  .logout-action-icon {
+    justify-self: center;
+  }
+
+  .logout-action-button {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+}

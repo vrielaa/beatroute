@@ -6,6 +6,7 @@ import { Icon } from '@shared/components/icon/icon';
   selector: 'app-listening-stats-filters',
   imports: [Icon],
   templateUrl: './listening-stats-filters.html',
+  styleUrl: './listening-stats-filters.scss',
   host: {
     class: 'listening-stats-filters',
   },

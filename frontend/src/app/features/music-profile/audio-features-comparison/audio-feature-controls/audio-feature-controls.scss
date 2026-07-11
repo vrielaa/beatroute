@@ -1,0 +1,95 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.audio-features-comparison-controls {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-secondary);
+}
+
+.audio-features-comparison-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.audio-features-comparison-action-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.audio-features-comparison-action-check:hover,
+.audio-features-comparison-action-check:focus-within {
+  background: var(--color-control-bg-hover);
+  transform: translateY(-0.1rem);
+}
+
+.audio-features-comparison-actions button {
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.audio-features-comparison-actions button:hover,
+.audio-features-comparison-actions button:focus-visible {
+  background: var(--color-control-bg-hover);
+  transform: translateY(-0.1rem);
+}
+
+.audio-features-comparison-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: 1rem;
+}
+
+.audio-features-comparison-option {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.audio-features-comparison-checkbox {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+  accent-color: var(--color-accent);
+}
+
+.audio-features-comparison-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.audio-features-comparison-dot {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  border-radius: var(--radius-pill);
+}

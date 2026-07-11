@@ -15,6 +15,7 @@ import { GenreChartSegment } from './genre-distribution.models';
   selector: 'app-genre-distribution',
   imports: [GenreDistributionDonut, GenreDistributionList, Icon],
   templateUrl: './genre-distribution.html',
+  styleUrl: './genre-distribution.scss',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },

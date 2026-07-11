@@ -65,29 +65,36 @@
       class="audio-features-comparison-axis-label audio-features-comparison-x-label"
       [attr.x]="label.x"
       [attr.y]="chartPlot().top + chartPlot().height + 32"
-      [attr.transform]="'rotate(-35 ' + label.x + ' ' + (chartPlot().top + chartPlot().height + 32) + ')'"
+      [attr.transform]="
+        'rotate(-35 ' + label.x + ' ' + (chartPlot().top + chartPlot().height + 32) + ')'
+      "
     >
       <title>{{ label.title }}</title>
       {{ label.label }}
     </text>
-    }
-
-    @for (feature of features(); track feature.key) {
+    } @for (feature of features(); track feature.key) {
     <polyline
       class="audio-features-comparison-line"
       [attr.points]="polylinePoints(feature.key)"
       [attr.stroke]="feature.color"
       vector-effect="non-scaling-stroke"
     />
-
-    @for (point of seriesPoints(feature.key); track point.id) {
+    } @for (feature of features(); track feature.key) { @for (point of seriesPoints(feature.key);
+    track point.id) {
     <g
       appAudioFeaturesChartPoint
       [point]="point"
       [feature]="feature"
+      (tooltipShow)="showPointTooltip(point, feature)"
+      (tooltipHide)="hidePointTooltip(point)"
+    ></g>
+    } } @if (activePointTooltip(); as activeTooltip) {
+    <g
+      appAudioFeaturesChartTooltip
+      [point]="activeTooltip.point"
+      [feature]="activeTooltip.feature"
       [chartWidth]="chartWidth()"
     ></g>
-    }
     }
   </svg>
 </div>

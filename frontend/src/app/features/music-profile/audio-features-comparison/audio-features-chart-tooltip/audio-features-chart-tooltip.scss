@@ -1,0 +1,16 @@
+:host {
+  pointer-events: none;
+}
+
+.audio-features-comparison-point-tooltip-bg {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  filter: drop-shadow(0 0.8rem 1.8rem var(--color-shadow-strong));
+}
+
+.audio-features-comparison-point-tooltip-title {
+  fill: var(--color-text-primary);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-bold);
+}

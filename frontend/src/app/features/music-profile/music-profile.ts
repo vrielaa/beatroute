@@ -10,6 +10,7 @@ import { AverageBpm } from './average-bpm/average-bpm';
   imports: [AverageBpm, AverageAudioFeatures, AudioFeaturesComparison],
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
+  styleUrl: './music-profile.scss',
   host: {
     class: 'music-profile-grid',
   },

@@ -6,6 +6,7 @@ import { Icon } from '@shared/components/icon/icon';
   selector: 'app-logout',
   imports: [Icon],
   templateUrl: './logout.html',
+  styleUrl: './logout.scss',
   host: {
     class: 'logout-action',
   },

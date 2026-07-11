@@ -5,6 +5,7 @@ import { SpotifyService } from '@core/services/spotify.service';
   selector: 'app-login',
   imports: [],
   templateUrl: './login.html',
+  styleUrl: './login.scss',
   host: {
     class: 'login-page-host',
   },

@@ -10,6 +10,7 @@ import {
   selector: 'app-audio-feature-controls',
   imports: [Tooltip],
   templateUrl: './audio-feature-controls.html',
+  styleUrl: './audio-feature-controls.scss',
   host: {
     class: 'audio-feature-controls-host',
   },

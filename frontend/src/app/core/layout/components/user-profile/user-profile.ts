@@ -5,6 +5,7 @@ import { SpotifyService } from '@core/services/spotify.service';
   selector: 'app-user-profile',
   imports: [],
   templateUrl: './user-profile.html',
+  styleUrl: './user-profile.scss',
   host: {
     class: 'user-profile-summary',
   },

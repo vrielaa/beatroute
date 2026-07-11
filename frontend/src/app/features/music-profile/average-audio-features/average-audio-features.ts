@@ -26,6 +26,7 @@ type AudioFeatureItem = {
   selector: 'app-average-audio-features',
   imports: [Icon, Tooltip],
   templateUrl: './average-audio-features.html',
+  styleUrl: './average-audio-features.scss',
   host: {
     class: 'average-audio-features',
   },

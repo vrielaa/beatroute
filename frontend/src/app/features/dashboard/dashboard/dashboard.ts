@@ -17,6 +17,7 @@ import { ListeningStatsWarnings } from '../listening-stats-warnings/listening-st
   ],
   providers: [ListeningTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
+  styleUrl: './dashboard.scss',
   host: {
     class: 'dashboard-grid',
   },

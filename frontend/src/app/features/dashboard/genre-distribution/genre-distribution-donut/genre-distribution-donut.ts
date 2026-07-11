@@ -4,6 +4,7 @@ import { Component, input } from '@angular/core';
   selector: 'app-genre-distribution-donut',
   imports: [],
   templateUrl: './genre-distribution-donut.html',
+  styleUrl: './genre-distribution-donut.scss',
   host: {
     class: 'genre-distribution-donut-host',
   },

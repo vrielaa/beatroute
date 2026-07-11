@@ -14,6 +14,7 @@ import { TrackAudioFeatureRow } from './most-listened-tracks.models';
   selector: 'app-most-listened-tracks',
   imports: [Icon, MostListenedTrackItem],
   templateUrl: './most-listened-tracks.html',
+  styleUrl: './most-listened-tracks.scss',
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },

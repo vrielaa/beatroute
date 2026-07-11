@@ -4,6 +4,7 @@ import { Component } from '@angular/core';
   selector: 'app-logo',
   imports: [],
   templateUrl: './logo.html',
+  styleUrl: './logo.scss',
   host: {
     class: 'brand-logo',
   },

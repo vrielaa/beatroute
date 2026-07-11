@@ -5,6 +5,7 @@ import { ICONS, IconName } from '@shared/icons/icons';
   selector: 'app-icon',
   imports: [],
   templateUrl: './icon.html',
+  styleUrl: './icon.scss',
   host: {
     class: 'inline-icon',
   },

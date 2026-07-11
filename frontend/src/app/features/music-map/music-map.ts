@@ -4,6 +4,7 @@ import { Component } from '@angular/core';
   selector: 'app-music-map',
   imports: [],
   templateUrl: './music-map.html',
+  styleUrl: './music-map.scss',
   host: {
     class: 'placeholder-page',
   },
