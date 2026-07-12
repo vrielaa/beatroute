@@ -1,0 +1,128 @@
+:host {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.audio-features-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.audio-features-profile-heading {
+  min-width: 0;
+}
+
+.audio-features-profile-title {
+  font-size: var(--text-lg);
+  line-height: var(--line-height-tight);
+}
+
+.audio-features-profile-subtitle {
+  margin-top: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.audio-features-profile-chart-shell,
+.audio-features-profile-skeleton,
+.audio-features-profile-empty-state {
+  display: grid;
+  min-height: 36rem;
+  place-items: center;
+}
+
+.audio-features-profile-chart-shell {
+  overflow: hidden;
+}
+
+.audio-features-profile-chart {
+  width: min(100%, 56rem);
+  height: auto;
+  overflow: visible;
+}
+
+.audio-features-profile-grid-polygon {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.audio-features-profile-axis-line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.audio-features-profile-axis-label {
+  dominant-baseline: central;
+  fill: var(--color-text-secondary);
+  font-size: 1.4rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.audio-features-profile-tick-label {
+  fill: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
+.audio-features-profile-value-area {
+  fill: var(--color-accent);
+  opacity: 0.34;
+}
+
+.audio-features-profile-value-line {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.audio-features-profile-value-point {
+  fill: var(--color-accent);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.audio-features-profile-skeleton-chart {
+  width: min(100%, 34rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.audio-features-profile-empty-state {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  :host {
+    gap: 1.2rem;
+  }
+
+  .audio-features-profile-chart-shell,
+  .audio-features-profile-skeleton,
+  .audio-features-profile-empty-state {
+    min-height: 30rem;
+  }
+
+  .audio-features-profile-title {
+    font-size: var(--text-base);
+  }
+
+  .audio-features-profile-subtitle {
+    font-size: var(--text-xs);
+  }
+
+  .audio-features-profile-axis-label {
+    font-size: 1.25rem;
+  }
+
+  .audio-features-profile-tick-label {
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,70 @@
+<div class="audio-features-profile-header">
+  <div class="audio-features-profile-heading">
+    <h3 class="audio-features-profile-title">Profil cech audio</h3>
+    <p class="audio-features-profile-subtitle">Średnie wartości cech Twoich utworów (0-1)</p>
+  </div>
+</div>
+
+@if (isLoading()) {
+<div class="audio-features-profile-skeleton" aria-label="Ładowanie profilu cech audio">
+  <span class="skeleton audio-features-profile-skeleton-chart"></span>
+</div>
+} @else if (!hasAnyFeature()) {
+<div class="audio-features-profile-empty-state">
+  <p>Brak danych do wyświetlenia profilu cech audio.</p>
+</div>
+} @else {
+<div class="audio-features-profile-chart-shell">
+  <svg
+    class="audio-features-profile-chart"
+    [attr.viewBox]="chartViewBox"
+    role="img"
+    aria-label="Radarowy wykres średnich cech audio użytkownika"
+  >
+    <title>Profil cech audio</title>
+
+    @for (polygon of gridPolygons(); track polygon) {
+    <polygon class="audio-features-profile-grid-polygon" [attr.points]="polygon" />
+    } @for (axis of axes(); track axis.key) {
+    <line
+      class="audio-features-profile-axis-line"
+      [attr.x1]="centerX"
+      [attr.y1]="centerY"
+      [attr.x2]="axis.axisEndX"
+      [attr.y2]="axis.axisEndY"
+      vector-effect="non-scaling-stroke"
+    />
+    <text
+      class="audio-features-profile-axis-label"
+      [attr.x]="axis.labelX"
+      [attr.y]="axis.labelY"
+      [attr.text-anchor]="axis.labelAnchor"
+    >
+      {{ axis.label }}
+    </text>
+    } @for (tick of ticks(); track tick.value) {
+    <text class="audio-features-profile-tick-label" [attr.x]="tick.labelX" [attr.y]="tick.labelY">
+      {{ tick.label }}
+    </text>
+    }
+
+    <polygon class="audio-features-profile-value-area" [attr.points]="profilePolygonPoints()" />
+    <polygon
+      class="audio-features-profile-value-line"
+      [attr.points]="profilePolygonPoints()"
+      vector-effect="non-scaling-stroke"
+    />
+
+    @for (point of profilePointMarkers(); track point.key) {
+    <circle
+      class="audio-features-profile-value-point"
+      [attr.cx]="point.x"
+      [attr.cy]="point.y"
+      r="4"
+    >
+      <title>{{ point.label }}: {{ point.displayValue }}</title>
+    </circle>
+    }
+  </svg>
+</div>
+}

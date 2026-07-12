@@ -2,12 +2,13 @@ import { Component, effect, inject } from '@angular/core';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
 import { ListeningTracksStore } from '@core/stores/listening-tracks.store';
 import { AudioFeaturesComparison } from './audio-features-comparison/audio-features-comparison';
+import { AudioFeaturesProfile } from './audio-features-profile/audio-features-profile';
 import { AverageAudioFeatures } from './average-audio-features/average-audio-features';
 import { AverageBpm } from './average-bpm/average-bpm';
 
 @Component({
   selector: 'app-music-profile',
-  imports: [AverageBpm, AverageAudioFeatures, AudioFeaturesComparison],
+  imports: [AverageBpm, AverageAudioFeatures, AudioFeaturesProfile, AudioFeaturesComparison],
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
   styleUrl: './music-profile.scss',
