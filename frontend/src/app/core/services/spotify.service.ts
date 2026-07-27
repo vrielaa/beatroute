@@ -3,6 +3,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   AudioStats,
+  MusicMapResponse,
   MultipleAudioFeaturesResponse,
   SpotifyUserProfile,
   TimeRange,
@@ -66,6 +67,21 @@ export class SpotifyService {
       { trackIds },
       { withCredentials: true }
     );
+  }
+
+  public getMusicMap(
+    timeRange: TimeRange = 'long_term',
+    limit = 40,
+    clusters?: number
+  ): Observable<MusicMapResponse> {
+    return this.http.get<MusicMapResponse>('/api/music-map/playground', {
+      params: {
+        time_range: timeRange,
+        limit: String(limit),
+        ...(clusters ? { clusters: String(clusters) } : {}),
+      },
+      withCredentials: true,
+    });
   }
 
   public logout(): Observable<{ message: string }> {

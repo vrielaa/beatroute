@@ -6,6 +6,10 @@ import {
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
 } from "../spotify/spotify.validators.js";
+import {
+  getCurrentUserTopTracks,
+  SpotifyApiError,
+} from "../spotify/spotify.service.js";
 
 const router = Router();
 
@@ -19,26 +23,22 @@ router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
       maxLimit: MAX_TRACKS_LIMIT,
     });
 
-    const params = new URLSearchParams({
-      limit: String(limit),
-      time_range: timeRange,
-    });
-
-    const spotifyResponse = await fetch(
-      `https://api.spotify.com/v1/me/top/tracks?${params.toString()}`,
-      { headers: headers(req) }
+    const data = await getCurrentUserTopTracks(
+      req.session.spotify.accessToken,
+      {
+        limit,
+        timeRange,
+      }
     );
-
-    const data = await spotifyResponse.json();
-
-    if (!spotifyResponse.ok) {
-      return res.status(spotifyResponse.status).json(data);
-    }
 
     res.json(data);
   } catch (error) {
     if (isRequestValidationError(error)) {
       return res.status(400).json({ message: error.message });
+    }
+
+    if (error instanceof SpotifyApiError) {
+      return res.status(error.status).json(error.data);
     }
 
     console.error("Top tracks error:", error);

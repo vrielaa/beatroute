@@ -1,0 +1,12 @@
+<details>
+  <summary>Metodologia i wyniki jakości klastrów</summary>
+  <p>{{ musicMap().methodologyText }}</p>
+  <dl class="music-map-method-list">
+    @for (candidate of musicMap().candidateClusterResults; track candidate.k) {
+    <div>
+      <dt>k = {{ candidate.k }}</dt>
+      <dd>silhouette {{ candidate.silhouetteScore }} / inertia {{ candidate.inertia }}</dd>
+    </div>
+    }
+  </dl>
+</details>

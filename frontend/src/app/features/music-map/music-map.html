@@ -1,3 +1,37 @@
-<p class="placeholder-page-message">
-  Mapa muzyczna jest w przygotowaniu
-</p>
+<app-cluster-control
+  [minClusterCount]="minClusterCount"
+  [maxClusterCount]="maxClusterCount()"
+  [selectedClusterCount]="selectedClusterCount()"
+  [isLoading]="isLoading()"
+  (clusterCountChange)="updateClusterCount($event)"
+></app-cluster-control>
+
+@if (isLoading()) {
+<section class="music-map-loading-card card" aria-label="Ładowanie mapy muzycznej">
+  <span class="skeleton music-map-loading-plot"></span>
+</section>
+} @else if (errorMessage()) {
+<section class="music-map-state-card card">
+  <p>{{ errorMessage() }}</p>
+  <button class="music-map-state-button" type="button" (click)="loadMusicMap()">
+    Spróbuj ponownie
+  </button>
+</section>
+} @else if (musicMap(); as map) {
+<app-music-map-chart
+  [points]="map.points"
+  [selectedClusterId]="selectedClusterId()"
+></app-music-map-chart>
+
+<app-cluster-details
+  [clusterDetails]="clusterDetails()"
+  [selectedClusterId]="selectedClusterId()"
+  (clusterSelect)="selectCluster($event)"
+></app-cluster-details>
+
+<app-music-map-methodology [musicMap]="map"></app-music-map-methodology>
+} @else {
+<section class="music-map-state-card card">
+  <p>Brak danych do utworzenia mapy muzycznej.</p>
+</section>
+}

@@ -157,3 +157,68 @@ export interface ArtistGenreDistributionResponse {
   unmatchedArtists: string[];
   source: 'lastfm-artist-info-tags';
 }
+
+export type MusicMapClusterSelectionSource = 'silhouette-score' | 'manual' | 'fallback';
+
+export interface MusicMapCandidateClusterResult {
+  k: number;
+  inertia: number;
+  silhouetteScore: number;
+}
+
+export interface MusicMapCluster {
+  id: number;
+  label: string;
+  description: string;
+  averageAudioFeatures: Partial<Record<string, number>>;
+  tracksCount: number;
+  trackIds: string[];
+}
+
+export interface MusicMapPoint {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  imageUrl: string | null;
+  spotifyUrl: string | null;
+  description: string;
+  clusterDescription: string;
+  x: number;
+  y: number;
+  rawX: number;
+  rawY: number;
+  cluster: number;
+  audioFeatures: Partial<Record<string, number>>;
+}
+
+export interface MusicMapSkippedTrack {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  spotifyUrl: string | null;
+  reason: string;
+}
+
+export interface MusicMapResponse {
+  source: 'spotify-top-tracks-reccobeats-audio-features';
+  methodologyText: string;
+  timeRange: TimeRange;
+  requestedLimit: number;
+  spotifyReturnedTracksCount: number;
+  spotifyTotalTracksCount: number;
+  requestedClusterCount: number | null;
+  selectedClusterCount: number;
+  selectedClusterCountSource: MusicMapClusterSelectionSource;
+  appliedClusterCount: number;
+  candidateClusterResults: MusicMapCandidateClusterResult[];
+  featureKeys: string[];
+  activeFeatureKeys: string[];
+  explainedVariance: number[];
+  tracksWithAudioFeaturesCount: number;
+  skippedTracksCount: number;
+  clusters: MusicMapCluster[];
+  points: MusicMapPoint[];
+  skippedTracks: MusicMapSkippedTrack[];
+}

@@ -30,6 +30,37 @@ export async function getSpotifyTrackById(spotifyTrackId, accessToken) {
   return data;
 }
 
+export async function getCurrentUserTopTracks(
+  accessToken,
+  { limit, timeRange }
+) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    time_range: timeRange,
+  });
+
+  const response = await fetch(
+    `https://api.spotify.com/v1/me/top/tracks?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new SpotifyApiError(
+      data?.error?.message || "Nie udało się pobrać top tracks ze Spotify",
+      response.status,
+      data
+    );
+  }
+
+  return data;
+}
+
 export function mapSpotifyTrackForLastfm(spotifyTrack) {
   const artist = spotifyTrack?.artists?.[0]?.name;
   const track = spotifyTrack?.name;

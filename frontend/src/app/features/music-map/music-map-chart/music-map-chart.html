@@ -1,0 +1,91 @@
+<div class="music-map-section-heading">
+  <h2>Mapa Muzyczna</h2>
+  <p>
+    Wizualizacja utworów w przestrzeni 2D po redukcji wymiarów (PCA) z kolorowaniem według klastrów
+    (K-means)
+  </p>
+</div>
+
+<div class="music-map-chart-shell">
+  <svg
+    class="music-map-chart"
+    [attr.viewBox]="plotViewBox"
+    role="img"
+    aria-label="Mapa podobieństwa brzmieniowego utworów"
+  >
+    @for (tick of yAxisTicks; track tick.value) {
+    <line
+      class="music-map-grid-line"
+      [attr.x1]="plotLeft"
+      [attr.x2]="plotRight"
+      [attr.y1]="tick.y"
+      [attr.y2]="tick.y"
+    />
+    <text class="music-map-axis-value" [attr.x]="plotLeft - 12" [attr.y]="tick.y + 4">
+      {{ tick.label }}
+    </text>
+    } @for (tick of xAxisTicks; track tick.value) {
+    <line
+      class="music-map-grid-line"
+      [attr.x1]="tick.x"
+      [attr.x2]="tick.x"
+      [attr.y1]="plotTop"
+      [attr.y2]="plotBottom"
+    />
+    <text
+      class="music-map-axis-value music-map-axis-value--x"
+      [attr.x]="tick.x"
+      [attr.y]="plotBottom + 24"
+    >
+      {{ tick.label }}
+    </text>
+    }
+
+    <line
+      class="music-map-axis-line"
+      [attr.x1]="plotLeft"
+      [attr.x2]="plotRight"
+      [attr.y1]="plotCenterY"
+      [attr.y2]="plotCenterY"
+    />
+    <line
+      class="music-map-axis-line"
+      [attr.x1]="plotLeft"
+      [attr.x2]="plotLeft"
+      [attr.y1]="plotTop"
+      [attr.y2]="plotBottom"
+    />
+    <line
+      class="music-map-axis-line"
+      [attr.x1]="plotLeft"
+      [attr.x2]="plotRight"
+      [attr.y1]="plotBottom"
+      [attr.y2]="plotBottom"
+    />
+
+    <text class="music-map-axis-title" [attr.x]="plotCenterX" [attr.y]="plotBottom + 48">
+      Składowa Główna 1
+    </text>
+    <text
+      class="music-map-axis-title music-map-axis-title--y"
+      [attr.x]="24"
+      [attr.y]="plotCenterY"
+      [attr.transform]="'rotate(-90 24 ' + plotCenterY + ')'"
+    >
+      Składowa Główna 2
+    </text>
+
+    @for (point of points(); track point.id) {
+    <circle
+      class="music-map-point"
+      [class.music-map-point--dimmed]="isPointDimmed(point)"
+      [attr.cx]="pointX(point)"
+      [attr.cy]="pointY(point)"
+      [attr.fill]="clusterColor(point.cluster)"
+      r="5"
+    >
+      <title>{{ point.name }} - {{ artistsLabel(point) }}</title>
+    </circle>
+    }
+  </svg>
+</div>

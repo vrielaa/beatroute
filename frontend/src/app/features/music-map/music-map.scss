@@ -1,20 +1,29 @@
 :host {
-  display: flex;
+  display: grid;
   width: 100%;
   min-width: 0;
-  min-height: 24rem;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
-  text-align: center;
+  gap: 1.8rem;
 }
 
-.placeholder-page-message {
-  font-size: var(--text-lg);
+.music-map-loading-card,
+.music-map-state-card {
+  display: grid;
+  min-height: 28rem;
+  gap: 2rem;
+  place-items: center;
+  color: var(--color-text-secondary);
+}
+
+.music-map-state-button {
+  padding: 0.9rem 1.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
   font-weight: var(--font-weight-semibold);
+}
+
+.music-map-loading-plot {
+  width: min(100%, 72rem);
+  height: 34rem;
+  border-radius: var(--radius-lg);
 }

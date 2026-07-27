@@ -1,0 +1,43 @@
+<article
+  class="music-map-cluster-card"
+  [class.music-map-cluster-card--selected]="isSelected()"
+  [style.--cluster-color]="clusterColor()"
+  (click)="selectCluster()"
+>
+  <header class="music-map-cluster-header">
+    <span class="music-map-cluster-dot"></span>
+    <h3>{{ detail().cluster.label }}</h3>
+    <span class="music-map-cluster-count">
+      {{ clusterTracksCountLabel(detail().cluster) }}
+    </span>
+  </header>
+
+  <p class="music-map-cluster-description">
+    {{ detail().cluster.description }}
+  </p>
+
+  <dl class="music-map-cluster-metrics">
+    @for (metric of detail().metrics; track metric.label) {
+    <div>
+      <dt>{{ metric.label }}</dt>
+      <dd>{{ metric.value }}</dd>
+    </div>
+    }
+  </dl>
+
+  <ul class="music-map-cluster-track-list">
+    @for (point of detail().points; track point.id) {
+    <li>
+      @if (point.imageUrl) {
+      <img [src]="point.imageUrl" [alt]="point.album ?? point.name" />
+      } @else {
+      <span class="music-map-track-image-placeholder"></span>
+      }
+      <span>
+        <strong>{{ point.name }}</strong>
+        <small>{{ artistsLabel(point) }}</small>
+      </span>
+    </li>
+    }
+  </ul>
+</article>

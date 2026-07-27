@@ -1,0 +1,66 @@
+:host {
+  display: grid;
+  gap: 2rem;
+}
+
+.music-map-section-heading h2 {
+  font-size: var(--text-lg);
+  line-height: var(--line-height-tight);
+}
+
+.music-map-section-heading p {
+  margin-top: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.music-map-chart-shell {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.music-map-chart {
+  width: 100%;
+  min-width: 72rem;
+  height: auto;
+}
+
+.music-map-grid-line {
+  stroke: var(--color-border);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+}
+
+.music-map-axis-line {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.music-map-axis-value,
+.music-map-axis-title {
+  fill: var(--color-text-secondary);
+  font-size: 1.2rem;
+}
+
+.music-map-axis-value {
+  text-anchor: end;
+}
+
+.music-map-axis-value--x,
+.music-map-axis-title {
+  text-anchor: middle;
+}
+
+.music-map-point {
+  cursor: pointer;
+  opacity: 0.92;
+  transition: opacity var(--transition-fast), r var(--transition-fast);
+}
+
+.music-map-point:hover {
+  r: 7;
+}
+
+.music-map-point--dimmed {
+  opacity: 0.16;
+}

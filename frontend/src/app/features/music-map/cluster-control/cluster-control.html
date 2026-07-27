@@ -1,0 +1,18 @@
+<div class="music-map-section-heading">
+  <h2>Kontrola Klastrowania</h2>
+  <p>Dostosuj liczbę klastrów (k) dla algorytmu K-means</p>
+</div>
+
+<div class="cluster-control-slider">
+  <label for="music-map-cluster-count">Liczba klastrów:</label>
+  <input
+    id="music-map-cluster-count"
+    type="range"
+    [min]="minClusterCount()"
+    [max]="maxClusterCount()"
+    [value]="selectedClusterCount()"
+    [disabled]="isLoading()"
+    (change)="updateClusterCount($event)"
+  />
+  <strong>{{ selectedClusterCount() }}</strong>
+</div>

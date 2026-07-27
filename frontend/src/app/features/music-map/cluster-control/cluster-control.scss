@@ -1,0 +1,35 @@
+:host {
+  display: grid;
+  gap: 2rem;
+}
+
+.cluster-control-slider {
+  display: grid;
+  grid-template-columns: max-content minmax(14rem, 1fr) 4.8rem;
+  align-items: center;
+  gap: 1.6rem;
+}
+
+.cluster-control-slider label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cluster-control-slider input {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.cluster-control-slider strong {
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+@media (max-width: 820px) {
+  .cluster-control-slider {
+    grid-template-columns: 1fr;
+  }
+}

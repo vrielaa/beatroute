@@ -1,0 +1,14 @@
+import { Component, input } from '@angular/core';
+import { MusicMapResponse } from '@core/models/models';
+
+@Component({
+  selector: 'app-music-map-methodology',
+  templateUrl: './music-map-methodology.html',
+  styleUrl: './music-map-methodology.scss',
+  host: {
+    class: 'music-map-method-card card',
+  },
+})
+export class MusicMapMethodology {
+  public readonly musicMap = input.required<MusicMapResponse>();
+}

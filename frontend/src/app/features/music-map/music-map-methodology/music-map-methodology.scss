@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+details {
+  display: grid;
+  gap: 1.2rem;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+}
+
+p {
+  margin-top: 1.2rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.music-map-method-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+
+.music-map-method-list div {
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-secondary);
+}
+
+.music-map-method-list dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.music-map-method-list dd {
+  margin-top: 0.2rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (max-width: 820px) {
+  .music-map-method-list {
+    grid-template-columns: 1fr;
+  }
+}

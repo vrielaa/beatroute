@@ -16,6 +16,7 @@ out-tsc/
 *.tsbuildinfo
 frontend/dist/
 backend/dist/
+backend/data/music-map-exports/
 
 # logs
 npm-debug.log*

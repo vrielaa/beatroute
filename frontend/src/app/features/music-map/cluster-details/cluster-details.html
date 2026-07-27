@@ -1,0 +1,15 @@
+<div class="music-map-section-heading">
+  <h2>Szczegóły Klastrów</h2>
+  <p>Utwory zgrupowane według podobieństwa cech audio</p>
+</div>
+
+<div class="music-map-cluster-card-list">
+  @for (detail of clusterDetails(); track detail.cluster.id) {
+  <app-cluster-card
+    [detail]="detail"
+    [isSelected]="selectedClusterId() === detail.cluster.id"
+    [clusterColor]="clusterColor(detail.cluster.id)"
+    (clusterSelect)="selectCluster($event)"
+  ></app-cluster-card>
+  }
+</div>
