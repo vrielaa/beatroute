@@ -14,11 +14,13 @@ import { ClusterControl } from './cluster-control/cluster-control';
 import { ClusterDetails } from './cluster-details/cluster-details';
 import { MusicMapChart } from './music-map-chart/music-map-chart';
 import { MusicMapMethodology } from './music-map-methodology/music-map-methodology';
-import { MusicMapClusterDetail, MusicMapClusterMetric } from './music-map.models';
-
-const DEFAULT_CLUSTER_COUNT = 4;
-const MIN_CLUSTER_COUNT = 2;
-const MAX_CLUSTER_COUNT = 8;
+import { MusicMapClusterDetail } from './music-map.models';
+import {
+  MUSIC_MAP_CLUSTER_LIMITS,
+  buildMusicMapClusterDetails,
+  clampMusicMapClusterCount,
+  getMaxMusicMapClusterCount,
+} from './music-map.utils';
 
 @Component({
   selector: 'app-music-map',
@@ -34,7 +36,7 @@ export class MusicMap {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly spotifyService = inject(SpotifyService);
 
-  public readonly minClusterCount = MIN_CLUSTER_COUNT;
+  public readonly minClusterCount = MUSIC_MAP_CLUSTER_LIMITS.min;
   public readonly selectedTimeRange = this.analysisFiltersStore.selectedTimeRange;
   public readonly selectedTracksRange = this.analysisFiltersStore.selectedTracksRange;
 
@@ -42,27 +44,17 @@ export class MusicMap {
   public readonly isLoading = signal(true);
   public readonly errorMessage = signal<string | null>(null);
   public readonly selectedClusterId = signal<number | null>(null);
-  public readonly selectedClusterCount = signal(DEFAULT_CLUSTER_COUNT);
+  public readonly selectedClusterCount = signal<number>(MUSIC_MAP_CLUSTER_LIMITS.default);
 
   public readonly maxClusterCount = computed(() => {
     const tracksCount = this.musicMap()?.tracksWithAudioFeaturesCount ?? this.selectedTracksRange();
 
-    return Math.max(MIN_CLUSTER_COUNT, Math.min(MAX_CLUSTER_COUNT, tracksCount - 1));
+    return getMaxMusicMapClusterCount(tracksCount);
   });
 
-  public readonly clusterDetails = computed<MusicMapClusterDetail[]>(() => {
-    const musicMap = this.musicMap();
-
-    if (!musicMap) {
-      return [];
-    }
-
-    return musicMap.clusters.map((cluster) => ({
-      cluster,
-      points: musicMap.points.filter((point) => point.cluster === cluster.id),
-      metrics: this.clusterMetrics(cluster),
-    }));
-  });
+  public readonly clusterDetails = computed<MusicMapClusterDetail[]>(() =>
+    buildMusicMapClusterDetails(this.musicMap())
+  );
 
   constructor() {
     effect((onCleanup) => {
@@ -86,7 +78,7 @@ export class MusicMap {
         next: (musicMap) => {
           this.musicMap.set(musicMap);
           this.selectedClusterCount.set(
-            Math.min(Math.max(musicMap.selectedClusterCount, MIN_CLUSTER_COUNT), MAX_CLUSTER_COUNT)
+            clampMusicMapClusterCount(musicMap.selectedClusterCount, MUSIC_MAP_CLUSTER_LIMITS.max)
           );
           this.selectedClusterId.set(null);
           this.isLoading.set(false);
@@ -107,30 +99,11 @@ export class MusicMap {
     }
 
     this.selectedClusterCount.set(
-      Math.min(Math.max(nextClusterCount, MIN_CLUSTER_COUNT), this.maxClusterCount())
+      clampMusicMapClusterCount(nextClusterCount, this.maxClusterCount())
     );
   }
 
   public selectCluster(cluster: MusicMapCluster): void {
     this.selectedClusterId.set(this.selectedClusterId() === cluster.id ? null : cluster.id);
-  }
-
-  private clusterMetrics(cluster: MusicMapCluster): MusicMapClusterMetric[] {
-    const features = cluster.averageAudioFeatures;
-
-    return [
-      { label: 'Śr. energia', value: this.formatPercentage(features['energy']) },
-      { label: 'Śr. taneczność', value: this.formatPercentage(features['danceability']) },
-      { label: 'Śr. nastrój', value: this.formatPercentage(features['valence']) },
-      { label: 'Śr. tempo', value: this.formatBpm(features['tempo']) },
-    ];
-  }
-
-  private formatPercentage(value: number | undefined): string {
-    return typeof value === 'number' ? `${Math.round(value * 100)}%` : 'Brak danych';
-  }
-
-  private formatBpm(value: number | undefined): string {
-    return typeof value === 'number' ? `${Math.round(value)} BPM` : 'Brak danych';
   }
 }
