@@ -70,10 +70,28 @@ export async function getLastfmArtistGenreDistribution(artists) {
         return await getLastfmArtistInfo(artist);
       } catch (error) {
         console.error(`Last.fm artist info error for "${artist}":`, error);
-        return { name: artist, requestedName: artist, genre: null };
+        return {
+          name: artist,
+          requestedName: artist,
+          genre: null,
+          error,
+        };
       }
     }
   );
+
+  const invalidApiKeyResult = artistResults.find(
+    (artist) => artist.error?.code === 10
+  );
+
+  if (invalidApiKeyResult) {
+    throw invalidApiKeyResult.error;
+  }
+
+  if (artistResults.length && artistResults.every((artist) => artist.error)) {
+    throw artistResults[0].error;
+  }
+
   const genreMap = new Map();
   const unmatchedArtists = [];
   let totalGenreMatches = 0;
