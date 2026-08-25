@@ -1,13 +1,18 @@
 import { refreshAccessToken } from "../../../utils/spotify.js";
+import { HttpError } from "../../../http/error-response.js";
 
 export default async function ensureSpotifyAccessToken(req, res, next) {
   try {
     const spotifySession = req.session.spotify;
 
     if (!spotifySession?.accessToken) {
-      return res
-        .status(401)
-        .json({ message: "Użytkownik nie jest zalogowany do Spotify" });
+      return next(
+        new HttpError(
+          401,
+          "SPOTIFY_AUTH_REQUIRED",
+          "Użytkownik nie jest zalogowany do Spotify"
+        )
+      );
     }
 
     const isExpired =
@@ -21,6 +26,8 @@ export default async function ensureSpotifyAccessToken(req, res, next) {
     next();
   } catch (error) {
     console.error("Błąd podczas odświeżania tokena:", error.message);
-    return res.status(401).json({ message: "Sesja Spotify wygasła" });
+    return next(
+      new HttpError(401, "SPOTIFY_SESSION_EXPIRED", "Sesja Spotify wygasła")
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { destroySession, saveSession } from "../../http/session.js";
 
 const router = Router();
 
@@ -24,33 +25,22 @@ router.get("/lastfm", (req, res) => {
   });
 });
 
-router.post("/lastfm/logout", (req, res) => {
+router.post("/lastfm/logout", async (req, res) => {
   delete req.session.lastfm;
   delete req.session.lastfmAuthState;
 
-  req.session.save((error) => {
-    if (error) {
-      console.error("Last.fm disconnect error:", error);
-      return res.status(500).json({
-        message: "Nie udało się odłączyć konta Last.fm",
-      });
-    }
+  await saveSession(req.session);
 
-    res.status(200).json({
-      message: "Konto Last.fm zostało odłączone",
-    });
+  res.status(200).json({
+    message: "Konto Last.fm zostało odłączone",
   });
 });
 
-router.post("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-      return res.status(500).json({ message: "Failed to log out" });
-    }
-    res.clearCookie("connect.sid");
-    res.status(200).json({ message: "Logged out successfully" });
-  });
+router.post("/logout", async (req, res) => {
+  await destroySession(req.session);
+
+  res.clearCookie("sessionId");
+  res.status(200).json({ message: "Logged out successfully" });
 });
 
 export default router;

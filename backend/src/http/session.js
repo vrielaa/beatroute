@@ -10,3 +10,16 @@ export function saveSession(session) {
     });
   });
 }
+
+export function destroySession(session) {
+  return new Promise((resolve, reject) => {
+    session.destroy((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
