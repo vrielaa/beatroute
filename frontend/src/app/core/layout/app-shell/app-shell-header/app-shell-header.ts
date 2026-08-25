@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { Icon } from '@shared/components/icon/icon';
 import { DarkMode } from '../../components/dark-mode/dark-mode';
 import { Logo } from '../../components/logo/logo';
@@ -10,6 +10,7 @@ import { UserProfile } from '../../components/user-profile/user-profile';
   imports: [DarkMode, Icon, Logo, Logout, UserProfile],
   templateUrl: './app-shell-header.html',
   styleUrl: './app-shell-header.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'app-shell-header-host',
   },

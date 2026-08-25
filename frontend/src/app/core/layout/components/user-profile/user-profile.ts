@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { SpotifyService } from '@core/services/spotify.service';
 
 @Component({
@@ -6,6 +6,7 @@ import { SpotifyService } from '@core/services/spotify.service';
   imports: [],
   templateUrl: './user-profile.html',
   styleUrl: './user-profile.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'user-profile-summary',
   },

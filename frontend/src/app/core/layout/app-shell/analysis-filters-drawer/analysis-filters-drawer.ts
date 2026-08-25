@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { TimeRange } from '@core/models/models';
 import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filters/listening-stats-filters';
 
@@ -7,6 +7,7 @@ import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filte
   imports: [ListeningStatsFilters],
   templateUrl: './analysis-filters-drawer.html',
   styleUrl: './analysis-filters-drawer.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'analysis-filters-drawer-host',
   },

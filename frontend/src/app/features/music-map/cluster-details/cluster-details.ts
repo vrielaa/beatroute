@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { MusicMapCluster } from '@core/models/models';
 import { ClusterCard } from '../cluster-card/cluster-card';
 import { MUSIC_MAP_CLUSTER_COLORS, MusicMapClusterDetail } from '../music-map.models';
@@ -8,6 +8,7 @@ import { MUSIC_MAP_CLUSTER_COLORS, MusicMapClusterDetail } from '../music-map.mo
   imports: [ClusterCard],
   templateUrl: './cluster-details.html',
   styleUrl: './cluster-details.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'cluster-details-card card',
   },

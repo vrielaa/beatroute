@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { MusicMapPoint } from '@core/models/models';
 import { MUSIC_MAP_CLUSTER_COLORS, MusicMapAxisTick } from '../music-map.models';
 
@@ -16,6 +16,7 @@ const PLOT_TICKS = [-1, -0.5, 0, 0.5, 1];
   selector: 'app-music-map-chart',
   templateUrl: './music-map-chart.html',
   styleUrl: './music-map-chart.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'music-map-chart-card card',
   },

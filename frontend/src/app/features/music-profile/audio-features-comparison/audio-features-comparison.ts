@@ -1,9 +1,6 @@
-import { Component, computed, effect, input, signal } from '@angular/core';
+import { Component, computed, effect, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AudioFeatures, TopTrack } from '@core/models/models';
-import {
-  AUDIO_FEATURE_INFO,
-  audioFeatureTooltip,
-} from '@shared/audio-features/audio-feature-info';
+import { AUDIO_FEATURE_INFO, audioFeatureTooltip } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
 import { AudioFeatureControls } from './audio-feature-controls/audio-feature-controls';
 import { AudioFeaturesChart } from './audio-features-chart/audio-features-chart';
@@ -21,6 +18,7 @@ import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
   imports: [AudioFeatureControls, AudioFeaturesChart, AudioTrackPicker, Icon],
   templateUrl: './audio-features-comparison.html',
   styleUrl: './audio-features-comparison.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-features-comparison',
   },
@@ -95,11 +93,12 @@ export class AudioFeaturesComparison {
   });
   public readonly selectedTrackIdList = computed(() => this.effectiveSelectedTrackIds());
 
-  public readonly hasChartData = computed(() =>
-    this.hasEnoughSelectedTracks() &&
-    this.selectedFeatures().some((feature) =>
-      this.selectedFeatureRows().some((row) => row.values[feature.key] !== null)
-    )
+  public readonly hasChartData = computed(
+    () =>
+      this.hasEnoughSelectedTracks() &&
+      this.selectedFeatures().some((feature) =>
+        this.selectedFeatureRows().some((row) => row.values[feature.key] !== null)
+      )
   );
   public readonly hasSelectedFeatures = computed(() => this.selectedFeatures().length > 0);
   public readonly isSelectAllFeaturesChecked = computed(() => this.selectAllFeaturesChecked());
@@ -193,7 +192,9 @@ export class AudioFeaturesComparison {
       return;
     }
 
-    this.selectedTrackIds.set(selectedTrackIds.filter((selectedTrackId) => selectedTrackId !== trackId));
+    this.selectedTrackIds.set(
+      selectedTrackIds.filter((selectedTrackId) => selectedTrackId !== trackId)
+    );
   }
 
   public selectAllTracks(): void {

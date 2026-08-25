@@ -1,4 +1,4 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AudioFeatures, TimeRange, TopTrack } from '@src/app/core/models/models';
 import {
   AUDIO_FEATURE_INFO,
@@ -15,13 +15,27 @@ import { TrackAudioFeatureRow } from './most-listened-tracks.models';
   imports: [Icon, MostListenedTrackItem],
   templateUrl: './most-listened-tracks.html',
   styleUrl: './most-listened-tracks.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
 export class MostListenedTracks {
   private readonly collapsedItemsLimit = 5;
-  private readonly keyNames = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
+  private readonly keyNames = [
+    'C',
+    'C#/Db',
+    'D',
+    'D#/Eb',
+    'E',
+    'F',
+    'F#/Gb',
+    'G',
+    'G#/Ab',
+    'A',
+    'A#/Bb',
+    'B',
+  ];
 
   public readonly tracks = input<TopTrack[]>([]);
   public readonly audioFeatures = input<AudioFeatures[]>([]);

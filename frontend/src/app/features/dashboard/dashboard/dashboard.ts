@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, effect, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MostListenedTracks } from '../most-listened-tracks/most-listened-tracks';
 import { MostListenedArtists } from '../most-listened-artists/most-listened-artists';
 import { GenreDistribution } from '../genre-distribution/genre-distribution';
@@ -9,15 +9,11 @@ import { ListeningStatsWarnings } from '../listening-stats-warnings/listening-st
 
 @Component({
   selector: 'app-dashboard',
-  imports: [
-    ListeningStatsWarnings,
-    MostListenedTracks,
-    GenreDistribution,
-    MostListenedArtists,
-  ],
+  imports: [ListeningStatsWarnings, MostListenedTracks, GenreDistribution, MostListenedArtists],
   providers: [ListeningTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'dashboard-grid',
   },

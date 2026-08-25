@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { ICONS, IconName } from '@shared/icons/icons';
 
 @Component({
@@ -6,6 +6,7 @@ import { ICONS, IconName } from '@shared/icons/icons';
   imports: [],
   templateUrl: './icon.html',
   styleUrl: './icon.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'inline-icon',
   },

@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { AudioStats } from '@core/models/models';
 import {
   AUDIO_FEATURE_INFO,
@@ -27,6 +27,7 @@ type AudioFeatureItem = {
   imports: [Icon, Tooltip],
   templateUrl: './average-audio-features.html',
   styleUrl: './average-audio-features.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'average-audio-features',
   },

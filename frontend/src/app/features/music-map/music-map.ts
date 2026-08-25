@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { MusicMapCluster, MusicMapResponse } from '@core/models/models';
 import { SpotifyService } from '@core/services/spotify.service';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
@@ -18,6 +25,7 @@ const MAX_CLUSTER_COUNT = 8;
   imports: [ClusterControl, MusicMapChart, ClusterDetails, MusicMapMethodology],
   templateUrl: './music-map.html',
   styleUrl: './music-map.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'music-map-page',
   },

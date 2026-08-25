@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { AudioStats } from '@core/models/models';
 import { AUDIO_FEATURE_INFO, AudioFeatureInfoKey } from '@shared/audio-features/audio-feature-info';
 
@@ -44,6 +44,7 @@ const RADAR_FEATURE_KEYS = [
   selector: 'app-audio-features-profile',
   templateUrl: './audio-features-profile.html',
   styleUrl: './audio-features-profile.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-features-profile',
   },

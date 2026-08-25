@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import {
   AudioComparisonChartPoint,
   AudioComparisonFeature,
@@ -28,6 +28,7 @@ type PointTooltip = {
   imports: [],
   templateUrl: './audio-features-chart-tooltip.html',
   styleUrl: './audio-features-chart-tooltip.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-features-comparison-point-tooltip',
     'aria-hidden': 'true',

@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { TopTrack } from '@core/models/models';
 import { Tooltip } from '@shared/components/tooltip/tooltip';
 import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
@@ -8,6 +8,7 @@ import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
   imports: [Tooltip],
   templateUrl: './most-listened-track-item.html',
   styleUrl: './most-listened-track-item.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'most-listened-track-item',
   },

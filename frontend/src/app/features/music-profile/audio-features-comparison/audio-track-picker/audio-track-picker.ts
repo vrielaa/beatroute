@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import {
   AudioComparisonChartRow,
   AudioComparisonTrackToggle,
@@ -9,6 +9,7 @@ import {
   imports: [],
   templateUrl: './audio-track-picker.html',
   styleUrl: './audio-track-picker.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-track-picker-host',
   },

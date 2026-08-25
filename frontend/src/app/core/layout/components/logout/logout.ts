@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { SpotifyService } from '@core/services/spotify.service';
 import { Icon } from '@shared/components/icon/icon';
 
@@ -7,6 +7,7 @@ import { Icon } from '@shared/components/icon/icon';
   imports: [Icon],
   templateUrl: './logout.html',
   styleUrl: './logout.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'logout-action',
   },

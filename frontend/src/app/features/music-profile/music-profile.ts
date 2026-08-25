@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, effect, inject, ChangeDetectionStrategy } from '@angular/core';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
 import { ListeningTracksStore } from '@core/stores/listening-tracks.store';
 import { AudioFeaturesComparison } from './audio-features-comparison/audio-features-comparison';
@@ -12,6 +12,7 @@ import { AverageBpm } from './average-bpm/average-bpm';
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
   styleUrl: './music-profile.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'music-profile-grid',
   },

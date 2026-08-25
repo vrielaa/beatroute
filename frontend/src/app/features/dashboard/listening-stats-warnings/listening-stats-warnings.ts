@@ -1,10 +1,11 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { TimeRange } from '@core/models/models';
 
 @Component({
   selector: 'app-listening-stats-warnings',
   templateUrl: './listening-stats-warnings.html',
   styleUrl: './listening-stats-warnings.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'listening-stats-warnings-host',
   },

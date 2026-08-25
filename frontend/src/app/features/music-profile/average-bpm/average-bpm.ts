@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { audioFeatureTooltip } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
 import { Tooltip } from '@shared/components/tooltip/tooltip';
@@ -8,6 +8,7 @@ import { Tooltip } from '@shared/components/tooltip/tooltip';
   imports: [Icon, Tooltip],
   templateUrl: './average-bpm.html',
   styleUrl: './average-bpm.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'average-bpm-card-content',
   },

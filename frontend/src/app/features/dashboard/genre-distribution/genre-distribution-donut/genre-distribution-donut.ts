@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-genre-distribution-donut',
   imports: [],
   templateUrl: './genre-distribution-donut.html',
   styleUrl: './genre-distribution-donut.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'genre-distribution-donut-host',
   },

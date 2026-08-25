@@ -1,4 +1,4 @@
-import { Component, input, model, output } from '@angular/core';
+import { Component, input, model, output, ChangeDetectionStrategy } from '@angular/core';
 import { TimeRange } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
 
@@ -7,6 +7,7 @@ import { Icon } from '@shared/components/icon/icon';
   imports: [Icon],
   templateUrl: './listening-stats-filters.html',
   styleUrl: './listening-stats-filters.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'listening-stats-filters',
   },

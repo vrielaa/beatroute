@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { Tooltip } from '@shared/components/tooltip/tooltip';
 import {
   AudioComparisonFeature,
@@ -11,6 +11,7 @@ import {
   imports: [Tooltip],
   templateUrl: './audio-feature-controls.html',
   styleUrl: './audio-feature-controls.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-feature-controls-host',
   },

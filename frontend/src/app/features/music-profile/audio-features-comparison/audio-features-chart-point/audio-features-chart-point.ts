@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import {
   AudioComparisonChartPoint,
   AudioComparisonFeature,
@@ -9,6 +9,7 @@ import {
   imports: [],
   templateUrl: './audio-features-chart-point.html',
   styleUrl: './audio-features-chart-point.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-features-comparison-point-group',
     tabindex: '0',

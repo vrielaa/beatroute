@@ -1,4 +1,4 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import {
   AudioComparisonChartPlot,
   AudioComparisonChartPoint,
@@ -31,6 +31,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
   imports: [AudioFeaturesChartPoint, AudioFeaturesChartTooltip],
   templateUrl: './audio-features-chart.html',
   styleUrl: './audio-features-chart.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'audio-features-chart-host',
   },

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { ArtistGenreDistributionResponse } from '@core/models/models';
 import { GenreChartSegment } from '../genre-distribution.models';
 
@@ -7,6 +7,7 @@ import { GenreChartSegment } from '../genre-distribution.models';
   imports: [],
   templateUrl: './genre-distribution-list.html',
   styleUrl: './genre-distribution-list.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'genre-distribution-list-host',
   },

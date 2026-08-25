@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import {
   ArtistGenreDistributionSubgenreItem,
   ArtistGenreDistributionItem,
@@ -16,6 +16,7 @@ import { GenreChartSegment } from './genre-distribution.models';
   imports: [GenreDistributionDonut, GenreDistributionList, Icon],
   templateUrl: './genre-distribution.html',
   styleUrl: './genre-distribution.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },

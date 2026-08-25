@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, isActive } from '@angular/router';
 
 import { SpotifyService } from '@core/services/spotify.service';
@@ -13,6 +13,7 @@ import { BaseNavLink, NavLink } from './app-shell.models';
   imports: [AnalysisFiltersDrawer, AppShellHeader, AppShellNav, RouterOutlet],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'app-shell',
   },

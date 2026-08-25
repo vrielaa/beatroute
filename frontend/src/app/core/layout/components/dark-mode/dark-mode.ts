@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ThemeService } from '@src/app/shared/utils/theme.service';
 
 @Component({
@@ -6,6 +6,7 @@ import { ThemeService } from '@src/app/shared/utils/theme.service';
   imports: [],
   templateUrl: './dark-mode.html',
   styleUrl: './dark-mode.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'theme-toggle-host',
   },

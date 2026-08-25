@@ -7,6 +7,7 @@ import {
   output,
   signal,
   viewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { TimeRange, TopArtist } from '@src/app/core/models/models';
 import { Icon } from '@shared/components/icon/icon';
@@ -17,6 +18,7 @@ import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-class
   imports: [Icon],
   templateUrl: './most-listened-artists.html',
   styleUrl: './most-listened-artists.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },

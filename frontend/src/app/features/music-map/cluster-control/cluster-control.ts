@@ -1,9 +1,10 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-cluster-control',
   templateUrl: './cluster-control.html',
   styleUrl: './cluster-control.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     class: 'cluster-control-card card',
   },
