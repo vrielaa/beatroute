@@ -1,6 +1,5 @@
 import { Component, computed, effect, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AudioFeatures, TopTrack } from '@core/models/models';
-import { AUDIO_FEATURE_INFO, audioFeatureTooltip } from '@shared/audio-features/audio-feature-info';
 import { Icon } from '@shared/components/icon/icon';
 import { AudioFeatureControls } from './audio-feature-controls/audio-feature-controls';
 import { AudioFeaturesChart } from './audio-features-chart/audio-features-chart';
@@ -8,10 +7,15 @@ import {
   AudioComparisonFeature,
   AudioComparisonFeatureKey,
   AudioComparisonFeatureToggle,
-  AudioComparisonChartRow,
   AudioComparisonTrackToggle,
 } from './audio-features-comparison.models';
 import { AudioTrackPicker } from './audio-track-picker/audio-track-picker';
+import {
+  areAllComparisonFeaturesSelected,
+  buildAudioComparisonRows,
+  createAudioComparisonFeatures,
+  getAudioComparisonSubtitle,
+} from './audio-features-comparison.utils';
 
 @Component({
   selector: 'app-audio-features-comparison',
@@ -39,48 +43,16 @@ export class AudioFeaturesComparison {
   public readonly audioFeatures = input<AudioFeatures[]>([]);
   public readonly isLoading = input(false);
 
-  public readonly features: AudioComparisonFeature[] = [
-    this.comparableFeature('energy', '#8b5cf6'),
-    this.comparableFeature('danceability', '#ec4899'),
-    this.comparableFeature('valence', '#3b82f6'),
-    this.comparableFeature('acousticness', '#10b981'),
-    this.comparableFeature('liveness', '#f59e0b'),
-    this.comparableFeature('speechiness', '#ef4444'),
-  ];
+  public readonly features: AudioComparisonFeature[] = createAudioComparisonFeatures();
 
   public readonly selectedFeatures = computed(() =>
     this.features.filter((feature) => this.selectedFeatureKeys().includes(feature.key))
   );
   public readonly selectedFeatureKeyList = computed(() => this.selectedFeatureKeys());
 
-  public readonly featureRows = computed(() => {
-    const featuresByTrackId = this.audioFeaturesByTrackId();
-
-    return this.tracks()
-      .map((track, index) => {
-        const features = featuresByTrackId.get(track.id);
-
-        if (!features || features.error) {
-          return null;
-        }
-
-        return {
-          id: track.id,
-          axisLabel: this.truncateTrackName(track.name),
-          trackName: track.name,
-          artists: track.artists.map((artist) => artist.name).join(', '),
-          values: {
-            energy: this.clampFeatureValue(features.energy),
-            danceability: this.clampFeatureValue(features.danceability),
-            valence: this.clampFeatureValue(features.valence),
-            acousticness: this.clampFeatureValue(features.acousticness),
-            liveness: this.clampFeatureValue(features.liveness),
-            speechiness: this.clampFeatureValue(features.speechiness),
-          },
-        };
-      })
-      .filter((row): row is AudioComparisonChartRow => row !== null);
-  });
+  public readonly featureRows = computed(() =>
+    buildAudioComparisonRows(this.tracks(), this.audioFeatures())
+  );
 
   private readonly effectiveSelectedTrackIds = computed(
     () => this.selectedTrackIds() ?? this.featureRows().map((row) => row.id)
@@ -113,22 +85,13 @@ export class AudioFeaturesComparison {
   public readonly trackSelectionSummary = computed(
     () => `${this.selectedTracksCount()} z ${this.featureRows().length} wybranych`
   );
-  public readonly subtitle = computed(() => {
-    if (this.isLoading()) {
-      return 'Przygotowuję porównanie najczęściej słuchanych utworów';
-    }
-
-    const tracksCount = this.featureRows().length;
-    const requestedTracksCount = this.tracks().length;
-
-    if (!tracksCount) {
-      return 'Brak utworów z dostępnymi cechami audio';
-    }
-
-    return tracksCount === requestedTracksCount
-      ? `Top ${tracksCount} utworów z dostępnymi cechami audio`
-      : `${tracksCount} z ${requestedTracksCount} wybranych utworów ma dostępne cechy audio`;
-  });
+  public readonly subtitle = computed(() =>
+    getAudioComparisonSubtitle({
+      isLoading: this.isLoading(),
+      availableTracksCount: this.featureRows().length,
+      requestedTracksCount: this.tracks().length,
+    })
+  );
 
   constructor() {
     effect(() => {
@@ -152,7 +115,9 @@ export class AudioFeaturesComparison {
       const nextSelectedKeys = [...new Set([...selectedKeys, featureKey])];
 
       this.selectedFeatureKeys.set(nextSelectedKeys);
-      this.selectAllFeaturesChecked.set(this.areAllFeaturesSelected(nextSelectedKeys));
+      this.selectAllFeaturesChecked.set(
+        areAllComparisonFeaturesSelected(this.features, nextSelectedKeys)
+      );
       return;
     }
 
@@ -178,12 +143,6 @@ export class AudioFeaturesComparison {
     this.selectedFeatureKeys.set([]);
   }
 
-  private areAllFeaturesSelected(selectedKeys: AudioComparisonFeatureKey[]): boolean {
-    const selectedKeysSet = new Set(selectedKeys);
-
-    return this.features.every((feature) => selectedKeysSet.has(feature.key));
-  }
-
   public toggleTrack({ trackId, checked }: AudioComparisonTrackToggle): void {
     const selectedTrackIds = this.effectiveSelectedTrackIds();
 
@@ -203,44 +162,5 @@ export class AudioFeaturesComparison {
 
   public clearSelectedTracks(): void {
     this.selectedTrackIds.set([]);
-  }
-
-  private audioFeaturesByTrackId(): Map<string, AudioFeatures> {
-    const featuresByTrackId = new Map<string, AudioFeatures>();
-
-    for (const features of this.audioFeatures()) {
-      if (features.spotifyId) {
-        featuresByTrackId.set(features.spotifyId, features);
-      }
-
-      if (features.id) {
-        featuresByTrackId.set(features.id, features);
-      }
-    }
-
-    return featuresByTrackId;
-  }
-
-  private clampFeatureValue(value: number | null | undefined): number | null {
-    if (typeof value !== 'number') {
-      return null;
-    }
-
-    return Math.min(Math.max(value, 0), 1);
-  }
-
-  private comparableFeature(key: AudioComparisonFeatureKey, color: string): AudioComparisonFeature {
-    return {
-      key,
-      color,
-      label: AUDIO_FEATURE_INFO[key].label,
-      tooltip: audioFeatureTooltip(key),
-    };
-  }
-
-  private truncateTrackName(trackName: string): string {
-    const maxLength = 18;
-
-    return trackName.length > maxLength ? `${trackName.slice(0, maxLength - 3)}...` : trackName;
   }
 }
