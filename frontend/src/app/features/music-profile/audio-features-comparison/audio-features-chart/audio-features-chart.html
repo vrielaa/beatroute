@@ -82,12 +82,32 @@
     } @for (feature of features(); track feature.key) { @for (point of seriesPoints(feature.key);
     track point.id) {
     <g
-      appAudioFeaturesChartPoint
-      [point]="point"
-      [feature]="feature"
-      (tooltipShow)="showPointTooltip(point, feature)"
-      (tooltipHide)="hidePointTooltip(point)"
-    ></g>
+      class="audio-features-comparison-point-group"
+      tabindex="0"
+      role="img"
+      [attr.aria-label]="point.tooltip"
+      (mouseenter)="showPointTooltip(point, feature)"
+      (mouseleave)="hidePointTooltip(point)"
+      (focus)="showPointTooltip(point, feature)"
+      (blur)="hidePointTooltip(point)"
+      (keydown.escape)="hidePointTooltip(point)"
+    >
+      <circle
+        class="audio-features-comparison-point-hitbox"
+        r="11"
+        [attr.cx]="point.x"
+        [attr.cy]="point.y"
+        vector-effect="non-scaling-stroke"
+      />
+      <circle
+        class="audio-features-comparison-point"
+        r="4.5"
+        [attr.cx]="point.x"
+        [attr.cy]="point.y"
+        [attr.stroke]="feature.color"
+        vector-effect="non-scaling-stroke"
+      />
+    </g>
     } } @if (activePointTooltip(); as activeTooltip) {
     <g
       appAudioFeaturesChartTooltip
