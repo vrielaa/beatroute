@@ -1,5 +1,6 @@
 import { SpotifyApiError } from "../integrations/spotify/spotify.service.js";
 import { RequestValidationError } from "../integrations/spotify/spotify.validators.js";
+import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
 
 export function createErrorResponse(code, message, details) {
   return {
@@ -23,6 +24,15 @@ export function mapErrorToHttp(error) {
     return {
       status: error.status,
       body: createErrorResponse("SPOTIFY_API_ERROR", error.message, error.data),
+    };
+  }
+
+  if (error instanceof LastfmApiError) {
+    return {
+      status: error.code === 9 ? 401 : 502,
+      body: createErrorResponse("LASTFM_API_ERROR", error.message, {
+        lastfmCode: error.code,
+      }),
     };
   }
 

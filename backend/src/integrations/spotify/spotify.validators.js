@@ -11,10 +11,6 @@ export class RequestValidationError extends Error {
   }
 }
 
-export function isRequestValidationError(error) {
-  return error instanceof RequestValidationError;
-}
-
 function getSingleQueryValue(value) {
   return Array.isArray(value) ? value[0] : value;
 }

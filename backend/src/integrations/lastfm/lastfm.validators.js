@@ -1,10 +1,14 @@
+import { RequestValidationError } from "../spotify/spotify.validators.js";
+
 export function parseArtistNames(body = {}) {
   if (!Array.isArray(body.artists) || body.artists.length === 0) {
-    throw new TypeError("Pole artists musi być niepustą tablicą nazw artystów");
+    throw new RequestValidationError(
+      "Pole artists musi być niepustą tablicą nazw artystów"
+    );
   }
 
   if (body.artists.length > 40) {
-    throw new TypeError(
+    throw new RequestValidationError(
       "Jednocześnie można analizować maksymalnie 40 artystów"
     );
   }
@@ -14,7 +18,9 @@ export function parseArtistNames(body = {}) {
   );
 
   if (artists.some((artist) => !artist)) {
-    throw new TypeError("Każdy element artists musi być niepustym tekstem");
+    throw new RequestValidationError(
+      "Każdy element artists musi być niepustym tekstem"
+    );
   }
 
   return artists;
@@ -31,7 +37,9 @@ export function parseTrackInfoQuery(query = {}) {
   const track = typeof query.track === "string" ? query.track.trim() : "";
 
   if (!artist || !track) {
-    throw new TypeError("Podaj mbid albo oba parametry: artist i track");
+    throw new RequestValidationError(
+      "Podaj mbid albo oba parametry: artist i track"
+    );
   }
 
   return { artist, track };
