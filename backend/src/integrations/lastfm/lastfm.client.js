@@ -39,68 +39,73 @@ export function createLastfmApiSignature(params) {
     .digest("hex");
 }
 
-export async function fetchFromLastfm(
-  method,
-  params = {},
-  { signed = false, sessionKey = null, httpMethod = "GET" } = {}
-) {
-  assertLastfmConfig();
-
-  const requestParams = {
-    api_key: LASTFM_API_KEY,
+export function createLastfmClient({ fetchImpl = globalThis.fetch } = {}) {
+  return async function fetchFromLastfm(
     method,
-    ...params,
-  };
+    params = {},
+    { signed = false, sessionKey = null, httpMethod = "GET" } = {}
+  ) {
+    assertLastfmConfig();
 
-  if (sessionKey) {
-    requestParams.sk = sessionKey;
-  }
+    const requestParams = {
+      api_key: LASTFM_API_KEY,
+      method,
+      ...params,
+    };
 
-  if (signed) {
-    requestParams.api_sig = createLastfmApiSignature(requestParams);
-  }
+    if (sessionKey) {
+      requestParams.sk = sessionKey;
+    }
 
-  requestParams.format = "json";
+    if (signed) {
+      requestParams.api_sig = createLastfmApiSignature(requestParams);
+    }
 
-  const searchParams = new URLSearchParams(
-    Object.entries(requestParams).map(([key, value]) => [key, String(value)])
-  );
+    requestParams.format = "json";
 
-  const requestOptions = {
-    method: httpMethod,
-    headers: {
-      Accept: "application/json",
-      "User-Agent": LASTFM_USER_AGENT,
-    },
-  };
-
-  let url = LASTFM_API_ROOT;
-
-  if (httpMethod === "POST") {
-    requestOptions.headers["Content-Type"] =
-      "application/x-www-form-urlencoded";
-    requestOptions.body = searchParams;
-  } else {
-    url = `${LASTFM_API_ROOT}?${searchParams.toString()}`;
-  }
-
-  const response = await fetch(url, requestOptions);
-  const rawText = await response.text();
-
-  let data;
-
-  try {
-    data = rawText ? JSON.parse(rawText) : null;
-  } catch {
-    throw new LastfmApiError("Last.fm zwrócił odpowiedź inną niż JSON");
-  }
-
-  if (!response.ok || data?.error) {
-    throw new LastfmApiError(
-      data?.message || `Last.fm request failed with status ${response.status}`,
-      data?.error ?? null
+    const searchParams = new URLSearchParams(
+      Object.entries(requestParams).map(([key, value]) => [key, String(value)])
     );
-  }
 
-  return data;
+    const requestOptions = {
+      method: httpMethod,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": LASTFM_USER_AGENT,
+      },
+    };
+
+    let url = LASTFM_API_ROOT;
+
+    if (httpMethod === "POST") {
+      requestOptions.headers["Content-Type"] =
+        "application/x-www-form-urlencoded";
+      requestOptions.body = searchParams;
+    } else {
+      url = `${LASTFM_API_ROOT}?${searchParams.toString()}`;
+    }
+
+    const response = await fetchImpl(url, requestOptions);
+    const rawText = await response.text();
+
+    let data;
+
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      throw new LastfmApiError("Last.fm zwrócił odpowiedź inną niż JSON");
+    }
+
+    if (!response.ok || data?.error) {
+      throw new LastfmApiError(
+        data?.message ||
+          `Last.fm request failed with status ${response.status}`,
+        data?.error ?? null
+      );
+    }
+
+    return data;
+  };
 }
+
+export const fetchFromLastfm = createLastfmClient();

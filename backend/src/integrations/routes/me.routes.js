@@ -7,15 +7,13 @@ import {
   parseSpotifyTopItemsQuery,
 } from "../spotify/spotify.validators.js";
 import {
+  getCurrentUserProfile,
+  getCurrentUserTopArtists,
   getCurrentUserTopTracks,
   SpotifyApiError,
 } from "../spotify/spotify.service.js";
 
 const router = Router();
-
-const headers = (req) => ({
-  Authorization: `Bearer ${req.session.spotify.accessToken}`,
-});
 
 router.get("/top-tracks", ensureSpotifyAccessToken, async (req, res) => {
   try {
@@ -52,26 +50,19 @@ router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
       maxLimit: MAX_ARTISTS_LIMIT,
     });
 
-    const params = new URLSearchParams({
-      limit: String(limit),
-      time_range: timeRange,
-    });
-
-    const spotifyResponse = await fetch(
-      `https://api.spotify.com/v1/me/top/artists?${params.toString()}`,
-      { headers: headers(req) }
+    const data = await getCurrentUserTopArtists(
+      req.session.spotify.accessToken,
+      { limit, timeRange }
     );
-
-    const data = await spotifyResponse.json();
-
-    if (!spotifyResponse.ok) {
-      return res.status(spotifyResponse.status).json(data);
-    }
 
     res.json(data);
   } catch (error) {
     if (isRequestValidationError(error)) {
       return res.status(400).json({ message: error.message });
+    }
+
+    if (error instanceof SpotifyApiError) {
+      return res.status(error.status).json(error.data);
     }
 
     console.error("Top artists error:", error);
@@ -81,18 +72,14 @@ router.get("/top-artists", ensureSpotifyAccessToken, async (req, res) => {
 
 router.get("/profile", ensureSpotifyAccessToken, async (req, res) => {
   try {
-    const spotifyResponse = await fetch("https://api.spotify.com/v1/me", {
-      headers: headers(req),
-    });
-
-    const data = await spotifyResponse.json();
-
-    if (!spotifyResponse.ok) {
-      return res.status(spotifyResponse.status).json(data);
-    }
+    const data = await getCurrentUserProfile(req.session.spotify.accessToken);
 
     res.json(data);
   } catch (error) {
+    if (error instanceof SpotifyApiError) {
+      return res.status(error.status).json(error.data);
+    }
+
     console.error("Me error:", error);
     res
       .status(500)

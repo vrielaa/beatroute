@@ -7,59 +7,89 @@ export class SpotifyApiError extends Error {
   }
 }
 
-export async function getSpotifyTrackById(spotifyTrackId, accessToken) {
-  const response = await fetch(
-    `https://api.spotify.com/v1/tracks/${encodeURIComponent(spotifyTrackId)}`,
-    {
+export function createSpotifyService({
+  fetchImpl = globalThis.fetch,
+  apiRoot = "https://api.spotify.com/v1",
+} = {}) {
+  async function request(endpoint, accessToken, errorMessage) {
+    const response = await fetchImpl(`${apiRoot}${endpoint}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new SpotifyApiError(
+        data?.error?.message || errorMessage,
+        response.status,
+        data
+      );
     }
-  );
 
-  const data = await response.json();
+    return data;
+  }
 
-  if (!response.ok) {
-    throw new SpotifyApiError(
-      data?.error?.message || "Nie udało się pobrać utworu ze Spotify",
-      response.status,
-      data
+  async function getSpotifyTrackById(spotifyTrackId, accessToken) {
+    return request(
+      `/tracks/${encodeURIComponent(spotifyTrackId)}`,
+      accessToken,
+      "Nie udało się pobrać utworu ze Spotify"
     );
   }
 
-  return data;
-}
+  async function getCurrentUserTopTracks(accessToken, { limit, timeRange }) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      time_range: timeRange,
+    });
 
-export async function getCurrentUserTopTracks(
-  accessToken,
-  { limit, timeRange }
-) {
-  const params = new URLSearchParams({
-    limit: String(limit),
-    time_range: timeRange,
-  });
-
-  const response = await fetch(
-    `https://api.spotify.com/v1/me/top/tracks?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new SpotifyApiError(
-      data?.error?.message || "Nie udało się pobrać top tracks ze Spotify",
-      response.status,
-      data
+    return request(
+      `/me/top/tracks?${params.toString()}`,
+      accessToken,
+      "Nie udało się pobrać top tracks ze Spotify"
     );
   }
 
-  return data;
+  async function getCurrentUserTopArtists(accessToken, { limit, timeRange }) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      time_range: timeRange,
+    });
+
+    return request(
+      `/me/top/artists?${params.toString()}`,
+      accessToken,
+      "Nie udało się pobrać top artists ze Spotify"
+    );
+  }
+
+  async function getCurrentUserProfile(accessToken) {
+    return request(
+      "/me",
+      accessToken,
+      "Nie udało się pobrać profilu użytkownika ze Spotify"
+    );
+  }
+
+  return {
+    getSpotifyTrackById,
+    getCurrentUserTopTracks,
+    getCurrentUserTopArtists,
+    getCurrentUserProfile,
+  };
 }
+
+const defaultSpotifyService = createSpotifyService();
+
+export const getSpotifyTrackById = defaultSpotifyService.getSpotifyTrackById;
+export const getCurrentUserTopTracks =
+  defaultSpotifyService.getCurrentUserTopTracks;
+export const getCurrentUserTopArtists =
+  defaultSpotifyService.getCurrentUserTopArtists;
+export const getCurrentUserProfile =
+  defaultSpotifyService.getCurrentUserProfile;
 
 export function mapSpotifyTrackForLastfm(spotifyTrack) {
   const artist = spotifyTrack?.artists?.[0]?.name;
