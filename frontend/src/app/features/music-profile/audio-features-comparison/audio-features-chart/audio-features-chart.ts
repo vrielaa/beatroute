@@ -6,6 +6,7 @@ import {
   AudioComparisonFeatureKey,
   AudioComparisonChartRow,
 } from '../audio-features-comparison.models';
+import { AudioFeaturesChartPoint } from '../audio-features-chart-point/audio-features-chart-point';
 import { AudioFeaturesChartTooltip } from '../audio-features-chart-tooltip/audio-features-chart-tooltip';
 
 type ActiveChartPointTooltip = {
@@ -27,7 +28,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
 
 @Component({
   selector: 'app-audio-features-chart',
-  imports: [AudioFeaturesChartTooltip],
+  imports: [AudioFeaturesChartPoint, AudioFeaturesChartTooltip],
   templateUrl: './audio-features-chart.html',
   styleUrl: './audio-features-chart.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
