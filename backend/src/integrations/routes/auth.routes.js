@@ -6,7 +6,10 @@ import {
   FRONTEND_URL,
   SCOPES,
 } from "../../config/spotify.config.js";
-import { getSpotifyBasicAuthHeader } from "../../utils/spotify.js";
+import {
+  exchangeSpotifyAuthorizationCode,
+  SpotifyAuthApiError,
+} from "../spotify/spotify.auth.client.js";
 import {
   LASTFM_API_KEY,
   LASTFM_AUTH_URL,
@@ -56,30 +59,18 @@ router.get("/spotify/callback", async (req, res) => {
       return res.status(400).json({ message: "State mismatch" });
     }
 
-    const body = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: SPOTIFY_REDIRECT_URI,
-    });
+    let tokenData;
 
-    const tokenResponse = await fetch(
-      "https://accounts.spotify.com/api/token",
-      {
-        method: "POST",
-        headers: {
-          Authorization: getSpotifyBasicAuthHeader(),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body,
+    try {
+      tokenData = await exchangeSpotifyAuthorizationCode(code);
+    } catch (error) {
+      if (!(error instanceof SpotifyAuthApiError)) {
+        throw error;
       }
-    );
 
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenResponse.ok) {
       return res.status(400).json({
         message: "Nie udało się pobrać tokena",
-        spotifyError: tokenData,
+        spotifyError: error.data,
       });
     }
 
