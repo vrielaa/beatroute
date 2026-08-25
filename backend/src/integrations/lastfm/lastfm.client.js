@@ -1,11 +1,6 @@
 import crypto from "crypto";
-import {
-  LASTFM_API_KEY,
-  LASTFM_API_ROOT,
-  LASTFM_SHARED_SECRET,
-  LASTFM_USER_AGENT,
-  assertLastfmConfig,
-} from "../../config/lastfm.config.js";
+import { appConfig } from "../../config/app.config.js";
+import { assertLastfmConfig } from "../../config/lastfm.config.js";
 
 export class LastfmApiError extends Error {
   constructor(message, code = null) {
@@ -15,9 +10,10 @@ export class LastfmApiError extends Error {
   }
 }
 
-export function createLastfmApiSignature(params) {
-  assertLastfmConfig();
-
+export function createLastfmApiSignature(
+  params,
+  { sharedSecret = appConfig.lastfm.sharedSecret } = {}
+) {
   const signatureSource = Object.entries(params)
     .filter(
       ([key, value]) =>
@@ -35,20 +31,23 @@ export function createLastfmApiSignature(params) {
 
   return crypto
     .createHash("md5")
-    .update(`${signatureSource}${LASTFM_SHARED_SECRET}`, "utf8")
+    .update(`${signatureSource}${sharedSecret}`, "utf8")
     .digest("hex");
 }
 
-export function createLastfmClient({ fetchImpl = globalThis.fetch } = {}) {
+export function createLastfmClient({
+  fetchImpl = globalThis.fetch,
+  config = appConfig.lastfm,
+} = {}) {
   return async function fetchFromLastfm(
     method,
     params = {},
     { signed = false, sessionKey = null, httpMethod = "GET" } = {}
   ) {
-    assertLastfmConfig();
+    assertLastfmConfig(config);
 
     const requestParams = {
-      api_key: LASTFM_API_KEY,
+      api_key: config.apiKey,
       method,
       ...params,
     };
@@ -58,7 +57,9 @@ export function createLastfmClient({ fetchImpl = globalThis.fetch } = {}) {
     }
 
     if (signed) {
-      requestParams.api_sig = createLastfmApiSignature(requestParams);
+      requestParams.api_sig = createLastfmApiSignature(requestParams, {
+        sharedSecret: config.sharedSecret,
+      });
     }
 
     requestParams.format = "json";
@@ -71,18 +72,18 @@ export function createLastfmClient({ fetchImpl = globalThis.fetch } = {}) {
       method: httpMethod,
       headers: {
         Accept: "application/json",
-        "User-Agent": LASTFM_USER_AGENT,
+        "User-Agent": config.userAgent,
       },
     };
 
-    let url = LASTFM_API_ROOT;
+    let url = config.apiRoot;
 
     if (httpMethod === "POST") {
       requestOptions.headers["Content-Type"] =
         "application/x-www-form-urlencoded";
       requestOptions.body = searchParams;
     } else {
-      url = `${LASTFM_API_ROOT}?${searchParams.toString()}`;
+      url = `${config.apiRoot}?${searchParams.toString()}`;
     }
 
     const response = await fetchImpl(url, requestOptions);

@@ -1,14 +1,10 @@
-import {
-  SOUNDCHARTS_BASE_URL,
-  SOUNDCHARTS_APP_ID,
-  SOUNDCHARTS_API_KEY,
-} from "../../config/soundcharts.config.js";
+import { appConfig } from "../../config/app.config.js";
 
 export function createSoundchartsClient({
   fetchImpl = globalThis.fetch,
-  baseUrl = SOUNDCHARTS_BASE_URL,
-  appId = SOUNDCHARTS_APP_ID,
-  apiKey = SOUNDCHARTS_API_KEY,
+  baseUrl = appConfig.soundcharts.baseUrl,
+  appId = appConfig.soundcharts.appId,
+  apiKey = appConfig.soundcharts.apiKey,
 } = {}) {
   return async function fetchFromSoundcharts(endpoint) {
     const response = await fetchImpl(`${baseUrl}${endpoint}`, {

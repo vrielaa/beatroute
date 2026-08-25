@@ -1,4 +1,4 @@
-import { SPOTIFY_REDIRECT_URI } from "../../config/spotify.config.js";
+import { appConfig } from "../../config/app.config.js";
 import { getSpotifyBasicAuthHeader } from "../../utils/spotify-basic-auth.js";
 
 export class SpotifyAuthApiError extends Error {
@@ -14,7 +14,7 @@ export function createSpotifyAuthClient({
   fetchImpl = globalThis.fetch,
   tokenUrl = "https://accounts.spotify.com/api/token",
   basicAuthHeader = getSpotifyBasicAuthHeader(),
-  redirectUri = SPOTIFY_REDIRECT_URI,
+  redirectUri = appConfig.spotify.redirectUri,
 } = {}) {
   async function requestToken(params) {
     const response = await fetchImpl(tokenUrl, {

@@ -6,25 +6,7 @@ import openapiDocument from "./docs/openapi.json" with { type: "json" };
 
 import { validateEnv } from "./utils/validateEnv.js";
 
-import {
-  FRONTEND_URL,
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_CLIENT_SECRET,
-  SPOTIFY_REDIRECT_URI,
-  SESSION_SECRET,
-  IS_PRODUCTION,
-} from "./config/spotify.config.js";
-
-import {
-  SOUNDCHARTS_APP_ID,
-  SOUNDCHARTS_API_KEY,
-} from "./config/soundcharts.config.js";
-
-import {
-  LASTFM_API_KEY,
-  LASTFM_REDIRECT_URI,
-  LASTFM_SHARED_SECRET,
-} from "./config/lastfm.config.js";
+import { appConfig } from "./config/app.config.js";
 
 import authRoutes from "./integrations/routes/auth.routes.js";
 import sessionRoutes from "./integrations/routes/session.routes.js";
@@ -34,23 +16,21 @@ import lastfmRoutes from "./integrations/routes/lastfm.routes.js";
 import musicMapRoutes from "./integrations/routes/music-map.routes.js";
 import { errorHandler, notFoundHandler } from "./http/error-response.js";
 
-const requiredEnvVars = {
-  FRONTEND_URL,
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_CLIENT_SECRET,
-  SPOTIFY_REDIRECT_URI,
-  SESSION_SECRET,
-  SOUNDCHARTS_APP_ID,
-  SOUNDCHARTS_API_KEY,
-  LASTFM_API_KEY,
-  LASTFM_REDIRECT_URI,
-  LASTFM_SHARED_SECRET,
-};
+function validateAppConfig(config) {
+  validateEnv({
+    FRONTEND_URL: config.server.frontendUrl,
+    SPOTIFY_CLIENT_ID: config.spotify.clientId,
+    SPOTIFY_CLIENT_SECRET: config.spotify.clientSecret,
+    SPOTIFY_REDIRECT_URI: config.spotify.redirectUri,
+    SESSION_SECRET: config.server.sessionSecret,
+    SOUNDCHARTS_APP_ID: config.soundcharts.appId,
+    SOUNDCHARTS_API_KEY: config.soundcharts.apiKey,
+    LASTFM_API_KEY: config.lastfm.apiKey,
+    LASTFM_REDIRECT_URI: config.lastfm.redirectUri,
+    LASTFM_SHARED_SECRET: config.lastfm.sharedSecret,
+  });
 
-validateEnv(requiredEnvVars);
-
-function validateSessionConfig() {
-  if (!IS_PRODUCTION) {
+  if (!config.server.isProduction) {
     return;
   }
 
@@ -59,16 +39,16 @@ function validateSessionConfig() {
   );
 }
 
-validateSessionConfig();
+export function createApp(config = appConfig) {
+  validateAppConfig(config);
 
-export function createApp() {
   const app = express();
 
   app.use(express.json());
 
   app.use(
     cors({
-      origin: FRONTEND_URL,
+      origin: config.server.frontendUrl,
       credentials: true,
     })
   );
@@ -76,13 +56,13 @@ export function createApp() {
   app.use(
     session({
       name: "sessionId",
-      secret: SESSION_SECRET,
+      secret: config.server.sessionSecret,
       resave: false,
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: IS_PRODUCTION,
-        sameSite: IS_PRODUCTION ? "none" : "lax",
+        secure: config.server.isProduction,
+        sameSite: config.server.isProduction ? "none" : "lax",
         maxAge: 1000 * 60 * 60 * 24,
       },
     })

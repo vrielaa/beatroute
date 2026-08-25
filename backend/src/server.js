@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
-import { PORT } from "./config/spotify.config.js";
+import { appConfig } from "./config/app.config.js";
 
-const app = createApp();
+const app = createApp(appConfig);
 
-app.listen(PORT, () => {
-  console.log(`Backend działa na porcie ${PORT}`);
+app.listen(appConfig.server.port, () => {
+  console.log(`Backend działa na porcie ${appConfig.server.port}`);
 });

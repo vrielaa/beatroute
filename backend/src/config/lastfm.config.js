@@ -1,17 +1,10 @@
-export const LASTFM_API_ROOT = "https://ws.audioscrobbler.com/2.0/";
-export const LASTFM_AUTH_URL = "https://www.last.fm/api/auth/";
+import { appConfig } from "./app.config.js";
 
-export const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
-export const LASTFM_SHARED_SECRET = process.env.LASTFM_SHARED_SECRET;
-export const LASTFM_REDIRECT_URI = process.env.LASTFM_REDIRECT_URI;
-export const LASTFM_USER_AGENT =
-  process.env.LASTFM_USER_AGENT || "BeatRoute/1.0";
-
-export function assertLastfmConfig() {
+export function assertLastfmConfig(config = appConfig.lastfm) {
   const requiredConfig = {
-    LASTFM_API_KEY,
-    LASTFM_SHARED_SECRET,
-    LASTFM_REDIRECT_URI,
+    LASTFM_API_KEY: config.apiKey,
+    LASTFM_SHARED_SECRET: config.sharedSecret,
+    LASTFM_REDIRECT_URI: config.redirectUri,
   };
 
   for (const [key, value] of Object.entries(requiredConfig)) {

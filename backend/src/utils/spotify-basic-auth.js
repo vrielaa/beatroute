@@ -1,11 +1,8 @@
-import {
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_CLIENT_SECRET,
-} from "../config/spotify.config.js";
+import { appConfig } from "../config/app.config.js";
 
 export function getSpotifyBasicAuthHeader({
-  clientId = SPOTIFY_CLIENT_ID,
-  clientSecret = SPOTIFY_CLIENT_SECRET,
+  clientId = appConfig.spotify.clientId,
+  clientSecret = appConfig.spotify.clientSecret,
 } = {}) {
   const value = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 

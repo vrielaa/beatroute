@@ -1,18 +1,8 @@
 import { Router } from "express";
 import crypto from "crypto";
-import {
-  SPOTIFY_CLIENT_ID,
-  SPOTIFY_REDIRECT_URI,
-  FRONTEND_URL,
-  SCOPES,
-} from "../../config/spotify.config.js";
+import { appConfig } from "../../config/app.config.js";
 import { exchangeSpotifyAuthorizationCode } from "../spotify/spotify.auth.client.js";
-import {
-  LASTFM_API_KEY,
-  LASTFM_AUTH_URL,
-  LASTFM_REDIRECT_URI,
-  assertLastfmConfig,
-} from "../../config/lastfm.config.js";
+import { assertLastfmConfig } from "../../config/lastfm.config.js";
 import { createLastfmSession } from "../lastfm/lastfm.service.js";
 import { HttpError } from "../../http/error-response.js";
 import { saveSession } from "../../http/session.js";
@@ -25,9 +15,9 @@ router.get("/spotify/login", async (req, res) => {
 
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: SPOTIFY_CLIENT_ID,
-    scope: SCOPES.join(" "),
-    redirect_uri: SPOTIFY_REDIRECT_URI,
+    client_id: appConfig.spotify.clientId,
+    scope: appConfig.spotify.scopes.join(" "),
+    redirect_uri: appConfig.spotify.redirectUri,
     state,
     show_dialog: "true",
   });
@@ -74,7 +64,7 @@ router.get("/spotify/callback", async (req, res) => {
 
   await saveSession(req.session);
 
-  res.redirect(`${FRONTEND_URL}/`);
+  res.redirect(`${appConfig.server.frontendUrl}/`);
 });
 
 router.get("/lastfm/login", async (req, res) => {
@@ -89,11 +79,11 @@ router.get("/lastfm/login", async (req, res) => {
   }
 
   const state = crypto.randomBytes(16).toString("hex");
-  const callbackUrl = new URL(LASTFM_REDIRECT_URI);
-  const authorizationUrl = new URL(LASTFM_AUTH_URL);
+  const callbackUrl = new URL(appConfig.lastfm.redirectUri);
+  const authorizationUrl = new URL(appConfig.lastfm.authUrl);
 
   callbackUrl.searchParams.set("state", state);
-  authorizationUrl.searchParams.set("api_key", LASTFM_API_KEY);
+  authorizationUrl.searchParams.set("api_key", appConfig.lastfm.apiKey);
   authorizationUrl.searchParams.set("cb", callbackUrl.toString());
 
   req.session.lastfmAuthState = state;
@@ -134,7 +124,7 @@ router.get("/lastfm/callback", async (req, res) => {
 
   await saveSession(req.session);
 
-  res.redirect(`${FRONTEND_URL}/`);
+  res.redirect(`${appConfig.server.frontendUrl}/`);
 });
 
 export default router;

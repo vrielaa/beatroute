@@ -1,8 +1,8 @@
-import { RECCOBEATS_BASE_URL } from "../../config/reccobeats.config.js";
+import { appConfig } from "../../config/app.config.js";
 
 export function createReccoBeatsClient({
   fetchImpl = globalThis.fetch,
-  baseUrl = RECCOBEATS_BASE_URL,
+  baseUrl = appConfig.reccoBeats.baseUrl,
 } = {}) {
   return async function fetchFromReccoBeats(endpoint) {
     const url = `${baseUrl}${endpoint}`;
