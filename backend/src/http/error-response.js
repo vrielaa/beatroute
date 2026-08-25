@@ -1,6 +1,17 @@
 import { SpotifyApiError } from "../integrations/spotify/spotify.service.js";
 import { RequestValidationError } from "../integrations/spotify/spotify.validators.js";
 import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
+import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
+
+export class HttpError extends Error {
+  constructor(status, code, message, details) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
 
 export function createErrorResponse(code, message, details) {
   return {
@@ -13,6 +24,13 @@ export function createErrorResponse(code, message, details) {
 }
 
 export function mapErrorToHttp(error) {
+  if (error instanceof HttpError) {
+    return {
+      status: error.status,
+      body: createErrorResponse(error.code, error.message, error.details),
+    };
+  }
+
   if (error instanceof RequestValidationError) {
     return {
       status: 400,
@@ -33,6 +51,17 @@ export function mapErrorToHttp(error) {
       body: createErrorResponse("LASTFM_API_ERROR", error.message, {
         lastfmCode: error.code,
       }),
+    };
+  }
+
+  if (error instanceof SpotifyAuthApiError) {
+    return {
+      status: error.status,
+      body: createErrorResponse(
+        "SPOTIFY_AUTH_API_ERROR",
+        error.message,
+        error.data
+      ),
     };
   }
 
