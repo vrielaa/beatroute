@@ -32,6 +32,7 @@ import meRoutes from "./integrations/routes/me.routes.js";
 import tracksRoutes from "./integrations/routes/track.routes.js";
 import lastfmRoutes from "./integrations/routes/lastfm.routes.js";
 import musicMapRoutes from "./integrations/routes/music-map.routes.js";
+import { errorHandler, notFoundHandler } from "./http/error-response.js";
 
 const requiredEnvVars = {
   FRONTEND_URL,
@@ -100,14 +101,8 @@ export function createApp() {
 
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 
-  app.use((req, res) => {
-    res.status(404).json({ message: "Route not found" });
-  });
-
-  app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
-  });
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
