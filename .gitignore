@@ -7,6 +7,9 @@
 frontend/.env
 backend/.env
 
+# local development certificates
+frontend/certs/
+
 # build
 dist/
 coverage/
