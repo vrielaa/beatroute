@@ -1,19 +1,21 @@
 import { getLastfmArtistGenreDistribution } from "./lastfm.artist.service.js";
 import { getLastfmUserInfo } from "./lastfm.service.js";
 import { getLastfmTrackInfo as fetchLastfmTrackInfo } from "./lastfm.track.service.js";
-import {
-  parseArtistNames,
-  parseTrackInfoQuery,
-} from "./lastfm.validators.js";
-import {
-  mapLastfmError,
-  mapSpotifyOrLastfmError,
-} from "./api-error.mapper.js";
+import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
+import { mapLastfmError, mapSpotifyOrLastfmError } from "./api-error.mapper.js";
 import {
   getSpotifyTrackById,
   mapSpotifyTrackForLastfm,
   mapSpotifyTrackResponse,
 } from "../spotify/spotify.service.js";
+import { createGetSpotifyTrackLastfmInfo } from "../../application/music-profile/get-spotify-track-lastfm-info.js";
+
+const getSpotifyTrackLastfmInfoUseCase = createGetSpotifyTrackLastfmInfo({
+  getSpotifyTrackById,
+  getLastfmTrackInfo: fetchLastfmTrackInfo,
+  mapSpotifyTrackForLastfm,
+  mapSpotifyTrackResponse,
+});
 
 function sendMappedError(res, mappedError) {
   return res.status(mappedError.status).json(mappedError.body);
@@ -61,27 +63,19 @@ export async function getArtistGenreDistribution(req, res) {
     console.error("Last.fm artist genres error:", error);
     sendMappedError(
       res,
-      mapLastfmError(
-        error,
-        "Nie udało się pobrać gatunków artystów z Last.fm"
-      )
+      mapLastfmError(error, "Nie udało się pobrać gatunków artystów z Last.fm")
     );
   }
 }
 
 export async function getSpotifyTrackLastfmInfo(req, res) {
   try {
-    const spotifyTrack = await getSpotifyTrackById(
-      req.params.spotifyTrackId,
-      req.session.spotify.accessToken
-    );
-    const lastfmTrackData = mapSpotifyTrackForLastfm(spotifyTrack);
-    const lastfmTrackInfo = await fetchLastfmTrackInfo(lastfmTrackData);
-
-    res.json({
-      spotify: mapSpotifyTrackResponse(spotifyTrack),
-      lastfm: lastfmTrackInfo,
+    const result = await getSpotifyTrackLastfmInfoUseCase({
+      spotifyTrackId: req.params.spotifyTrackId,
+      accessToken: req.session.spotify.accessToken,
     });
+
+    res.json(result);
   } catch (error) {
     console.error("Spotify to Last.fm track info error:", error);
     sendMappedError(

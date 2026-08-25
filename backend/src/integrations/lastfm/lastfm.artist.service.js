@@ -6,6 +6,7 @@ import {
   normalizeLastfmTags,
 } from "./genre-classifier.js";
 import { mapWithConcurrency } from "../../utils/async.js";
+import { buildArtistGenreDistribution } from "../../domain/music-genres/artist-genre-distribution.js";
 
 export async function getLastfmArtistInfo(artist) {
   const data = await fetchFromLastfm("artist.getInfo", {
@@ -25,28 +26,6 @@ export async function getLastfmArtistInfo(artist) {
     genreCandidates: genreTags.map((tag) => tag.name),
     tags,
   };
-}
-
-
-function buildSubgenres(subgenreMap) {
-  const totalSubgenreMatches = [...subgenreMap.values()].reduce(
-    (sum, subgenre) => sum + subgenre.count,
-    0
-  );
-
-  return [...subgenreMap.values()]
-    .sort(
-      (firstSubgenre, secondSubgenre) =>
-        secondSubgenre.count - firstSubgenre.count ||
-        firstSubgenre.name.localeCompare(secondSubgenre.name)
-    )
-    .map(({ artistSet, ...subgenre }) => ({
-      ...subgenre,
-      artists: [...artistSet],
-      percentage: totalSubgenreMatches
-        ? Number(((subgenre.count / totalSubgenreMatches) * 100).toFixed(1))
-        : 0,
-    }));
 }
 
 export async function getLastfmArtistGenreDistribution(artists) {
@@ -92,83 +71,16 @@ export async function getLastfmArtistGenreDistribution(artists) {
     throw artistResults[0].error;
   }
 
-  const genreMap = new Map();
-  const unmatchedArtists = [];
-  let totalGenreMatches = 0;
+  const domainArtists = artistResults.map((artist) => ({
+    ...artist,
+    genreCandidates: (artist.genreCandidates ?? []).map((name) => ({
+      name,
+      key: normalizeGenreName(name),
+      canonicalName: getCanonicalGenreName(name),
+    })),
+  }));
 
-  for (const artist of artistResults) {
-    const artistName = artist.requestedName ?? artist.name;
-
-    if (!artist.genreCandidates?.length) {
-      unmatchedArtists.push(artistName);
-      continue;
-    }
-
-    let hasMatchedGenre = false;
-
-    for (const genreName of artist.genreCandidates) {
-      const canonicalGenreName = getCanonicalGenreName(genreName);
-
-      if (!canonicalGenreName) {
-        continue;
-      }
-
-      hasMatchedGenre = true;
-
-      const existingGenre = genreMap.get(canonicalGenreName) ?? {
-        name: canonicalGenreName,
-        count: 0,
-        artistSet: new Set(),
-        subgenreMap: new Map(),
-      };
-      const normalizedSubgenre = normalizeGenreName(genreName);
-
-      const existingSubgenre = existingGenre.subgenreMap.get(
-        normalizedSubgenre
-      ) ?? {
-        name: genreName,
-        count: 0,
-        artistSet: new Set(),
-      };
-
-      existingSubgenre.count += 1;
-      existingSubgenre.artistSet.add(artistName);
-      existingGenre.subgenreMap.set(normalizedSubgenre, existingSubgenre);
-
-      existingGenre.count += 1;
-      existingGenre.artistSet.add(artistName);
-      totalGenreMatches += 1;
-
-      genreMap.set(canonicalGenreName, existingGenre);
-    }
-
-    if (!hasMatchedGenre) {
-      unmatchedArtists.push(artistName);
-    }
-  }
-
-  const matchedArtists = artistResults.length - unmatchedArtists.length;
-  const genres = [...genreMap.values()]
-    .sort(
-      (firstGenre, secondGenre) =>
-        secondGenre.count - firstGenre.count ||
-        firstGenre.name.localeCompare(secondGenre.name)
-    )
-    .map(({ subgenreMap, artistSet, ...genre }) => ({
-      ...genre,
-      artists: [...artistSet],
-      percentage: totalGenreMatches
-        ? Number(((genre.count / totalGenreMatches) * 100).toFixed(1))
-        : 0,
-      subgenres: buildSubgenres(subgenreMap),
-    }));
-
-  return {
-    genres,
-    totalArtists: artistResults.length,
-    matchedArtists,
-    totalGenreMatches,
-    unmatchedArtists,
+  return buildArtistGenreDistribution(domainArtists, {
     source: "lastfm-artist-info-tags",
-  };
+  });
 }
