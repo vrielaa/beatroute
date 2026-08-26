@@ -1,9 +1,6 @@
 import { fetchFromLastfm } from "./lastfm.client.js";
-import { getLastfmArtistInfo } from "./lastfm.artist.service.js";
-import {
-  isLikelyGenreTag,
-  normalizeLastfmTags,
-} from "./genre-classifier.js";
+import { getLastfmArtistInfo } from "./artist/service.js";
+import { isLikelyGenreTag, normalizeLastfmTags } from "./genre-classifier.js";
 
 export async function getLastfmTrackInfo({ artist, track, mbid }) {
   const params = { autocorrect: 1 };
