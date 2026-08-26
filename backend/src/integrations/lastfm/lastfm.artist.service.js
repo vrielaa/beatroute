@@ -73,6 +73,7 @@ export async function getLastfmArtistGenreDistribution(artists) {
 
   const domainArtists = artistResults.map((artist) => ({
     ...artist,
+    resolvedName: artist.name,
     genreCandidates: (artist.genreCandidates ?? []).map((name) => ({
       name,
       key: normalizeGenreName(name),
@@ -80,7 +81,10 @@ export async function getLastfmArtistGenreDistribution(artists) {
     })),
   }));
 
-  return buildArtistGenreDistribution(domainArtists, {
+  const distribution = buildArtistGenreDistribution(domainArtists);
+
+  return {
+    ...distribution,
     source: "lastfm-artist-info-tags",
-  });
+  };
 }

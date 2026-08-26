@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildArtistGenreDistribution } from "./artist-genre-distribution.js";
+import type { Artist } from "./artist-genre-distribution.types.js";
 
 describe("buildArtistGenreDistribution", () => {
   it("groups artists by their canonical genre", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist A",
         genreCandidates: [
@@ -43,7 +44,7 @@ describe("buildArtistGenreDistribution", () => {
   });
 
   it("marks artists without genre candidates as unmatched", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist C",
         genreCandidates: [],
@@ -59,7 +60,7 @@ describe("buildArtistGenreDistribution", () => {
   });
 
   it("a candidate without a canonical name is ignored", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist D",
         genreCandidates: [
@@ -81,7 +82,7 @@ describe("buildArtistGenreDistribution", () => {
   });
 
   it("counts multiple subgenres of the same canonical genre", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist E",
         genreCandidates: [
@@ -140,7 +141,7 @@ describe("buildArtistGenreDistribution", () => {
   });
 
   it("should sort genres by match count and then by name", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist A",
         genreCandidates: [
@@ -169,7 +170,7 @@ describe("buildArtistGenreDistribution", () => {
     expect(result.genres[1].name).toBe("pop");
   });
   it("should calculate percentage of genre matches correctly", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Artist A",
         genreCandidates: [
@@ -198,7 +199,7 @@ describe("buildArtistGenreDistribution", () => {
     expect(result.genres[1].percentage).toBe(33.3);
   });
   it("should save the requested name of the artist if available", () => {
-    const artists = [
+    const artists: Artist[] = [
       {
         name: "Actual name",
         requestedName: "Requested name",
@@ -219,35 +220,5 @@ describe("buildArtistGenreDistribution", () => {
     expect(result.totalGenreMatches).toBe(0);
     expect(result.unmatchedArtists).toEqual([]);
     expect(result.genres).toEqual([]);
-  });
-
-  it("should return source parameter if passed", () => {
-    const artists = [
-      {
-        name: "Artist A",
-        genreCandidates: [
-          { name: "Indie Rock", key: "indie rock", canonicalName: "rock" },
-        ],
-      },
-    ];
-
-    const result = buildArtistGenreDistribution(artists, { source: "test" });
-
-    expect(result.source).toBe("test");
-  });
-
-  it("should return null source if not passed", () => {
-    const artists = [
-      {
-        name: "Artist A",
-        genreCandidates: [
-          { name: "Indie Rock", key: "indie rock", canonicalName: "rock" },
-        ],
-      },
-    ];
-
-    const result = buildArtistGenreDistribution(artists);
-
-    expect(result.source).toBe(null);
   });
 });
