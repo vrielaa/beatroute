@@ -4,7 +4,7 @@ import { mapArtistLookupToGenreInput, mapLastfmArtistInfo } from "./mapper.js";
 
 describe("Last.fm artist mapper", () => {
   describe("mapLastfmArtistInfo", () => {
-    it("normalizes artist data and keeps only genre-like tag candidates", () => {
+    it("normalizes all tags and selects only genre candidates", () => {
       const result = mapLastfmArtistInfo(
         {
           artist: {
