@@ -1,6 +1,5 @@
 import { Router } from "express";
 
-import { exportTopTracksAudioFeaturesCsv } from "../../domain/music-map/music-map-csv-export.service.js";
 import { buildMusicMap } from "../../domain/music-map/music-map.service.js";
 import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
 import {
@@ -27,20 +26,6 @@ router.get("/playground", ensureSpotifyAccessToken, async (req, res) => {
   });
 
   res.json(musicMap);
-});
-
-router.get("/export-csv", ensureSpotifyAccessToken, async (req, res) => {
-  const { limit, timeRange } = parseMusicMapTopTracksQuery(req.query);
-  const exportResult = await exportTopTracksAudioFeaturesCsv({
-    accessToken: req.session.spotify.accessToken,
-    limit,
-    timeRange,
-  });
-
-  res.json({
-    message: "CSV z danymi utworów został zapisany",
-    ...exportResult,
-  });
 });
 
 function parseMusicMapTopTracksQuery(query) {
