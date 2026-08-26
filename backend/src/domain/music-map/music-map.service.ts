@@ -5,8 +5,29 @@ import {
   describeClusterName,
 } from "./music-map-descriptions.js";
 import { analyzeMusicMapRows } from "./music-map-analysis.js";
+import type {
+  AudioFeatureValues,
+  BuildMusicMapInput,
+  BuildMusicMapPointsInput,
+  Coordinate,
+  GetTopTracksInput,
+  MusicMapAnalysis,
+  MusicMapCluster,
+  MusicMapFeatureKey,
+  MusicMapPoint,
+  MusicMapProjection,
+  MusicMapProjectionInput,
+  MusicMapSkippedTrack,
+  NormalizedPoint,
+  SpotifyTopTracksResponse,
+  SpotifyTrack,
+  TrackAudioFeatures,
+  TrackFeatureRow,
+  TopTracksWithAudioFeaturesResult,
+  ValidTrackFeatureRow,
+} from "./music-map.types.js";
 
-export const MUSIC_MAP_FEATURE_KEYS = [
+export const MUSIC_MAP_FEATURE_KEYS: MusicMapFeatureKey[] = [
   "acousticness",
   "danceability",
   "energy",
@@ -28,7 +49,7 @@ export async function buildMusicMap({
   limit,
   timeRange,
   clusterCount,
-}) {
+}: BuildMusicMapInput): Promise<MusicMapProjection> {
   const { tracks, audioFeatures, metadata } =
     await getTopTracksWithAudioFeatures({
       accessToken,
@@ -48,15 +69,17 @@ export async function getTopTracksWithAudioFeatures({
   accessToken,
   limit,
   timeRange,
-}) {
-  const topTracks = await getCurrentUserTopTracks(accessToken, {
+}: GetTopTracksInput): Promise<TopTracksWithAudioFeaturesResult> {
+  const topTracks = (await getCurrentUserTopTracks(accessToken, {
     limit,
     timeRange,
-  });
+  })) as SpotifyTopTracksResponse;
   const tracks = topTracks.items ?? [];
   const trackIds = tracks.map((track) => track.id).filter(Boolean);
-  const audioFeatures = trackIds.length
-    ? await getManyTrackAudioFeaturesBySpotifyIds(trackIds)
+  const audioFeatures: TrackAudioFeatures[] = trackIds.length
+    ? ((await getManyTrackAudioFeaturesBySpotifyIds(
+        trackIds
+      )) as TrackAudioFeatures[])
     : [];
 
   return {
@@ -77,29 +100,28 @@ export function buildMusicMapProjection({
   audioFeatures,
   requestedClusterCount = null,
   metadata = {},
-}) {
-  const audioFeaturesBySpotifyId = new Map(
-    audioFeatures
-      .filter((features) => features?.spotifyId)
-      .map((features) => [features.spotifyId, features])
-  );
-  const rows = tracks.map((track) =>
+}: MusicMapProjectionInput): MusicMapProjection {
+  const audioFeaturesBySpotifyId = indexAudioFeaturesBySpotifyId(audioFeatures);
+  const trackRows = tracks.map((track) =>
     buildTrackFeatureRow(track, audioFeaturesBySpotifyId)
   );
-  const validRows = rows.filter((row) => row.vector);
-  const skippedTracks = rows
-    .filter((row) => !row.vector)
-    .map(({ vector, ...row }) => row);
+  const { validRows, skippedTracks } = partitionTrackRows(trackRows);
+
   const analysis = analyzeMusicMapRows({
     rows: validRows,
     featureKeys: MUSIC_MAP_FEATURE_KEYS,
     requestedClusterCount,
-  });
+  }) as MusicMapAnalysis;
+
   const normalizedPoints = normalizeProjectedCoordinates(analysis.coordinates);
   const clusters = buildClusterSummaries(validRows, analysis.clusterLabels);
-  const clusterDescriptionsById = new Map(
-    clusters.map((cluster) => [cluster.id, cluster.description])
-  );
+  const points = buildMusicMapPoints({
+    rows: validRows,
+    clusterLabels: analysis.clusterLabels,
+    coordinates: analysis.coordinates,
+    normalizedPoints,
+    clusters,
+  });
 
   return {
     source: "spotify-top-tracks-reccobeats-audio-features",
@@ -116,31 +138,82 @@ export function buildMusicMapProjection({
     tracksWithAudioFeaturesCount: validRows.length,
     skippedTracksCount: skippedTracks.length,
     clusters,
-    points: validRows.map((row, index) => {
-      const cluster = analysis.clusterLabels[index] ?? 0;
-
-      return {
-        id: row.id,
-        name: row.name,
-        artists: row.artists,
-        album: row.album,
-        imageUrl: row.imageUrl,
-        spotifyUrl: row.spotifyUrl,
-        description: row.description,
-        clusterDescription: clusterDescriptionsById.get(cluster) ?? "",
-        x: normalizedPoints[index].x,
-        y: normalizedPoints[index].y,
-        rawX: round(analysis.coordinates[index]?.[0] ?? 0),
-        rawY: round(analysis.coordinates[index]?.[1] ?? 0),
-        cluster,
-        audioFeatures: row.audioFeatures,
-      };
-    }),
+    points,
     skippedTracks,
   };
 }
 
-function buildTrackFeatureRow(track, audioFeaturesBySpotifyId) {
+function indexAudioFeaturesBySpotifyId(
+  audioFeatures: TrackAudioFeatures[]
+): Map<string, TrackAudioFeatures> {
+  const indexedFeatures = new Map<string, TrackAudioFeatures>();
+
+  for (const features of audioFeatures) {
+    indexedFeatures.set(features.spotifyId, features);
+  }
+
+  return indexedFeatures;
+}
+
+function partitionTrackRows(rows: TrackFeatureRow[]): {
+  validRows: ValidTrackFeatureRow[];
+  skippedTracks: MusicMapSkippedTrack[];
+} {
+  const validRows: ValidTrackFeatureRow[] = [];
+  const skippedTracks: MusicMapSkippedTrack[] = [];
+
+  for (const row of rows) {
+    if (row.vector) {
+      validRows.push(row);
+      continue;
+    }
+
+    const { vector, ...skippedTrack } = row;
+    skippedTracks.push(skippedTrack);
+  }
+
+  return { validRows, skippedTracks };
+}
+
+function buildMusicMapPoints({
+  rows,
+  clusterLabels,
+  coordinates,
+  normalizedPoints,
+  clusters,
+}: BuildMusicMapPointsInput): MusicMapPoint[] {
+  const clusterDescriptionsById = new Map<number, string>(
+    clusters.map((cluster) => [cluster.id, cluster.description])
+  );
+
+  return rows.map((row, index) => {
+    const cluster = clusterLabels[index] ?? 0;
+    const normalizedPoint = normalizedPoints[index] ?? { x: 0, y: 0 };
+    const [rawX = 0, rawY = 0] = coordinates[index] ?? [];
+
+    return {
+      id: row.id,
+      name: row.name,
+      artists: row.artists,
+      album: row.album,
+      imageUrl: row.imageUrl,
+      spotifyUrl: row.spotifyUrl,
+      description: row.description,
+      clusterDescription: clusterDescriptionsById.get(cluster) ?? "",
+      x: normalizedPoint.x,
+      y: normalizedPoint.y,
+      rawX: round(rawX),
+      rawY: round(rawY),
+      cluster,
+      audioFeatures: row.audioFeatures,
+    };
+  });
+}
+
+function buildTrackFeatureRow(
+  track: SpotifyTrack,
+  audioFeaturesBySpotifyId: Map<string, TrackAudioFeatures>
+): TrackFeatureRow {
   const features = audioFeaturesBySpotifyId.get(track.id);
   const baseTrack = {
     id: track.id,
@@ -161,7 +234,7 @@ function buildTrackFeatureRow(track, audioFeaturesBySpotifyId) {
 
   const vector = MUSIC_MAP_FEATURE_KEYS.map((key) => features[key]);
 
-  if (vector.some((value) => typeof value !== "number")) {
+  if (!vector.every(isNumber)) {
     return {
       ...baseTrack,
       reason: "Incomplete audio features",
@@ -171,7 +244,7 @@ function buildTrackFeatureRow(track, audioFeaturesBySpotifyId) {
 
   const audioFeatures = Object.fromEntries(
     MUSIC_MAP_FEATURE_KEYS.map((key, index) => [key, round(vector[index])])
-  );
+  ) as AudioFeatureValues;
 
   return {
     ...baseTrack,
@@ -181,8 +254,11 @@ function buildTrackFeatureRow(track, audioFeaturesBySpotifyId) {
   };
 }
 
-function buildClusterSummaries(rows, clusterLabels) {
-  const groupedRows = new Map();
+function buildClusterSummaries(
+  rows: ValidTrackFeatureRow[],
+  clusterLabels: number[]
+): MusicMapCluster[] {
+  const groupedRows = new Map<number, ValidTrackFeatureRow[]>();
 
   rows.forEach((row, index) => {
     const cluster = clusterLabels[index] ?? 0;
@@ -208,16 +284,20 @@ function buildClusterSummaries(rows, clusterLabels) {
     });
 }
 
-function averageAudioFeatures(rows) {
+function averageAudioFeatures(
+  rows: ValidTrackFeatureRow[]
+): AudioFeatureValues {
   return Object.fromEntries(
     MUSIC_MAP_FEATURE_KEYS.map((key) => [
       key,
       round(average(rows.map((row) => row.audioFeatures[key]))),
     ])
-  );
+  ) as AudioFeatureValues;
 }
 
-function normalizeProjectedCoordinates(coordinates) {
+function normalizeProjectedCoordinates(
+  coordinates: Coordinate[]
+): NormalizedPoint[] {
   const xValues = coordinates.map(([x]) => x);
   const yValues = coordinates.map(([, y]) => y);
   const xMin = Math.min(...xValues, 0);
@@ -231,7 +311,7 @@ function normalizeProjectedCoordinates(coordinates) {
   }));
 }
 
-function normalizeToUnitRange(value, min, max) {
+function normalizeToUnitRange(value: number, min: number, max: number): number {
   if (max === min) {
     return 0;
   }
@@ -239,14 +319,18 @@ function normalizeToUnitRange(value, min, max) {
   return ((value - min) / (max - min)) * 2 - 1;
 }
 
-function getAppliedClusterCount(clusterLabels) {
+function getAppliedClusterCount(clusterLabels: number[]): number {
   return new Set(clusterLabels).size;
 }
 
-function average(values) {
+function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function round(value, digits = 4) {
+function round(value: number, digits = 4): number {
   return Number(value.toFixed(digits));
+}
+
+function isNumber(value: number | null | undefined): value is number {
+  return typeof value === "number";
 }
