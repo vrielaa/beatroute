@@ -6,27 +6,28 @@ import {
 } from "./music-map-descriptions.js";
 import { analyzeMusicMapRows } from "./music-map-analysis.js";
 import type {
+  AnalyzableTrack,
   AudioFeatureValues,
-  BuildMusicMapInput,
-  BuildMusicMapPointsInput,
   Coordinate,
-  GetTopTracksInput,
   MusicMapAnalysis,
   MusicMapCluster,
   MusicMapFeatureKey,
   MusicMapPoint,
+  MusicMapPointContext,
   MusicMapProjection,
-  MusicMapProjectionInput,
+  MusicMapProjectionData,
+  MusicMapRequest,
   MusicMapSkippedTrack,
+  MusicMapSourceData,
   NormalizedPoint,
   SpotifyTopTracksResponse,
   SpotifyTrack,
   TrackAudioFeatures,
-  TrackFeatureRow,
-  TopTracksWithAudioFeaturesResult,
-  ValidTrackFeatureRow,
+  PreparedMusicMapTrack,
+  TopTracksSelection,
 } from "./music-map.types.js";
 
+/** Cechy audio wykorzystywane do klasteryzacji i projekcji utworów. */
 export const MUSIC_MAP_FEATURE_KEYS: MusicMapFeatureKey[] = [
   "acousticness",
   "danceability",
@@ -41,15 +42,19 @@ export const MUSIC_MAP_FEATURE_KEYS: MusicMapFeatureKey[] = [
   "mode",
 ];
 
-const METHODOLOGY_TEXT =
-  "Mapa została utworzona na podstawie cech audio utworów. Liczbę klastrów można ustawić suwakiem, a wyniki silhouette score i inertia pomagają ocenić podział. Pozycje punktów wyznaczono metodą PCA.";
-
+/**
+ * Buduje mapę muzyczną dla top utworów zalogowanego użytkownika.
+ * Łączy pobieranie danych ze Spotify i ReccoBeats z analizą domenową.
+ *
+ * @param input - Token Spotify, filtry utworów i opcjonalna liczba klastrów.
+ * @returns Gotowa projekcja mapy muzycznej.
+ */
 export async function buildMusicMap({
   accessToken,
   limit,
   timeRange,
   clusterCount,
-}: BuildMusicMapInput): Promise<MusicMapProjection> {
+}: MusicMapRequest): Promise<MusicMapProjection> {
   const { tracks, audioFeatures, metadata } =
     await getTopTracksWithAudioFeatures({
       accessToken,
@@ -65,11 +70,17 @@ export async function buildMusicMap({
   });
 }
 
+/**
+ * Pobiera top utwory Spotify oraz odpowiadające im cechy audio z ReccoBeats.
+ *
+ * @param input - Token Spotify, limit utworów i analizowany okres.
+ * @returns Utwory, cechy audio oraz metadane wykonanego zapytania.
+ */
 export async function getTopTracksWithAudioFeatures({
   accessToken,
   limit,
   timeRange,
-}: GetTopTracksInput): Promise<TopTracksWithAudioFeaturesResult> {
+}: TopTracksSelection): Promise<MusicMapSourceData> {
   const topTracks = (await getCurrentUserTopTracks(accessToken, {
     limit,
     timeRange,
@@ -95,28 +106,36 @@ export async function getTopTracksWithAudioFeatures({
   };
 }
 
+/**
+ * Przekształca pobrane utwory i cechy audio w klastry oraz punkty mapy.
+ * Funkcja nie pobiera danych z zewnętrznych API.
+ *
+ * @param input - Utwory, ich cechy audio, ustawienia klastrów i metadane.
+ * @returns Wynik analizy gotowy do zwrócenia przez API.
+ */
 export function buildMusicMapProjection({
   tracks,
   audioFeatures,
   requestedClusterCount = null,
   metadata = {},
-}: MusicMapProjectionInput): MusicMapProjection {
+}: MusicMapProjectionData): MusicMapProjection {
   const audioFeaturesBySpotifyId = indexAudioFeaturesBySpotifyId(audioFeatures);
   const trackRows = tracks.map((track) =>
     buildTrackFeatureRow(track, audioFeaturesBySpotifyId)
   );
   const { validRows, skippedTracks } = partitionTrackRows(trackRows);
 
-  const analysis = analyzeMusicMapRows({
-    rows: validRows,
-    featureKeys: MUSIC_MAP_FEATURE_KEYS,
-    requestedClusterCount,
-  }) as MusicMapAnalysis;
+  const featureVectors = validRows.map((track) => track.vector);
+  const analysis = analyzeMusicMapRows(
+    featureVectors,
+    MUSIC_MAP_FEATURE_KEYS,
+    requestedClusterCount
+  );
 
   const normalizedPoints = normalizeProjectedCoordinates(analysis.coordinates);
   const clusters = buildClusterSummaries(validRows, analysis.clusterLabels);
   const points = buildMusicMapPoints({
-    rows: validRows,
+    tracks: validRows,
     clusterLabels: analysis.clusterLabels,
     coordinates: analysis.coordinates,
     normalizedPoints,
@@ -125,7 +144,6 @@ export function buildMusicMapProjection({
 
   return {
     source: "spotify-top-tracks-reccobeats-audio-features",
-    methodologyText: METHODOLOGY_TEXT,
     ...metadata,
     requestedClusterCount,
     selectedClusterCount: analysis.selectedClusterCount,
@@ -143,6 +161,12 @@ export function buildMusicMapProjection({
   };
 }
 
+/**
+ * Indeksuje cechy audio według identyfikatora utworu Spotify.
+ *
+ * @param audioFeatures - Wyniki pobrane z ReccoBeats.
+ * @returns Mapa umożliwiająca szybkie znalezienie cech dla utworu.
+ */
 function indexAudioFeaturesBySpotifyId(
   audioFeatures: TrackAudioFeatures[]
 ): Map<string, TrackAudioFeatures> {
@@ -155,11 +179,18 @@ function indexAudioFeaturesBySpotifyId(
   return indexedFeatures;
 }
 
-function partitionTrackRows(rows: TrackFeatureRow[]): {
-  validRows: ValidTrackFeatureRow[];
+/**
+ * Oddziela utwory gotowe do analizy od utworów bez kompletnych cech audio.
+ * Pole `vector` jest usuwane z informacji o pominiętych utworach.
+ *
+ * @param rows - Wiersze utworów przygotowane do analizy.
+ * @returns Poprawne wiersze oraz lista pominiętych utworów.
+ */
+function partitionTrackRows(rows: PreparedMusicMapTrack[]): {
+  validRows: AnalyzableTrack[];
   skippedTracks: MusicMapSkippedTrack[];
 } {
-  const validRows: ValidTrackFeatureRow[] = [];
+  const validRows: AnalyzableTrack[] = [];
   const skippedTracks: MusicMapSkippedTrack[] = [];
 
   for (const row of rows) {
@@ -175,45 +206,59 @@ function partitionTrackRows(rows: TrackFeatureRow[]): {
   return { validRows, skippedTracks };
 }
 
+/**
+ * Łączy wynik projekcji i klasteryzacji z informacjami o utworach.
+ *
+ * @param input - Wiersze, etykiety klastrów, współrzędne i opisy klastrów.
+ * @returns Punkty przeznaczone do wyświetlenia na wykresie.
+ */
 function buildMusicMapPoints({
-  rows,
+  tracks,
   clusterLabels,
   coordinates,
   normalizedPoints,
   clusters,
-}: BuildMusicMapPointsInput): MusicMapPoint[] {
+}: MusicMapPointContext): MusicMapPoint[] {
   const clusterDescriptionsById = new Map<number, string>(
     clusters.map((cluster) => [cluster.id, cluster.description])
   );
 
-  return rows.map((row, index) => {
+  return tracks.map((track, index) => {
     const cluster = clusterLabels[index] ?? 0;
     const normalizedPoint = normalizedPoints[index] ?? { x: 0, y: 0 };
     const [rawX = 0, rawY = 0] = coordinates[index] ?? [];
 
     return {
-      id: row.id,
-      name: row.name,
-      artists: row.artists,
-      album: row.album,
-      imageUrl: row.imageUrl,
-      spotifyUrl: row.spotifyUrl,
-      description: row.description,
+      id: track.id,
+      name: track.name,
+      artists: track.artists,
+      album: track.album,
+      imageUrl: track.imageUrl,
+      spotifyUrl: track.spotifyUrl,
+      description: track.description,
       clusterDescription: clusterDescriptionsById.get(cluster) ?? "",
       x: normalizedPoint.x,
       y: normalizedPoint.y,
       rawX: round(rawX),
       rawY: round(rawY),
       cluster,
-      audioFeatures: row.audioFeatures,
+      audioFeatures: track.audioFeatures,
     };
   });
 }
 
+/**
+ * Buduje wektor cech pojedynczego utworu.
+ * Utwór bez danych lub z niekompletnymi cechami zostaje oznaczony jako pominięty.
+ *
+ * @param track - Utwór pobrany ze Spotify.
+ * @param audioFeaturesBySpotifyId - Cechy audio zindeksowane według Spotify ID.
+ * @returns Poprawny wiersz analizy albo wiersz z powodem pominięcia.
+ */
 function buildTrackFeatureRow(
   track: SpotifyTrack,
   audioFeaturesBySpotifyId: Map<string, TrackAudioFeatures>
-): TrackFeatureRow {
+): PreparedMusicMapTrack {
   const features = audioFeaturesBySpotifyId.get(track.id);
   const baseTrack = {
     id: track.id,
@@ -254,11 +299,18 @@ function buildTrackFeatureRow(
   };
 }
 
+/**
+ * Grupuje przeanalizowane utwory według etykiet klastrów i tworzy ich opisy.
+ *
+ * @param rows - Utwory posiadające kompletne cechy audio.
+ * @param clusterLabels - Numer klastra przypisany do każdego wiersza.
+ * @returns Posortowane podsumowania klastrów.
+ */
 function buildClusterSummaries(
-  rows: ValidTrackFeatureRow[],
+  rows: AnalyzableTrack[],
   clusterLabels: number[]
 ): MusicMapCluster[] {
-  const groupedRows = new Map<number, ValidTrackFeatureRow[]>();
+  const groupedRows = new Map<number, AnalyzableTrack[]>();
 
   rows.forEach((row, index) => {
     const cluster = clusterLabels[index] ?? 0;
@@ -284,9 +336,13 @@ function buildClusterSummaries(
     });
 }
 
-function averageAudioFeatures(
-  rows: ValidTrackFeatureRow[]
-): AudioFeatureValues {
+/**
+ * Oblicza średnią wartość każdej cechy audio dla wskazanych utworów.
+ *
+ * @param rows - Utwory należące do jednego klastra.
+ * @returns Uśrednione i zaokrąglone cechy audio klastra.
+ */
+function averageAudioFeatures(rows: AnalyzableTrack[]): AudioFeatureValues {
   return Object.fromEntries(
     MUSIC_MAP_FEATURE_KEYS.map((key) => [
       key,
@@ -295,6 +351,12 @@ function averageAudioFeatures(
   ) as AudioFeatureValues;
 }
 
+/**
+ * Skaluje osobno obie osie projekcji do zakresu od -1 do 1.
+ *
+ * @param coordinates - Surowe współrzędne otrzymane z PCA.
+ * @returns Współrzędne gotowe do rozmieszczenia punktów na wykresie.
+ */
 function normalizeProjectedCoordinates(
   coordinates: Coordinate[]
 ): NormalizedPoint[] {
@@ -311,6 +373,14 @@ function normalizeProjectedCoordinates(
   }));
 }
 
+/**
+ * Przekształca pojedynczą wartość do zakresu od -1 do 1.
+ *
+ * @param value - Normalizowana wartość.
+ * @param min - Najmniejsza wartość na danej osi.
+ * @param max - Największa wartość na danej osi.
+ * @returns Wartość znormalizowana albo zero, gdy wszystkie wartości są równe.
+ */
 function normalizeToUnitRange(value: number, min: number, max: number): number {
   if (max === min) {
     return 0;
@@ -319,18 +389,44 @@ function normalizeToUnitRange(value: number, min: number, max: number): number {
   return ((value - min) / (max - min)) * 2 - 1;
 }
 
+/**
+ * Liczy, ile różnych klastrów rzeczywiście występuje w wyniku analizy.
+ *
+ * @param clusterLabels - Etykiety klastrów przypisane do utworów.
+ * @returns Liczba unikalnych etykiet.
+ */
 function getAppliedClusterCount(clusterLabels: number[]): number {
   return new Set(clusterLabels).size;
 }
 
+/**
+ * Oblicza średnią arytmetyczną przekazanych wartości.
+ *
+ * @param values - Wartości liczbowe.
+ * @returns Średnia arytmetyczna.
+ */
 function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+/**
+ * Zaokrągla liczbę do wskazanej liczby miejsc po przecinku.
+ *
+ * @param value - Zaokrąglana liczba.
+ * @param digits - Liczba miejsc po przecinku; domyślnie cztery.
+ * @returns Zaokrąglona liczba.
+ */
 function round(value: number, digits = 4): number {
   return Number(value.toFixed(digits));
 }
 
+/**
+ * Sprawdza, czy wartość cechy audio jest liczbą.
+ * Pełni również rolę strażnika typu podczas walidacji wektora.
+ *
+ * @param value - Sprawdzana wartość cechy.
+ * @returns `true`, jeśli wartość jest liczbą.
+ */
 function isNumber(value: number | null | undefined): value is number {
   return typeof value === "number";
 }

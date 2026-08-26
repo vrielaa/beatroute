@@ -1,6 +1,10 @@
 <details>
   <summary>Metodologia i wyniki jakości klastrów</summary>
-  <p>{{ musicMap().methodologyText }}</p>
+  <p>
+    Mapa została utworzona na podstawie cech audio utworów. Liczbę klastrów można ustawić
+    suwakiem, a wyniki silhouette score i inertia pomagają ocenić podział. Pozycje punktów
+    wyznaczono metodą PCA.
+  </p>
   <dl class="music-map-method-list">
     @for (candidate of musicMap().candidateClusterResults; track candidate.k) {
     <div>

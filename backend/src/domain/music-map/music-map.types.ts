@@ -46,7 +46,7 @@ export type MusicMapMetadata = {
   spotifyTotalTracksCount: number;
 };
 
-export type TrackRowBase = {
+export type MusicMapTrackDetails = {
   id: string;
   name: string;
   artists: string[];
@@ -55,21 +55,32 @@ export type TrackRowBase = {
   spotifyUrl: string | null;
 };
 
-export type ValidTrackFeatureRow = TrackRowBase & {
+export type AnalyzableTrack = MusicMapTrackDetails & {
   vector: number[];
   audioFeatures: AudioFeatureValues;
   description: string;
 };
 
-export type SkippedTrackFeatureRow = TrackRowBase & {
+export type UnanalyzableTrack = MusicMapTrackDetails & {
   vector: null;
   reason: string;
 };
 
-export type TrackFeatureRow = ValidTrackFeatureRow | SkippedTrackFeatureRow;
-export type MusicMapSkippedTrack = Omit<SkippedTrackFeatureRow, "vector">;
+export type PreparedMusicMapTrack = AnalyzableTrack | UnanalyzableTrack;
+export type MusicMapSkippedTrack = Omit<UnanalyzableTrack, "vector">;
 export type Coordinate = [number, number];
 export type NormalizedPoint = { x: number; y: number };
+export type NumericMatrix = number[][];
+
+export type MusicMapCoordinates = {
+  coordinates: Coordinate[];
+  explainedVariance: number[];
+};
+
+export type ClusteringResult = {
+  clusters: number[];
+  centroids: number[][];
+};
 
 export type MusicMapClusterSelectionSource =
   | "silhouette-score"
@@ -101,7 +112,7 @@ export type MusicMapCluster = {
   trackIds: string[];
 };
 
-export type MusicMapPoint = TrackRowBase & {
+export type MusicMapPoint = MusicMapTrackDetails & {
   description: string;
   clusterDescription: string;
   x: number;
@@ -112,7 +123,7 @@ export type MusicMapPoint = TrackRowBase & {
   audioFeatures: AudioFeatureValues;
 };
 
-export type TopTracksWithAudioFeaturesResult = {
+export type MusicMapSourceData = {
   topTracks: SpotifyTopTracksResponse;
   tracks: SpotifyTrack[];
   audioFeatures: TrackAudioFeatures[];
@@ -121,7 +132,6 @@ export type TopTracksWithAudioFeaturesResult = {
 
 export type MusicMapProjection = Partial<MusicMapMetadata> & {
   source: "spotify-top-tracks-reccobeats-audio-features";
-  methodologyText: string;
   requestedClusterCount: number | null;
   selectedClusterCount: number;
   selectedClusterCountSource: MusicMapClusterSelectionSource;
@@ -137,24 +147,28 @@ export type MusicMapProjection = Partial<MusicMapMetadata> & {
   skippedTracks: MusicMapSkippedTrack[];
 };
 
-export type BuildMusicMapInput = {
+export type MusicMapRequest = {
   accessToken: string;
   limit: number;
   timeRange: MusicMapTimeRange;
   clusterCount: number | null;
 };
 
-export type GetTopTracksInput = Omit<BuildMusicMapInput, "clusterCount">;
+export type TopTracksSelection = {
+  accessToken: string;
+  limit: number;
+  timeRange: MusicMapTimeRange;
+};
 
-export type MusicMapProjectionInput = {
+export type MusicMapProjectionData = {
   tracks: SpotifyTrack[];
   audioFeatures: TrackAudioFeatures[];
   requestedClusterCount?: number | null;
   metadata?: Partial<MusicMapMetadata>;
 };
 
-export type BuildMusicMapPointsInput = {
-  rows: ValidTrackFeatureRow[];
+export type MusicMapPointContext = {
+  tracks: AnalyzableTrack[];
   clusterLabels: number[];
   coordinates: Coordinate[];
   normalizedPoints: NormalizedPoint[];

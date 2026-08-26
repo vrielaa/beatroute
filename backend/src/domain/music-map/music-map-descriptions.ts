@@ -1,4 +1,13 @@
-export function describeClusterName(features) {
+import type { AudioFeatureValues } from "./music-map.types.js";
+
+/**
+ * Wybiera krótką nazwę klastra na podstawie dominujących średnich cech audio.
+ * Reguły są oceniane w ustalonej kolejności, więc zwracana jest jedna nazwa.
+ *
+ * @param features - Średnie cechy audio utworów należących do klastra.
+ * @returns Krótka etykieta klastra przeznaczona dla interfejsu.
+ */
+export function describeClusterName(features: AudioFeatureValues): string {
   if (features.energy >= 0.65 && features.danceability >= 0.6) {
     return "Energetyczne i taneczne";
   }
@@ -26,7 +35,14 @@ export function describeClusterName(features) {
   return "Umiarkowane cechy audio";
 }
 
-export function describeAudioCharacter(features) {
+/**
+ * Buduje bardziej szczegółowy opis charakteru brzmienia z cech audio.
+ * W przeciwieństwie do nazwy klastra może połączyć kilka pasujących cech.
+ *
+ * @param features - Cechy pojedynczego utworu lub średnie cechy klastra.
+ * @returns Czytelny opis charakteru muzycznego w języku polskim.
+ */
+export function describeAudioCharacter(features: AudioFeatureValues): string {
   const labels = [];
 
   if (features.energy >= 0.7 && features.tempo >= 120) {

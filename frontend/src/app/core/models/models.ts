@@ -203,7 +203,6 @@ export interface MusicMapSkippedTrack {
 
 export interface MusicMapResponse {
   source: 'spotify-top-tracks-reccobeats-audio-features';
-  methodologyText: string;
   timeRange: TimeRange;
   requestedLimit: number;
   spotifyReturnedTracksCount: number;
