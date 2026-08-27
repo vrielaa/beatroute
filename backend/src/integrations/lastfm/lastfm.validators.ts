@@ -1,6 +1,19 @@
-import { RequestValidationError } from "../spotify/spotify.validators.js";
+import { RequestValidationError } from "../../http/request-validation-error.js";
+import type { LastfmTrackIdentifier } from "./track/types.js";
 
-export function parseArtistNames(body = {}) {
+/** Niezweryfikowane body żądania zawierającego nazwy artystów. */
+type ArtistNamesPayload = {
+  artists?: unknown;
+};
+
+/** Niezweryfikowane parametry identyfikujące utwór. */
+type TrackIdentifierQuery = {
+  mbid?: unknown;
+  artist?: unknown;
+  track?: unknown;
+};
+
+export function parseArtistNames(body: ArtistNamesPayload = {}): string[] {
   if (!Array.isArray(body.artists) || body.artists.length === 0) {
     throw new RequestValidationError(
       "Pole artists musi być niepustą tablicą nazw artystów"
@@ -26,7 +39,9 @@ export function parseArtistNames(body = {}) {
   return artists;
 }
 
-export function parseTrackInfoQuery(query = {}) {
+export function parseTrackInfoQuery(
+  query: TrackIdentifierQuery = {}
+): LastfmTrackIdentifier {
   const mbid = typeof query.mbid === "string" ? query.mbid.trim() : "";
 
   if (mbid) {

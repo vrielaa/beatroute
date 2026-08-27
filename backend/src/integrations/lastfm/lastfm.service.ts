@@ -1,10 +1,12 @@
 import { fetchFromLastfm } from "./lastfm.client.js";
 
-export async function createLastfmSession(token) {
+export async function createLastfmSession(
+  token: string,
+): Promise<{ key: string; name: string }> {
   const data = await fetchFromLastfm(
     "auth.getSession",
     { token },
-    { signed: true }
+    { signed: true },
   );
 
   if (!data?.session?.key || !data?.session?.name) {
@@ -14,7 +16,11 @@ export async function createLastfmSession(token) {
   return data.session;
 }
 
-export async function getLastfmUserInfo(username) {
+export async function getLastfmUserInfo(username: string): Promise<{
+  name: string;
+  url: string;
+  image: string;
+}> {
   const data = await fetchFromLastfm("user.getInfo", { user: username });
 
   return data.user;

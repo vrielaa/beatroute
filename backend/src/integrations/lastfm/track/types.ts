@@ -139,8 +139,18 @@ export type LastfmTrackRequestParams = LastfmTrackIdentifier & {
   autocorrect: 1;
 };
 
-/** Przypadki użycia udostępniane przez serwis utworów Last.fm. */
+/** Publiczny kontrakt serwisu pobierającego i klasyfikującego dane utworów Last.fm. */
 export type LastfmTrackService = {
-  /** Pobiera metadane utworu i klasyfikuje jego gatunki z fallbackami. */
+  /**
+   * Pobiera metadane utworu i przypisuje mu gatunki na podstawie tagów Last.fm.
+   * Najpierw wykorzystuje tagi zwrócone razem z informacjami o utworze. Jeśli
+   * nie zawierają one gatunku, pobiera osobno najpopularniejsze tagi utworu,
+   * a następnie — jako ostatnie źródło — tagi artysty. Gdy żadne źródło nie
+   * zawiera gatunku, zwraca pustą listę kandydatów i wartość `null` w polu
+   * `genre`.
+   *
+   * @param identifier - MBID utworu albo para zawierająca nazwę artysty i utworu.
+   * @returns Metadane utworu, rozpoznane gatunki i informację o źródle tagów.
+   */
   getTrackInfo(identifier: LastfmTrackIdentifier): Promise<LastfmTrackInfo>;
 };

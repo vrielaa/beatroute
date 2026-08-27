@@ -1,7 +1,7 @@
 import { SpotifyApiError } from "../integrations/spotify/spotify.service.js";
-import { RequestValidationError } from "../integrations/spotify/spotify.validators.js";
 import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
 import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
+import { RequestValidationError } from "./request-validation-error.js";
 
 export class HttpError extends Error {
   constructor(status, code, message, details) {

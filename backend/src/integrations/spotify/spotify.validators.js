@@ -1,15 +1,10 @@
+import { RequestValidationError } from "../../http/request-validation-error.js";
+
 export const ALLOWED_TIME_RANGES = ["short_term", "medium_term", "long_term"];
 export const DEFAULT_TIME_RANGE = "medium_term";
 export const DEFAULT_TOP_ITEMS_LIMIT = 10;
 export const MAX_TRACKS_LIMIT = 40;
 export const MAX_ARTISTS_LIMIT = 40;
-
-export class RequestValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "RequestValidationError";
-  }
-}
 
 function getSingleQueryValue(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -25,7 +20,9 @@ function parseLimit(value, maxLimit) {
   const limit = Number(rawLimit);
 
   if (!Number.isInteger(limit) || limit < 1 || limit > maxLimit) {
-    throw new RequestValidationError(`limit musi być liczbą całkowitą od 1 do ${maxLimit}`);
+    throw new RequestValidationError(
+      `limit musi być liczbą całkowitą od 1 do ${maxLimit}`
+    );
   }
 
   return limit;
@@ -58,12 +55,16 @@ export function parseTrackIds(body, { maxLimit = MAX_TRACKS_LIMIT } = {}) {
   }
 
   if (trackIds.length > maxLimit) {
-    throw new RequestValidationError(`trackIds może zawierać maksymalnie ${maxLimit} utworów`);
+    throw new RequestValidationError(
+      `trackIds może zawierać maksymalnie ${maxLimit} utworów`
+    );
   }
 
   return trackIds.map((trackId, index) => {
     if (typeof trackId !== "string" || trackId.trim().length === 0) {
-      throw new RequestValidationError(`trackIds[${index}] musi być niepustym stringiem`);
+      throw new RequestValidationError(
+        `trackIds[${index}] musi być niepustym stringiem`
+      );
     }
 
     return trackId.trim();

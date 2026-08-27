@@ -1,11 +1,11 @@
 import { Router } from "express";
 
 import { buildMusicMap } from "../../domain/music-map/music-map.service.js";
+import { RequestValidationError } from "../../http/request-validation-error.js";
 import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
 import {
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
-  RequestValidationError,
 } from "../spotify/spotify.validators.js";
 
 const DEFAULT_MUSIC_MAP_LIMIT = 40;
