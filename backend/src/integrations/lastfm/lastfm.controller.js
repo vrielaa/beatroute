@@ -1,6 +1,6 @@
 import { getLastfmArtistGenreDistribution } from "./artist/service.js";
 import { getLastfmUserInfo } from "./lastfm.service.js";
-import { getLastfmTrackInfo as fetchLastfmTrackInfo } from "./lastfm.track.service.js";
+import { getLastfmTrackInfo as fetchLastfmTrackInfo } from "./track/service.js";
 import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
 import {
   getSpotifyTrackById,

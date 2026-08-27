@@ -9,7 +9,6 @@ import type {
   LastfmArtistApiResponse,
   LastfmArtistInfo,
   LastfmArtistLookup,
-  LastfmTag,
 } from "./types.js";
 
 /**
@@ -23,9 +22,9 @@ import type {
  */
 export function mapLastfmArtistInfo(
   response: LastfmArtistApiResponse,
-  requestedName: string
+  requestedName: string,
 ): LastfmArtistInfo {
-  const tags = normalizeLastfmTags(response.artist?.tags?.tag) as LastfmTag[];
+  const tags = normalizeLastfmTags(response.artist?.tags?.tag);
   const genreTags = tags.filter(isLikelyGenreTag);
 
   return {
@@ -48,7 +47,7 @@ export function mapLastfmArtistInfo(
  * @returns Artysta przygotowany do budowania rozkładu gatunków.
  */
 export function mapArtistLookupToGenreInput(
-  lookup: LastfmArtistLookup
+  lookup: LastfmArtistLookup,
 ): Artist {
   if (lookup.status === "rejected") {
     return {

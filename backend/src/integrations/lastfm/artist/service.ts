@@ -106,7 +106,7 @@ function deduplicateArtistNames(artistNames: string[]): string[] {
 function assertNoCriticalLookupFailure(lookups: LastfmArtistLookup[]): void {
   const failures = lookups.filter(isRejectedLookup);
   const invalidApiKeyFailure = failures.find((lookup) =>
-    hasLastfmErrorCode(lookup.error, INVALID_API_KEY_ERROR_CODE)
+    hasLastfmErrorCode(lookup.error, INVALID_API_KEY_ERROR_CODE),
   );
 
   if (invalidApiKeyFailure) {
@@ -125,7 +125,7 @@ function assertNoCriticalLookupFailure(lookups: LastfmArtistLookup[]): void {
  * @returns `true`, gdy wynik ma status `rejected`; zawęża przy tym jego typ.
  */
 function isRejectedLookup(
-  lookup: LastfmArtistLookup
+  lookup: LastfmArtistLookup,
 ): lookup is Extract<LastfmArtistLookup, { status: "rejected" }> {
   return lookup.status === "rejected";
 }

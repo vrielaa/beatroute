@@ -1,22 +1,22 @@
-/** Tag przypisany artyście w odpowiedzi Last.fm. */
-export type LastfmTag = {
-  /** Wyświetlana nazwa tagu. */
-  name: string;
-  /** Adres strony tagu w Last.fm, jeśli został zwrócony przez API. */
-  url?: string;
-};
+import type { LastfmTag, LastfmTagApiResponse } from "../types.js";
 
 /**
  * Fragment surowej odpowiedzi `artist.getInfo` używany przez aplikację.
  * Pola są opcjonalne, ponieważ Last.fm może zwrócić niepełne dane artysty.
  */
 export type LastfmArtistApiResponse = {
+  /** Dane artysty; pole może być nieobecne w niepełnej odpowiedzi API. */
   artist?: {
+    /** Nazwa artysty zwrócona przez Last.fm. */
     name?: string;
+    /** Identyfikator artysty w MusicBrainz. */
     mbid?: string;
+    /** Adres strony artysty w Last.fm. */
     url?: string;
+    /** Kontener tagów przypisanych artyście. */
     tags?: {
-      tag?: LastfmTag[];
+      /** Pojedynczy tag albo tablica tagów z zewnętrznego API. */
+      tag?: LastfmTagApiResponse | LastfmTagApiResponse[];
     };
   };
 };
