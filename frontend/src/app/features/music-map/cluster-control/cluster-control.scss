@@ -28,6 +28,12 @@
   text-align: center;
 }
 
+.cluster-control-limit-message {
+  margin: -1rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 820px) {
   .cluster-control-slider {
     grid-template-columns: 1fr;

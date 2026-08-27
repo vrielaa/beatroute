@@ -6,13 +6,22 @@
 <div class="cluster-control-slider">
   <label for="music-map-cluster-count">Liczba klastrów:</label>
   <input
+    #clusterCountSlider
     id="music-map-cluster-count"
     type="range"
     [min]="minClusterCount()"
     [max]="maxClusterCount()"
-    [value]="selectedClusterCount()"
-    [disabled]="isLoading()"
-    (change)="updateClusterCount($event)"
+    step="1"
+    [value]="displayedClusterCount()"
+    [disabled]="isLoading() || hasOnlyOneAvailableValue()"
+    (input)="previewClusterCount(clusterCountSlider.valueAsNumber)"
+    (change)="selectClusterCount(clusterCountSlider.valueAsNumber)"
   />
-  <strong>{{ selectedClusterCount() }}</strong>
+  <strong>{{ displayedClusterCount() }}</strong>
 </div>
+
+@if (hasOnlyOneAvailableValue()) {
+<p class="cluster-control-limit-message">
+  Obecne dane pozwalają utworzyć maksymalnie {{ maxClusterCount() }} klastry.
+</p>
+}
