@@ -9,7 +9,7 @@ const { getCurrentUserTopTracksMock, getManyAudioFeaturesMock } = vi.hoisted(
   })
 );
 
-vi.mock("../../integrations/spotify/spotify.service.js", () => ({
+vi.mock("../../integrations/spotify/spotify.gateway.js", () => ({
   getCurrentUserTopTracks: getCurrentUserTopTracksMock,
 }));
 

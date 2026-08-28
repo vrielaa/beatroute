@@ -2,11 +2,17 @@ import "express-session";
 
 declare module "express-session" {
   interface SessionData {
-    lastfm: {
+    lastfm?: {
       username: string;
     };
-    spotify: {
+    spotify?: {
       accessToken: string;
+      refreshToken: string;
+      expiresAt: number;
+      scope: string;
+      tokenType: string;
     };
+
+    spotifyAuthState?: string;
   }
 }

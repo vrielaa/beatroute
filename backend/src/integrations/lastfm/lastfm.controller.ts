@@ -2,11 +2,11 @@ import { getLastfmArtistGenreDistribution } from "./artist/service.js";
 import { getLastfmUserInfo } from "./lastfm.service.js";
 import { getLastfmTrackInfo as fetchLastfmTrackInfo } from "./track/service.js";
 import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
+import { getSpotifyTrackById } from "../spotify/spotify.gateway.js";
 import {
-  getSpotifyTrackById,
   mapSpotifyTrackForLastfm,
   mapSpotifyTrackResponse,
-} from "../spotify/spotify.service.js";
+} from "../spotify/spotify.mapper.js";
 import { createGetSpotifyTrackLastfmInfo } from "../../application/music-profile/get-spotify-track-lastfm-info.js";
 import { Request, Response } from "express";
 

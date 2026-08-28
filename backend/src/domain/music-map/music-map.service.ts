@@ -1,5 +1,5 @@
 import { getManyTrackAudioFeaturesBySpotifyIds } from "../../integrations/reccobeats/reccobeats.service.js";
-import { getCurrentUserTopTracks } from "../../integrations/spotify/spotify.service.js";
+import { getCurrentUserTopTracks } from "../../integrations/spotify/spotify.gateway.js";
 import {
   describeAudioCharacter,
   describeClusterName,

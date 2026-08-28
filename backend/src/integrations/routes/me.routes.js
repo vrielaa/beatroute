@@ -9,7 +9,7 @@ import {
   getCurrentUserProfile,
   getCurrentUserTopArtists,
   getCurrentUserTopTracks,
-} from "../spotify/spotify.service.js";
+} from "../spotify/spotify.gateway.js";
 
 const router = Router();
 

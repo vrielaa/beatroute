@@ -1,4 +1,4 @@
-import { SpotifyApiError } from "../integrations/spotify/spotify.service.js";
+import { SpotifyApiError } from "../integrations/spotify/spotify-api.error.js";
 import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
 import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
 import { RequestValidationError } from "./request-validation-error.js";
