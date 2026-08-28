@@ -33,7 +33,7 @@ export function createSpotifyGateway({
   async function request<T>(
     endpoint: string,
     accessToken: string,
-    fallbackErrorMessage: string,
+    fallbackErrorMessage: string
   ): Promise<T> {
     const response = await fetchImpl(`${apiRoot}${endpoint}`, {
       headers: {
@@ -46,7 +46,7 @@ export function createSpotifyGateway({
       throw new SpotifyApiError(
         getSpotifyErrorMessage(data) ?? fallbackErrorMessage,
         response.status,
-        data,
+        data
       );
     }
 
@@ -55,44 +55,44 @@ export function createSpotifyGateway({
 
   async function getSpotifyTrackById(
     spotifyTrackId: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<SpotifyTrackApiResponse> {
     return request(
       `/tracks/${encodeURIComponent(spotifyTrackId)}`,
       accessToken,
-      "Nie udało się pobrać utworu ze Spotify",
+      "Nie udało się pobrać utworu ze Spotify"
     );
   }
 
   async function getCurrentUserTopTracks(
     accessToken: string,
-    selection: SpotifyTopItemsSelection,
+    selection: SpotifyTopItemsSelection
   ): Promise<SpotifyTopTracksApiResponse> {
     return request(
-      buildTopItemsEndpoint("tracks", selection),
+      buildTopItemsEndpointPath("tracks", selection),
       accessToken,
-      "Nie udało się pobrać top tracks ze Spotify",
+      "Nie udało się pobrać top tracks ze Spotify"
     );
   }
 
   async function getCurrentUserTopArtists(
     accessToken: string,
-    selection: SpotifyTopItemsSelection,
+    selection: SpotifyTopItemsSelection
   ): Promise<SpotifyTopArtistsApiResponse> {
     return request(
-      buildTopItemsEndpoint("artists", selection),
+      buildTopItemsEndpointPath("artists", selection),
       accessToken,
-      "Nie udało się pobrać top artists ze Spotify",
+      "Nie udało się pobrać top artists ze Spotify"
     );
   }
 
   async function getCurrentUserProfile(
-    accessToken: string,
+    accessToken: string
   ): Promise<SpotifyUserProfileApiResponse> {
     return request(
       "/me",
       accessToken,
-      "Nie udało się pobrać profilu użytkownika ze Spotify",
+      "Nie udało się pobrać profilu użytkownika ze Spotify"
     );
   }
 
@@ -111,9 +111,9 @@ export function createSpotifyGateway({
  * @param selection - Limit i analizowany okres.
  * @returns Ścieżka gotowa do przekazania do gatewaya.
  */
-function buildTopItemsEndpoint(
+function buildTopItemsEndpointPath(
   resource: "tracks" | "artists",
-  selection: SpotifyTopItemsSelection,
+  selection: SpotifyTopItemsSelection
 ): string {
   const params = new URLSearchParams({
     limit: String(selection.limit),

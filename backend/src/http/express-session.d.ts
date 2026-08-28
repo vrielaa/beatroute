@@ -4,6 +4,8 @@ declare module "express-session" {
   interface SessionData {
     lastfm?: {
       username: string;
+      sessionKey: string;
+      subscriber?: boolean;
     };
     spotify?: {
       accessToken: string;
@@ -12,7 +14,7 @@ declare module "express-session" {
       scope: string;
       tokenType: string;
     };
-
     spotifyAuthState?: string;
+    lastfmAuthState?: string;
   }
 }

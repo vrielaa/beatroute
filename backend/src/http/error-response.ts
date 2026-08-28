@@ -2,9 +2,18 @@ import { SpotifyApiError } from "../integrations/spotify/spotify-api.error.js";
 import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
 import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
 import { RequestValidationError } from "./request-validation-error.js";
+import type { NextFunction, Request, Response } from "express";
 
 export class HttpError extends Error {
-  constructor(status, code, message, details) {
+  public readonly status: number;
+  public readonly code: string;
+  public readonly details?: unknown;
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    details?: unknown
+  ) {
     super(message);
     this.name = "HttpError";
     this.status = status;
@@ -13,7 +22,11 @@ export class HttpError extends Error {
   }
 }
 
-export function createErrorResponse(code, message, details) {
+export function createErrorResponse(
+  code: string,
+  message: string,
+  details?: unknown
+): { error: { code: string; message: string; details?: unknown } } {
   return {
     error: {
       code,
@@ -23,7 +36,10 @@ export function createErrorResponse(code, message, details) {
   };
 }
 
-export function mapErrorToHttp(error) {
+export function mapErrorToHttp(error: unknown): {
+  status: number;
+  body: { error: { code: string; message: string; details?: unknown } };
+} {
   if (error instanceof HttpError) {
     return {
       status: error.status,
@@ -74,13 +90,18 @@ export function mapErrorToHttp(error) {
   };
 }
 
-export function notFoundHandler(req, res) {
+export function notFoundHandler(req: Request, res: Response) {
   res
     .status(404)
     .json(createErrorResponse("ROUTE_NOT_FOUND", "Nie znaleziono trasy"));
 }
 
-export function errorHandler(error, req, res, next) {
+export function errorHandler(
+  error: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const mappedError = mapErrorToHttp(error);
 
   if (mappedError.status >= 500) {

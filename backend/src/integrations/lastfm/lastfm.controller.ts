@@ -8,7 +8,11 @@ import {
   mapSpotifyTrackResponse,
 } from "../spotify/spotify.mapper.js";
 import { createGetSpotifyTrackLastfmInfo } from "../../application/music-profile/get-spotify-track-lastfm-info.js";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
+
+type SpotifyTrackRouteParams = {
+  spotifyTrackId: string;
+};
 
 const getSpotifyTrackLastfmInfoUseCase = createGetSpotifyTrackLastfmInfo({
   getSpotifyTrackById,
@@ -43,7 +47,10 @@ export async function getArtistGenreDistribution(req: Request, res: Response) {
   res.json(distribution);
 }
 
-export async function getSpotifyTrackLastfmInfo(req: Request, res: Response) {
+export async function getSpotifyTrackLastfmInfo(
+  req: Request<SpotifyTrackRouteParams>,
+  res: Response
+) {
   const accessToken = req.session.spotify?.accessToken;
 
   if (!accessToken) {
@@ -52,7 +59,7 @@ export async function getSpotifyTrackLastfmInfo(req: Request, res: Response) {
 
   const result = await getSpotifyTrackLastfmInfoUseCase({
     spotifyTrackId: req.params.spotifyTrackId,
-    accessToken: accessToken,
+    accessToken,
   });
 
   res.json(result);
