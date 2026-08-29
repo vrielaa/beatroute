@@ -2,6 +2,7 @@ import { SpotifyApiError } from "../integrations/spotify/spotify-api.error.js";
 import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
 import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
 import { RequestValidationError } from "./request-validation-error.js";
+import { ReccoBeatsApiError } from "../integrations/reccobeats/reccobeats-api.error.js";
 import type { NextFunction, Request, Response } from "express";
 
 export class HttpError extends Error {
@@ -77,6 +78,19 @@ export function mapErrorToHttp(error: unknown): {
         "SPOTIFY_AUTH_API_ERROR",
         error.message,
         error.data
+      ),
+    };
+  }
+
+  if (error instanceof ReccoBeatsApiError) {
+    return {
+      status: 502,
+      body: createErrorResponse(
+        "RECCOBEATS_API_ERROR",
+        "Nie udało się pobrać danych z ReccoBeats",
+        {
+          upstreamStatus: error.status,
+        }
       ),
     };
   }
