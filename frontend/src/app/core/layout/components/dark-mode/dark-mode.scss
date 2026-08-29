@@ -6,9 +6,7 @@
 
 .theme-toggle-button {
   color: var(--color-text-primary);
-  transition:
-    color 0.3s ease,
-    transform 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .theme-toggle-button:hover {

@@ -2,9 +2,7 @@
   <app-icon class="section-header-icon" name="dashboard" viewBox="0 0 16 16" />
 
   <div class="section-header-text">
-    <h3 class="section-header-title">
-      Porównanie cech audio utworów
-    </h3>
+    <h3 class="section-header-title">Porównanie cech audio utworów</h3>
     <p class="section-header-subtitle">
       {{ subtitle() }}
     </p>
@@ -29,9 +27,7 @@
   (clearSelection)="clearSelectedTracks()"
   (trackToggle)="toggleTrack($event)"
 />
-}
-
-@if (isLoading()) {
+} @if (isLoading()) {
 <div class="audio-features-comparison-chart-shell" aria-label="Ładowanie porównania cech audio">
   <span class="skeleton audio-features-comparison-chart-skeleton"></span>
 </div>

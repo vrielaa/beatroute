@@ -24,8 +24,7 @@
   [cdkConnectedOverlayPanelClass]="'app-tooltip-overlay-pane'"
 >
   <div class="app-tooltip-panel" [id]="tooltipId" role="tooltip">
-    @if (structuredContent(); as tooltip) {
-    @if (tooltip.title) {
+    @if (structuredContent(); as tooltip) { @if (tooltip.title) {
     <strong class="app-tooltip-title">{{ tooltip.title }}</strong>
     }
 
@@ -51,8 +50,7 @@
         </p>
       </div>
     </div>
-    }
-    } @else {
+    } } @else {
     {{ plainContent() }}
     }
   </div>

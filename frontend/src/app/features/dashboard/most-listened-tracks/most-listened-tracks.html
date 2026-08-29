@@ -2,9 +2,7 @@
   <app-icon class="section-header-icon" name="dashboard" viewBox="0 0 16 16" />
 
   <div class="section-header-text">
-    <h3 class="section-header-title">
-      Najczęściej słuchane utwory
-    </h3>
+    <h3 class="section-header-title">Najczęściej słuchane utwory</h3>
     <p class="section-header-subtitle">
       Top utwory z {{ periodLabel() }} z możliwością rozwinięcia cech audio
     </p>
@@ -12,7 +10,10 @@
 </div>
 
 @if (isLoading()) {
-<div class="most-listened-track-skeleton-list" aria-label="Ładowanie najczęściej słuchanych utworów">
+<div
+  class="most-listened-track-skeleton-list"
+  aria-label="Ładowanie najczęściej słuchanych utworów"
+>
   @for (item of [1, 2, 3, 4, 5]; track item) {
   <span class="skeleton most-listened-track-skeleton"></span>
   }
@@ -37,5 +38,4 @@
 <button type="button" class="most-listened-list-toggle" (click)="toggleExpanded()">
   {{ toggleTracksLabel() }}
 </button>
-}
-}
+} }

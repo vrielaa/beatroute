@@ -4,12 +4,8 @@
   </div>
 
   <div class="section-header-text">
-    <h3 class="section-header-title">
-      Najczęściej słuchani artyści
-    </h3>
-    <p class="section-header-subtitle">
-      Twoi ulubieni wykonawcy z {{ periodLabel() }}
-    </p>
+    <h3 class="section-header-title">Najczęściej słuchani artyści</h3>
+    <p class="section-header-subtitle">Twoi ulubieni wykonawcy z {{ periodLabel() }}</p>
   </div>
 </div>
 
@@ -27,7 +23,9 @@
   } @else if (hasError()) {
   <div class="most-listened-artists-state">
     <p>Nie udało się pobrać listy artystów.</p>
-    <button type="button" class="most-listened-artists-retry" (click)="retry()">Spróbuj ponownie</button>
+    <button type="button" class="most-listened-artists-retry" (click)="retry()">
+      Spróbuj ponownie
+    </button>
   </div>
   } @else if (artists().length === 0) {
   <div class="most-listened-artists-state">
@@ -59,10 +57,7 @@
       </div>
 
       <div class="most-listened-artist-details">
-        <p
-          class="most-listened-artist-name"
-          [title]="artist.name"
-        >
+        <p class="most-listened-artist-name" [title]="artist.name">
           {{ artist.name }}
         </p>
         @if (artistGenresFor(artist).length) {
@@ -85,6 +80,5 @@
   <button type="button" class="most-listened-list-toggle" (click)="toggleExpanded()">
     {{ toggleArtistsLabel() }}
   </button>
-  }
-  }
+  } }
 </div>

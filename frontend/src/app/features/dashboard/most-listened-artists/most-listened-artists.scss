@@ -57,9 +57,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   background: var(--color-surface-secondary);
-  transition:
-    background-color var(--transition-base),
-    border-color var(--transition-base),
+  transition: background-color var(--transition-base), border-color var(--transition-base),
     transform var(--transition-base);
 }
 
@@ -219,9 +217,7 @@
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
   box-shadow: 0 0.8rem 2rem var(--color-shadow);
-  transition:
-    background-color var(--transition-fast),
-    box-shadow var(--transition-fast),
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 

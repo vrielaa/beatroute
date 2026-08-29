@@ -63,9 +63,7 @@
   font-size: 2rem;
   font-weight: var(--font-weight-bold);
   line-height: 1.1;
-  transition:
-    background-color var(--transition-fast),
-    box-shadow var(--transition-fast),
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 

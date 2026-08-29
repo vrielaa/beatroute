@@ -1,7 +1,4 @@
-import {
-  ArtistGenreDistributionResponse,
-  TopArtistsResponse,
-} from '@src/app/core/models/models';
+import { ArtistGenreDistributionResponse, TopArtistsResponse } from '@src/app/core/models/models';
 
 export interface ArtistsFoundRatio {
   requestedArtistsCount: number;
@@ -51,9 +48,7 @@ function normalizeGenreName(genreName: string): string {
 
 function addUniqueGenre(genres: string[], genreName: string): string[] {
   const normalizedGenreName = normalizeGenreName(genreName);
-  const alreadyExists = genres.some(
-    (genre) => normalizeGenreName(genre) === normalizedGenreName
-  );
+  const alreadyExists = genres.some((genre) => normalizeGenreName(genre) === normalizedGenreName);
 
   return alreadyExists ? genres : [...genres, genreName];
 }

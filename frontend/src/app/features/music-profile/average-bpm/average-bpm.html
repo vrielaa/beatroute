@@ -4,22 +4,15 @@
     <h3>
       <app-tooltip [content]="tempoTooltip">Średnie BPM</app-tooltip>
     </h3>
-    <p class="average-bpm-subtitle">
-      Obliczane na podstawie Twoich ulubionych utworów
-    </p>
+    <p class="average-bpm-subtitle">Obliczane na podstawie Twoich ulubionych utworów</p>
   </div>
 </div>
 
 <div class="average-bpm-value-container">
   @if (isLoading()) {
-  <div
-    class="skeleton average-bpm-skeleton"
-    aria-label="Ładowanie średniego BPM"
-  ></div>
+  <div class="skeleton average-bpm-skeleton" aria-label="Ładowanie średniego BPM"></div>
   } @else if (averageBpm() !== null) {
-  <p class="average-bpm-value">
-    {{ averageBpm() }} BPM
-  </p>
+  <p class="average-bpm-value">{{ averageBpm() }} BPM</p>
   } @else {
   <p class="average-bpm-empty-state">Brak danych</p>
   }

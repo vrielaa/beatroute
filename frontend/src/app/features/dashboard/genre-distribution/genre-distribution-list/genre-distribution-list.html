@@ -1,9 +1,6 @@
 <ul class="genre-distribution-list">
   @for (segment of segments(); track segment.name) {
-  <li
-    class="genre-distribution-list-item"
-    [title]="segment.artists.join(', ')"
-  >
+  <li class="genre-distribution-list-item" [title]="segment.artists.join(', ')">
     @if (hasExpandableSubgenres(segment)) {
     <details class="genre-distribution-details">
       <summary class="genre-distribution-row genre-distribution-row--expandable">
@@ -15,21 +12,20 @@
         <span class="genre-distribution-count">
           {{ segment.count }}
         </span>
-        <span class="genre-distribution-expand-indicator" aria-hidden="true">
-          +
-        </span>
+        <span class="genre-distribution-expand-indicator" aria-hidden="true"> + </span>
       </summary>
 
-      <ul class="genre-distribution-subgenre-list" [attr.aria-label]="'Podgatunki dla ' + segment.name">
+      <ul
+        class="genre-distribution-subgenre-list"
+        [attr.aria-label]="'Podgatunki dla ' + segment.name"
+      >
         @for (subgenre of segment.subgenres; track subgenre.name) {
         <li class="genre-distribution-subgenre-row" [title]="subgenre.artists.join(', ')">
           <span aria-hidden="true"></span>
           <span class="genre-distribution-subgenre-name">{{ subgenre.name }}</span>
           <strong class="genre-distribution-subgenre-percentage">{{ subgenre.percentage }}%</strong>
           <span class="genre-distribution-subgenre-count">{{ subgenre.count }}</span>
-          <span class="genre-distribution-subgenre-indicator-spacer" aria-hidden="true">
-            +
-          </span>
+          <span class="genre-distribution-subgenre-indicator-spacer" aria-hidden="true"> + </span>
         </li>
         }
       </ul>

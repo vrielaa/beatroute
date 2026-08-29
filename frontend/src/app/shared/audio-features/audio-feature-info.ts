@@ -14,7 +14,10 @@ export type AudioFeatureInfoKey =
   | 'mode'
   | 'timeSignature';
 
-export type RangedAudioFeatureInfoKey = Exclude<AudioFeatureInfoKey, 'key' | 'mode' | 'timeSignature'>;
+export type RangedAudioFeatureInfoKey = Exclude<
+  AudioFeatureInfoKey,
+  'key' | 'mode' | 'timeSignature'
+>;
 
 type AudioFeatureInfo = {
   label: string;
@@ -81,7 +84,8 @@ export const AUDIO_FEATURE_INFO: Record<AudioFeatureInfoKey, AudioFeatureInfo> =
     decimals: 2,
     details:
       'Szacuje, czy utwór brzmi jak nagrany na instrumentach akustycznych, np. gitarze akustycznej, pianinie lub żywej perkusji.',
-    lowMeaning: '0 oznacza brzmienie bardziej elektroniczne, przetworzone lub studyjnie produkowane',
+    lowMeaning:
+      '0 oznacza brzmienie bardziej elektroniczne, przetworzone lub studyjnie produkowane',
     highMeaning: '1 oznacza brzmienie wyraźnie akustyczne i naturalne',
   },
   instrumentalness: {
@@ -173,9 +177,9 @@ export function audioFeatureTooltip(key: AudioFeatureInfoKey): TooltipContent {
   };
 }
 
-export function rangedAudioFeatureInfo(key: RangedAudioFeatureInfoKey): Required<
-  Pick<AudioFeatureInfo, 'min' | 'max' | 'decimals' | 'lowMeaning' | 'highMeaning'>
-> &
+export function rangedAudioFeatureInfo(
+  key: RangedAudioFeatureInfoKey
+): Required<Pick<AudioFeatureInfo, 'min' | 'max' | 'decimals' | 'lowMeaning' | 'highMeaning'>> &
   AudioFeatureInfo {
   const feature = AUDIO_FEATURE_INFO[key];
 
@@ -186,7 +190,9 @@ export function rangedAudioFeatureInfo(key: RangedAudioFeatureInfoKey): Required
   return feature;
 }
 
-function hasAudioFeatureRange(feature: AudioFeatureInfo): feature is Required<
+function hasAudioFeatureRange(
+  feature: AudioFeatureInfo
+): feature is Required<
   Pick<AudioFeatureInfo, 'min' | 'max' | 'decimals' | 'lowMeaning' | 'highMeaning'>
 > &
   AudioFeatureInfo {
@@ -203,7 +209,9 @@ function formatRangeValue(
   value: number,
   feature: Pick<AudioFeatureInfo, 'decimals' | 'unit'>
 ): string {
-  const formattedValue = Number.isInteger(value) ? String(value) : value.toFixed(feature.decimals ?? 0);
+  const formattedValue = Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(feature.decimals ?? 0);
 
   return feature.unit ? `${formattedValue} ${feature.unit}` : formattedValue;
 }

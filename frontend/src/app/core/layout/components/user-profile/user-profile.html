@@ -1,6 +1,4 @@
-<p
-  class="user-profile-display-name"
->
+<p class="user-profile-display-name">
   {{ userName() }}
 </p>
 
@@ -9,9 +7,7 @@
   <img [src]="imageUrl" alt="User Profile Picture" class="user-profile-avatar-image" />
 </div>
 } @if (userEmail(); as email) {
-<p
-  class="user-profile-email"
->
+<p class="user-profile-email">
   {{ email }}
 </p>
 }
