@@ -7,10 +7,13 @@
   "scripts": {
     "dev": "tsx watch src/server.js",
     "start": "tsx src/server.js",
-    "format": "prettier --write .",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\" package.json tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "prettier": {
+    "trailingComma": "es5"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,7 +22,6 @@
     "express-session": "^1.19.0",
     "ml-kmeans": "^7.0.1",
     "ml-pca": "^4.1.1",
-    "prettier": "^2.8.8",
     "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.12"
   },
@@ -27,6 +29,7 @@
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
     "@types/node": "^26.3.0",
+    "prettier": "^3.9.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
