@@ -1,4 +1,16 @@
-function average(values) {
+import type {
+  ReccoBeatsTrackAudioFeaturesResult,
+  ReccoBeatsTrackAudioFeatures,
+  AudioStats,
+} from "./reccobeats.types.js";
+
+/**
+ * Oblicza średnią arytmetyczną wartości liczbowych.
+ *
+ * @param values - Wartości uwzględniane w obliczeniu.
+ * @returns Średnia albo `null` dla pustej tablicy.
+ */
+function average(values: number[]) {
   if (!values.length) {
     return null;
   }
@@ -7,7 +19,14 @@ function average(values) {
   return sum / values.length;
 }
 
-function roundIfNumber(value, digits = 2) {
+/**
+ * Zaokrągla liczbę do wskazanej liczby miejsc po przecinku.
+ *
+ * @param value - Liczba do zaokrąglenia albo `null`.
+ * @param digits - Liczba miejsc po przecinku.
+ * @returns Zaokrąglona liczba albo `null`.
+ */
+function roundIfNumber(value: number | null, digits = 2) {
   if (typeof value !== "number") {
     return null;
   }
@@ -15,7 +34,13 @@ function roundIfNumber(value, digits = 2) {
   return Number(value.toFixed(digits));
 }
 
-function mode(values) {
+/**
+ * Wyznacza najczęściej występującą wartość w zbiorze.
+ *
+ * @param values - Wartości uwzględniane podczas liczenia wystąpień.
+ * @returns Dominanta albo `null` dla pustej tablicy.
+ */
+function mode(values: unknown[]) {
   if (!values.length) {
     return null;
   }
@@ -39,7 +64,14 @@ function mode(values) {
   return bestValue;
 }
 
-function percentage(count, total) {
+/**
+ * Zamienia udział elementów na zaokrągloną wartość procentową.
+ *
+ * @param count - Liczba elementów spełniających warunek.
+ * @param total - Łączna liczba analizowanych elementów.
+ * @returns Procent w zakresie od 0 do 100; `0`, gdy zbiór jest pusty.
+ */
+function percentage(count: number, total: number) {
   if (!total) {
     return 0;
   }
@@ -47,9 +79,20 @@ function percentage(count, total) {
   return Math.round((count / total) * 100);
 }
 
-export function calculateAudioStats(audioFeatures) {
-  const validTracks = audioFeatures.filter((track) => track && !track.error);
-
+/**
+ * Oblicza zbiorcze statystyki cech audio dla poprawnie pobranych utworów.
+ * Wyniki błędów są pomijane, a brak wartości danej cechy nie wpływa na jej
+ * średnią, dominantę ani klasyfikację progową.
+ *
+ * @param audioFeatures - Cechy audio i błędy pobierania poszczególnych utworów.
+ * @returns Średnie, dominanty, liczności i wartości procentowe profilu muzycznego.
+ */
+export function calculateAudioStats(
+  audioFeatures: ReccoBeatsTrackAudioFeaturesResult[]
+): AudioStats {
+  const validTracks = audioFeatures.filter(
+    (track): track is ReccoBeatsTrackAudioFeatures => !("error" in track)
+  );
   const tempos = validTracks
     .map((track) => track.tempo)
     .filter((value) => typeof value === "number");

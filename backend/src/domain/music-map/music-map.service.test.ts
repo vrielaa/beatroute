@@ -14,7 +14,9 @@ vi.mock("../../integrations/spotify/spotify.gateway.js", () => ({
 }));
 
 vi.mock("../../integrations/reccobeats/reccobeats.service.js", () => ({
-  getManyTrackAudioFeaturesBySpotifyIds: getManyAudioFeaturesMock,
+  reccoBeatsService: {
+    getManyTrackAudioFeaturesBySpotifyIds: getManyAudioFeaturesMock,
+  },
 }));
 
 import {

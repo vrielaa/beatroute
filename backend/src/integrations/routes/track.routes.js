@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getTrackAudioFeaturesBySpotifyId } from "../../integrations/soundcharts/soundcharts.service.js";
 import { calculateAudioStats } from "../../integrations/reccobeats/reccobeats.stats.js";
-import { getManyTrackAudioFeaturesBySpotifyIds } from "../../integrations/reccobeats/reccobeats.service.js";
+import { reccoBeatsService } from "../../integrations/reccobeats/reccobeats.service.js";
 import {
   MAX_TRACKS_LIMIT,
   parseTrackIds,
@@ -11,7 +11,7 @@ const router = Router();
 
 router.get("/:spotifyTrackId/audio-features", async (req, res) => {
   const data = await getTrackAudioFeaturesBySpotifyId(
-    req.params.spotifyTrackId
+    req.params.spotifyTrackId,
   );
   res.json(data);
 });
@@ -19,7 +19,9 @@ router.get("/:spotifyTrackId/audio-features", async (req, res) => {
 router.post("/audio-features", async (req, res) => {
   const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-  const results = await getManyTrackAudioFeaturesBySpotifyIds(trackIds);
+  const results = await reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(
+    trackIds,
+  );
 
   res.json({ audio_features: results });
 });
@@ -28,7 +30,9 @@ router.post("/audio-features", async (req, res) => {
 router.post("/audio-stats", async (req, res) => {
   const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-  const results = await getManyTrackAudioFeaturesBySpotifyIds(trackIds);
+  const results = await reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(
+    trackIds,
+  );
   const foundTracksCount = results.filter((result) => !result.error).length;
   let stats = calculateAudioStats(results);
   stats = {

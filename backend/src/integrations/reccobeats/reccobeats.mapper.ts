@@ -1,4 +1,13 @@
-export function mapReccoBeatsAudioFeatures(audio) {
+import { ReccoBeatsAudioFeatures } from "./reccobeats.types.js";
+
+/**
+ * Normalizuje cechy audio ReccoBeats do kompletnego obiektu aplikacji.
+ * Brakujące wartości zewnętrznego API zastępuje wartością `null`.
+ *
+ * @param audio - Surowe cechy audio zwrócone przez ReccoBeats.
+ * @returns Cechy audio z jawną wartością dla każdego obsługiwanego pola.
+ */
+export function mapReccoBeatsAudioFeatures(audio: ReccoBeatsAudioFeatures) {
   return {
     acousticness: audio?.acousticness ?? null,
     danceability: audio?.danceability ?? null,
