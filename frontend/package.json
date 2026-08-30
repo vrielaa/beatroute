@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve --poll=1000",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css}\" angular.json package.json proxy.conf.json \"tsconfig*.json\" README.md",
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss,css}\" angular.json package.json proxy.conf.json \"tsconfig*.json\" README.md",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.js",
     "start": "tsx src/server.js",
     "format": "prettier --write \"src/**/*.{ts,js,json}\" package.json tsconfig.json",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\" package.json tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -7,9 +7,12 @@
     "frontend:start": "npm --prefix frontend run start",
     "backend:dev": "npm --prefix backend run dev",
     "frontend:build": "npm --prefix frontend run build",
-    "format": "npm --prefix frontend run format && npm --prefix backend run format"
+    "format": "npm --prefix frontend run format && npm --prefix backend run format",
+    "format:check": "npm --prefix frontend run format:check && npm --prefix backend run format:check",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7"
   }
 }
