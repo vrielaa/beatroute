@@ -100,7 +100,7 @@ function getArtistName(artist: Artist): string {
  * @returns `true`, jeśli kandydat ma nazwę gatunku kanonicznego.
  */
 function isValidGenreCandidate(
-  candidate: GenreCandidate,
+  candidate: GenreCandidate
 ): candidate is GenreCandidate & { canonicalName: string } {
   return Boolean(candidate.canonicalName);
 }
@@ -124,7 +124,7 @@ function getValidCandidates(artist: Artist) {
  */
 function getOrCreateGenre(
   genreMap: GenreMap,
-  canonicalName: string,
+  canonicalName: string
 ): GenreAccumulator {
   const existingGenre = genreMap.get(canonicalName);
 
@@ -152,7 +152,7 @@ function getOrCreateGenre(
  */
 function getOrCreateSubgenre(
   subgenreMap: SubgenreMap,
-  candidate: GenreCandidate,
+  candidate: GenreCandidate
 ): SubgenreAccumulator {
   const existingSubgenre = subgenreMap.get(candidate.key);
 
@@ -181,7 +181,7 @@ function getOrCreateSubgenre(
 function addGenreMatch(
   genreMap: GenreMap,
   candidate: GenreCandidate,
-  artistName: string,
+  artistName: string
 ) {
   if (!isValidGenreCandidate(candidate)) {
     return;
@@ -274,7 +274,7 @@ function buildGenres(genreMap: GenreMap, totalGenreMatches: number) {
   const sortedGenres = sortGenres(genres);
 
   const resultGenres = sortedGenres.map((genre) =>
-    buildGenre(genre, totalGenreMatches),
+    buildGenre(genre, totalGenreMatches)
   );
 
   return resultGenres;

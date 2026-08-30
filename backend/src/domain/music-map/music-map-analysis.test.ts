@@ -16,19 +16,19 @@ describe("analyzeMusicMapRows", () => {
 
   it("throws when a vector length does not match the feature list", () => {
     expect(() =>
-      analyzeMusicMapRows([[0.5]], ["energy", "tempo"], null),
+      analyzeMusicMapRows([[0.5]], ["energy", "tempo"], null)
     ).toThrow(RangeError);
   });
 
   it("throws when a vector contains a non-finite value", () => {
     expect(() => analyzeMusicMapRows([[Number.NaN]], ["energy"], null)).toThrow(
-      TypeError,
+      TypeError
     );
   });
 
   it("throws when requested cluster count is invalid", () => {
     expect(() => analyzeMusicMapRows([[0.5]], ["energy"], 1)).toThrow(
-      RangeError,
+      RangeError
     );
   });
 });

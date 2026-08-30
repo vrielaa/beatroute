@@ -83,9 +83,7 @@ export type ClusteringResult = {
 };
 
 export type MusicMapClusterSelectionSource =
-  | "silhouette-score"
-  | "manual"
-  | "fallback";
+  "silhouette-score" | "manual" | "fallback";
 
 export type MusicMapCandidateClusterResult = {
   k: number;

@@ -68,8 +68,7 @@ export type ReccoBeatsTrackAudioFeaturesError = {
 
 /** Wynik pobierania cech audio jednego utworu. */
 export type ReccoBeatsTrackAudioFeaturesResult =
-  | ReccoBeatsTrackAudioFeatures
-  | ReccoBeatsTrackAudioFeaturesError;
+  ReccoBeatsTrackAudioFeatures | ReccoBeatsTrackAudioFeaturesError;
 
 /** Skrócone dane utworu zwracane przez wyszukiwarkę ReccoBeats. */
 export type ReccoBeatsTrackApiResponse = {

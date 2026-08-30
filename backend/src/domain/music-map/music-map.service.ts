@@ -89,7 +89,7 @@ export async function getTopTracksWithAudioFeatures({
   const trackIds = tracks.map((track) => track.id).filter(Boolean);
   const audioFeatures: TrackAudioFeatures[] = trackIds.length
     ? ((await reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(
-        trackIds,
+        trackIds
       )) as TrackAudioFeatures[])
     : [];
 
@@ -121,7 +121,7 @@ export function buildMusicMapProjection({
 }: MusicMapProjectionData): MusicMapProjection {
   const audioFeaturesBySpotifyId = indexAudioFeaturesBySpotifyId(audioFeatures);
   const trackRows = tracks.map((track) =>
-    buildTrackFeatureRow(track, audioFeaturesBySpotifyId),
+    buildTrackFeatureRow(track, audioFeaturesBySpotifyId)
   );
   const { validRows, skippedTracks } = partitionTrackRows(trackRows);
 
@@ -129,7 +129,7 @@ export function buildMusicMapProjection({
   const analysis = analyzeMusicMapRows(
     featureVectors,
     MUSIC_MAP_FEATURE_KEYS,
-    requestedClusterCount,
+    requestedClusterCount
   );
 
   const normalizedPoints = normalizeProjectedCoordinates(analysis.coordinates);
@@ -168,7 +168,7 @@ export function buildMusicMapProjection({
  * @returns Mapa umożliwiająca szybkie znalezienie cech dla utworu.
  */
 function indexAudioFeaturesBySpotifyId(
-  audioFeatures: TrackAudioFeatures[],
+  audioFeatures: TrackAudioFeatures[]
 ): Map<string, TrackAudioFeatures> {
   const indexedFeatures = new Map<string, TrackAudioFeatures>();
 
@@ -220,7 +220,7 @@ function buildMusicMapPoints({
   clusters,
 }: MusicMapPointContext): MusicMapPoint[] {
   const clusterDescriptionsById = new Map<number, string>(
-    clusters.map((cluster) => [cluster.id, cluster.description]),
+    clusters.map((cluster) => [cluster.id, cluster.description])
   );
 
   return tracks.map((track, index) => {
@@ -257,7 +257,7 @@ function buildMusicMapPoints({
  */
 function buildTrackFeatureRow(
   track: SpotifyTrack,
-  audioFeaturesBySpotifyId: Map<string, TrackAudioFeatures>,
+  audioFeaturesBySpotifyId: Map<string, TrackAudioFeatures>
 ): PreparedMusicMapTrack {
   const features = audioFeaturesBySpotifyId.get(track.id);
   const baseTrack = {
@@ -288,7 +288,7 @@ function buildTrackFeatureRow(
   }
 
   const audioFeatures = Object.fromEntries(
-    MUSIC_MAP_FEATURE_KEYS.map((key, index) => [key, round(vector[index])]),
+    MUSIC_MAP_FEATURE_KEYS.map((key, index) => [key, round(vector[index])])
   ) as AudioFeatureValues;
 
   return {
@@ -308,7 +308,7 @@ function buildTrackFeatureRow(
  */
 function buildClusterSummaries(
   rows: AnalyzableTrack[],
-  clusterLabels: number[],
+  clusterLabels: number[]
 ): MusicMapCluster[] {
   const groupedRows = new Map<number, AnalyzableTrack[]>();
 
@@ -347,7 +347,7 @@ function averageAudioFeatures(rows: AnalyzableTrack[]): AudioFeatureValues {
     MUSIC_MAP_FEATURE_KEYS.map((key) => [
       key,
       round(average(rows.map((row) => row.audioFeatures[key]))),
-    ]),
+    ])
   ) as AudioFeatureValues;
 }
 
@@ -358,7 +358,7 @@ function averageAudioFeatures(rows: AnalyzableTrack[]): AudioFeatureValues {
  * @returns Współrzędne gotowe do rozmieszczenia punktów na wykresie.
  */
 function normalizeProjectedCoordinates(
-  coordinates: Coordinate[],
+  coordinates: Coordinate[]
 ): NormalizedPoint[] {
   const xValues = coordinates.map(([x]) => x);
   const yValues = coordinates.map(([, y]) => y);

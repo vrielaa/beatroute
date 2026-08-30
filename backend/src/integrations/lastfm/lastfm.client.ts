@@ -21,11 +21,11 @@ export class LastfmApiError extends Error {
 
 export function createLastfmApiSignature(
   params: Record<string, unknown>,
-  { sharedSecret = appConfig.lastfm.sharedSecret } = {},
+  { sharedSecret = appConfig.lastfm.sharedSecret } = {}
 ): string {
   const signatureSource = Object.entries(params)
     .filter(
-      ([key, val]) => !["format", "callback"].includes(key) && val != null,
+      ([key, val]) => !["format", "callback"].includes(key) && val != null
     )
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}${String(value)}`)
@@ -42,7 +42,7 @@ function buildRequestParams(
   params: Record<string, unknown>,
   config: typeof appConfig.lastfm,
   sessionKey: string | null,
-  signed: boolean,
+  signed: boolean
 ): Record<string, string> {
   const requestParams: Record<string, unknown> = {
     api_key: config.apiKey,
@@ -72,7 +72,7 @@ function buildRequestParams(
 function prepareFetchArgs(
   httpMethod: string,
   stringParams: Record<string, string>,
-  config: typeof appConfig.lastfm,
+  config: typeof appConfig.lastfm
 ): { url: string; options: RequestOptions } {
   const searchParams = new URLSearchParams(stringParams);
   const headers: Record<string, string> = {
@@ -110,7 +110,7 @@ async function parseAndValidateResponse(response: Response): Promise<any> {
   if (!response.ok || data?.error) {
     throw new LastfmApiError(
       data?.message || `Last.fm request failed with status ${response.status}`,
-      data?.error ?? null,
+      data?.error ?? null
     );
   }
 
@@ -124,7 +124,7 @@ export function createLastfmClient({
   return async function fetchFromLastfm(
     method: string,
     params: Record<string, unknown> = {},
-    { signed = false, sessionKey = null, httpMethod = "GET" } = {},
+    { signed = false, sessionKey = null, httpMethod = "GET" } = {}
   ) {
     assertLastfmConfig(config);
 
@@ -133,7 +133,7 @@ export function createLastfmClient({
       params,
       config,
       sessionKey,
-      signed,
+      signed
     );
     const { url, options } = prepareFetchArgs(httpMethod, stringParams, config);
 

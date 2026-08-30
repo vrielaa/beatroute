@@ -74,9 +74,8 @@ export function createReccoBeatsService({
   async function getManyTrackAudioFeaturesBySpotifyIds(
     spotifyTrackIds: string[]
   ): Promise<ReccoBeatsTrackAudioFeaturesResult[]> {
-    const tracks = await reccoBeatsGateway.findTracksBySpotifyIds(
-      spotifyTrackIds
-    );
+    const tracks =
+      await reccoBeatsGateway.findTracksBySpotifyIds(spotifyTrackIds);
 
     const idMap = new Map();
 

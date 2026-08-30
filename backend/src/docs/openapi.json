@@ -768,7 +768,14 @@
             "type": "integer"
           }
         },
-        "required": ["id", "name", "artists", "album", "duration_ms", "popularity"]
+        "required": [
+          "id",
+          "name",
+          "artists",
+          "album",
+          "duration_ms",
+          "popularity"
+        ]
       },
       "SpotifyPagingBase": {
         "type": "object",
@@ -1145,7 +1152,14 @@
             "type": ["string", "null"]
           }
         },
-        "required": ["id", "name", "artists", "album", "durationMs", "spotifyUrl"]
+        "required": [
+          "id",
+          "name",
+          "artists",
+          "album",
+          "durationMs",
+          "spotifyUrl"
+        ]
       },
       "SpotifyLastfmTrackResponse": {
         "type": "object",

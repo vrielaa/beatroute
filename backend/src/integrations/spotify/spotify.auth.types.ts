@@ -30,8 +30,7 @@ export type SpotifyRefreshTokenRequest = {
 
 /** Parametry obsługiwane przez endpoint tokenowy Spotify. */
 export type SpotifyTokenRequest =
-  | SpotifyAuthorizationCodeRequest
-  | SpotifyRefreshTokenRequest;
+  SpotifyAuthorizationCodeRequest | SpotifyRefreshTokenRequest;
 
 /** Wspólne pola poprawnej odpowiedzi tokenowej Spotify. */
 export type SpotifyTokenResponse = {

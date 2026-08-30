@@ -25,17 +25,17 @@ const MAX_AUTO_CLUSTER_COUNT = 8;
 export function analyzeMusicMapRows(
   featureVectors: NumericMatrix,
   featureKeys: MusicMapFeatureKey[],
-  requestedClusterCount: number | null,
+  requestedClusterCount: number | null
 ): MusicMapAnalysis {
   validateAnalysisData(featureVectors, featureKeys, requestedClusterCount);
 
   const activeFeatureIndexes = getVariableFeatureIndexes(
     featureVectors,
-    featureKeys,
+    featureKeys
   );
 
   const activeFeatureKeys = activeFeatureIndexes.map(
-    (index) => featureKeys[index],
+    (index) => featureKeys[index]
   );
 
   if (featureVectors.length < 2 || !activeFeatureIndexes.length) {
@@ -43,7 +43,7 @@ export function analyzeMusicMapRows(
   }
 
   const rawMatrix = featureVectors.map((vector) =>
-    activeFeatureIndexes.map((index) => vector[index]),
+    activeFeatureIndexes.map((index) => vector[index])
   );
   const scaledMatrix = standardizeMatrix(rawMatrix);
   const candidateClusterResults = evaluateClusterCandidates(scaledMatrix);
@@ -56,8 +56,8 @@ export function analyzeMusicMapRows(
   const selectedClusterCountSource = requestedClusterCount
     ? "manual"
     : candidateClusterResults.length
-    ? "silhouette-score"
-    : "fallback";
+      ? "silhouette-score"
+      : "fallback";
   const clusterLabels = clusterMatrix(scaledMatrix, selectedClusterCount);
   const projection = projectScaledMatrix(scaledMatrix);
 
@@ -82,18 +82,18 @@ export function analyzeMusicMapRows(
 function validateAnalysisData(
   featureVectors: NumericMatrix,
   featureKeys: MusicMapFeatureKey[],
-  requestedClusterCount: number | null,
+  requestedClusterCount: number | null
 ): void {
   for (const [index, vector] of featureVectors.entries()) {
     if (vector.length !== featureKeys.length) {
       throw new RangeError(
-        `Feature vector ${index} has ${vector.length} values; expected ${featureKeys.length}`,
+        `Feature vector ${index} has ${vector.length} values; expected ${featureKeys.length}`
       );
     }
 
     if (vector.some((value) => !Number.isFinite(value))) {
       throw new TypeError(
-        `Feature vector ${index} contains a non-finite value`,
+        `Feature vector ${index} contains a non-finite value`
       );
     }
   }
@@ -103,7 +103,7 @@ function validateAnalysisData(
     (!Number.isInteger(requestedClusterCount) || requestedClusterCount < 2)
   ) {
     throw new RangeError(
-      "Requested cluster count must be an integer of at least 2",
+      "Requested cluster count must be an integer of at least 2"
     );
   }
 }
@@ -117,7 +117,7 @@ function validateAnalysisData(
  */
 function buildFallbackAnalysis(
   featureVectors: NumericMatrix,
-  activeFeatureKeys: MusicMapFeatureKey[],
+  activeFeatureKeys: MusicMapFeatureKey[]
 ): MusicMapAnalysis {
   return {
     activeFeatureKeys,
@@ -140,7 +140,7 @@ function buildFallbackAnalysis(
  */
 function getVariableFeatureIndexes(
   featureVectors: NumericMatrix,
-  featureKeys: MusicMapFeatureKey[],
+  featureKeys: MusicMapFeatureKey[]
 ): number[] {
   if (featureVectors.length < 2) {
     return [];
@@ -165,7 +165,7 @@ function getVariableFeatureIndexes(
 function standardizeMatrix(matrix: NumericMatrix): NumericMatrix {
   const columnsCount = matrix[0]?.length ?? 0;
   const means = Array.from({ length: columnsCount }, (_, columnIndex) =>
-    average(matrix.map((row) => row[columnIndex])),
+    average(matrix.map((row) => row[columnIndex]))
   );
   const standardDeviations = Array.from(
     { length: columnsCount },
@@ -175,14 +175,14 @@ function standardizeMatrix(matrix: NumericMatrix): NumericMatrix {
       const variance = average(values.map((value) => (value - mean) ** 2));
 
       return Math.sqrt(variance) || 1;
-    },
+    }
   );
 
   return matrix.map((row) =>
     row.map(
       (value, columnIndex) =>
-        (value - means[columnIndex]) / standardDeviations[columnIndex],
-    ),
+        (value - means[columnIndex]) / standardDeviations[columnIndex]
+    )
   );
 }
 
@@ -194,7 +194,7 @@ function standardizeMatrix(matrix: NumericMatrix): NumericMatrix {
  * @returns Wyniki jakości dla kolejnych wartości `k`.
  */
 function evaluateClusterCandidates(
-  matrix: NumericMatrix,
+  matrix: NumericMatrix
 ): MusicMapCandidateClusterResult[] {
   const maxClusterCount = getMaxSupportedClusterCount(matrix);
 
@@ -213,7 +213,7 @@ function evaluateClusterCandidates(
       inertia: round(calculateInertia(matrix, result), 4),
       silhouetteScore: round(
         calculateSilhouetteScore(matrix, result.clusters),
-        4,
+        4
       ),
     };
   });
@@ -270,7 +270,7 @@ function getMaxSupportedClusterCount(matrix: NumericMatrix): number {
   return Math.min(
     MAX_AUTO_CLUSTER_COUNT,
     matrix.length - 1,
-    getUniqueRowsCount(matrix),
+    getUniqueRowsCount(matrix)
   );
 }
 
@@ -330,9 +330,10 @@ function projectSingleFeature(matrix: NumericMatrix): MusicMapCoordinates {
   const spread = max - min || 1;
 
   return {
-    coordinates: values.map(
-      (value): Coordinate => [((value - min) / spread) * 2 - 1, 0],
-    ),
+    coordinates: values.map((value): Coordinate => [
+      ((value - min) / spread) * 2 - 1,
+      0,
+    ]),
     explainedVariance: [1],
   };
 }
@@ -347,7 +348,7 @@ function projectSingleFeature(matrix: NumericMatrix): MusicMapCoordinates {
  */
 function calculateInertia(
   matrix: NumericMatrix,
-  result: ClusteringResult,
+  result: ClusteringResult
 ): number {
   return matrix.reduce((sum, row, index) => {
     const centroid = result.centroids[result.clusters[index]];
@@ -366,7 +367,7 @@ function calculateInertia(
  */
 function calculateSilhouetteScore(
   matrix: NumericMatrix,
-  clusterLabels: number[],
+  clusterLabels: number[]
 ): number {
   const uniqueClusters = [...new Set(clusterLabels)];
 
@@ -378,7 +379,7 @@ function calculateSilhouetteScore(
     const ownCluster = clusterLabels[index];
     const ownClusterRows = matrix.filter(
       (_, rowIndex) =>
-        clusterLabels[rowIndex] === ownCluster && rowIndex !== index,
+        clusterLabels[rowIndex] === ownCluster && rowIndex !== index
     );
 
     if (!ownClusterRows.length) {
@@ -386,24 +387,24 @@ function calculateSilhouetteScore(
     }
 
     const ownClusterDistance = average(
-      ownClusterRows.map((otherRow) => euclideanDistance(row, otherRow)),
+      ownClusterRows.map((otherRow) => euclideanDistance(row, otherRow))
     );
     const nearestOtherClusterDistance = Math.min(
       ...uniqueClusters
         .filter((cluster) => cluster !== ownCluster)
         .map((cluster) => {
           const clusterRows = matrix.filter(
-            (_, rowIndex) => clusterLabels[rowIndex] === cluster,
+            (_, rowIndex) => clusterLabels[rowIndex] === cluster
           );
 
           return average(
-            clusterRows.map((otherRow) => euclideanDistance(row, otherRow)),
+            clusterRows.map((otherRow) => euclideanDistance(row, otherRow))
           );
-        }),
+        })
     );
     const denominator = Math.max(
       ownClusterDistance,
-      nearestOtherClusterDistance,
+      nearestOtherClusterDistance
     );
 
     return denominator === 0
@@ -422,7 +423,7 @@ function calculateSilhouetteScore(
  */
 function getUniqueRowsCount(matrix: NumericMatrix): number {
   return new Set(
-    matrix.map((row) => row.map((value) => round(value, 8)).join(":")),
+    matrix.map((row) => row.map((value) => round(value, 8)).join(":"))
   ).size;
 }
 
@@ -430,7 +431,7 @@ function getUniqueRowsCount(matrix: NumericMatrix): number {
 function squaredEuclideanDistance(left: number[], right: number[]): number {
   return left.reduce(
     (sum, value, index) => sum + (value - right[index]) ** 2,
-    0,
+    0
   );
 }
 
