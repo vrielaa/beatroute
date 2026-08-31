@@ -3,10 +3,9 @@ import session from "express-session";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import openapiDocument from "./docs/openapi.json" with { type: "json" };
-
 import { validateEnv } from "./utils/validateEnv.js";
 
-import { appConfig } from "./config/app.config.js";
+import { appConfig, type AppConfig } from "./config/app.config.js";
 
 import authRoutes from "@integrations/routes/auth/routes.js";
 import sessionRoutes from "@integrations/routes/session.routes.js";
@@ -16,7 +15,7 @@ import lastfmRoutes from "@integrations/routes/lastfm.routes.js";
 import musicMapRoutes from "@integrations/routes/music-map/routes.js";
 import { errorHandler, notFoundHandler } from "@http/error-response.js";
 
-function validateAppConfig(config) {
+function validateAppConfig(config: AppConfig) {
   validateEnv({
     FRONTEND_URL: config.server.frontendUrl,
     SPOTIFY_CLIENT_ID: config.spotify.clientId,

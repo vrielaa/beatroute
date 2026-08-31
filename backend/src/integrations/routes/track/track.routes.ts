@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getTrackAudioFeaturesBySpotifyId } from "../../soundcharts/soundcharts.service.js";
+import { getTrackAudioFeaturesBySpotifyId } from "../../soundcharts/service.js";
 import { calculateAudioStats } from "../../reccobeats/reccobeats.stats.js";
 import { reccoBeatsService } from "../../reccobeats/reccobeats.service.js";
 import {

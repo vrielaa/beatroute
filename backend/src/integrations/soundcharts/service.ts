@@ -1,17 +1,27 @@
-import { fetchFromSoundcharts } from "./soundcharts.client.js";
+import { fetchFromSoundcharts } from "./client.js";
+import {
+  type SoundchartsApiSongResponse,
+  type SoundchartsApiErrorResponse,
+} from "./types.js";
 
-async function getSongBySpotifyId(spotifyTrackId) {
+async function getSongBySpotifyId(
+  spotifyTrackId: string
+): Promise<SoundchartsApiSongResponse | SoundchartsApiErrorResponse> {
   return fetchFromSoundcharts(
     `/api/v2.25/song/by-platform/spotify/${spotifyTrackId}`
   );
 }
 
-async function getSongMetadataByUuid(uuid) {
+async function getSongMetadataByUuid(uuid: string) {
   return fetchFromSoundcharts(`/api/v2.25/song/${uuid}`);
 }
 
-async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
+async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId: string) {
   const song = await getSongBySpotifyId(spotifyTrackId);
+
+  if ("errors" in song) {
+    throw new Error(song?.errors?.[0]?.message || "Soundcharts request failed");
+  }
 
   const uuid = song?.object?.uuid;
   const audio = song?.object?.audio;

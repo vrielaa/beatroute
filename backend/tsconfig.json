@@ -19,6 +19,11 @@
     "skipLibCheck": true,
     "types": ["node", "express"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.js"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.js",
+    "src/utils/validateEnv.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

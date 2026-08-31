@@ -9,6 +9,9 @@ const SPOTIFY_SCOPES = [
   "playlist-modify-private",
 ];
 
+/** Typ konfiguracji aplikacji. */
+type AppConfig = ReturnType<typeof createAppConfig>;
+
 /**
  * Buduje konfigurację aplikacji ze zmiennych środowiskowych.
  * Brakujące wartości tekstowe pozostawia jako puste, aby wspólna walidacja
@@ -53,4 +56,4 @@ function createAppConfig(env: ApplicationEnvironment = {}) {
 /** Konfiguracja używana przez uruchomioną aplikację. */
 const appConfig = createAppConfig(process.env);
 
-export { SPOTIFY_SCOPES, createAppConfig, appConfig };
+export { SPOTIFY_SCOPES, createAppConfig, appConfig, type AppConfig };

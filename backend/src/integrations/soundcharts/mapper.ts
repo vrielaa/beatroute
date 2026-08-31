@@ -1,4 +1,6 @@
-function mapSoundchartsAudioFeatures(audioFeatures) {
+import { SoundchartsAudioFeatures } from "./types.js";
+
+function mapSoundchartsAudioFeatures(audioFeatures: SoundchartsAudioFeatures) {
   return {
     acousticness: audioFeatures.acousticness ?? null,
     danceability: audioFeatures.danceability ?? null,
