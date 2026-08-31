@@ -143,8 +143,9 @@ describe("track routes", () => {
       expect(response.body).toEqual({
         error: {
           code: "RECCOBEATS_API_ERROR",
-          message: "Nie udało się pobrać danych z ReccoBeats",
+          message: "ReccoBeats unavailable",
           details: {
+            integration: "reccobeats",
             upstreamStatus: 530,
           },
         },
