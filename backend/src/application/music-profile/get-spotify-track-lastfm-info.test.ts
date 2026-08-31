@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   LastfmTrackInfo,
   LastfmTrackService,
-} from "../../integrations/lastfm/track/types.js";
+} from "@integrations/lastfm/track/types.js";
 import type {
   SpotifyGateway,
   SpotifyTrackApiResponse,
   SpotifyTrackSummary,
-} from "../../integrations/spotify/spotify.types.js";
+} from "@integrations/spotify/spotify.types.js";
 import { createGetSpotifyTrackLastfmInfo } from "./get-spotify-track-lastfm-info.js";
 
 describe("Spotify and Last.fm track profile", () => {

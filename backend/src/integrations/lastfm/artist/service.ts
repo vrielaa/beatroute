@@ -1,4 +1,4 @@
-import { buildArtistGenreDistribution } from "../../../domain/music-genres/artist-genre-distribution.js";
+import { buildArtistGenreDistribution } from "@domain/music-genres/artist-genre-distribution.js";
 import { createLastfmArtistGateway } from "./gateway.js";
 import { mapArtistLookupToGenreInput, mapLastfmArtistInfo } from "./mapper.js";
 import type {

@@ -1,8 +1,8 @@
-import { SpotifyApiError } from "../integrations/spotify/spotify-api.error.js";
-import { LastfmApiError } from "../integrations/lastfm/lastfm.client.js";
-import { SpotifyAuthApiError } from "../integrations/spotify/spotify.auth.client.js";
+import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
+import { LastfmApiError } from "@integrations/lastfm/lastfm.client.js";
+import { SpotifyAuthApiError } from "@integrations/spotify/spotify.auth.client.js";
 import { RequestValidationError } from "./request-validation-error.js";
-import { ReccoBeatsApiError } from "../integrations/reccobeats/reccobeats-api.error.js";
+import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import type { NextFunction, Request, Response } from "express";
 
 class HttpError extends Error {

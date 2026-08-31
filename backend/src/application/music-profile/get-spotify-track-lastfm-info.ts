@@ -2,13 +2,13 @@ import type {
   SpotifyTrackApiResponse,
   SpotifyGateway,
   SpotifyTrackSummary,
-} from "../../integrations/spotify/spotify.types.js";
+} from "@integrations/spotify/spotify.types.js";
 
 import type {
   LastfmTrackIdentifier,
   LastfmTrackInfo,
   LastfmTrackService,
-} from "../../integrations/lastfm/track/types.js";
+} from "@integrations/lastfm/track/types.js";
 
 /** Dane wymagane do pobrania profilu pojedynczego utworu. */
 type SpotifyTrackProfileRequest = {

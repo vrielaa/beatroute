@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ReccoBeatsApiError } from "../integrations/reccobeats/reccobeats-api.error.js";
+import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import { mapErrorToHttp } from "./error-response.js";
 
 describe("mapErrorToHttp", () => {

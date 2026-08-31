@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { RequestValidationError } from "../../http/request-validation-error.js";
+import { RequestValidationError } from "@http/request-validation-error.js";
 import {
   parseSpotifyTopItemsQuery,
   parseTrackIds,

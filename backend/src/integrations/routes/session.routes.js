@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { destroySession, saveSession } from "../../http/session.js";
+import { destroySession, saveSession } from "@http/session.js";
 
 const router = Router();
 

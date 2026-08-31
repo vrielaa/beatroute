@@ -1,4 +1,4 @@
-import type { Artist } from "../../../domain/music-genres/artist-genre-distribution.types.js";
+import type { Artist } from "@domain/music-genres/artist-genre-distribution.types.js";
 import {
   getCanonicalGenreName,
   isLikelyGenreTag,

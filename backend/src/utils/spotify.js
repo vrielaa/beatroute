@@ -1,4 +1,4 @@
-import { defaultSpotifyAuthClient } from "../integrations/spotify/spotify.auth.client.js";
+import { defaultSpotifyAuthClient } from "@integrations/spotify/spotify.auth.client.js";
 
 async function refreshAccessToken(req) {
   const refreshToken = req.session.spotify?.refreshToken;

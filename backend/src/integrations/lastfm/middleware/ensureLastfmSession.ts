@@ -1,4 +1,4 @@
-import { HttpError } from "../../../http/error-response.js";
+import { HttpError } from "@http/error-response.js";
 import type { Request, Response, NextFunction } from "express";
 
 /**
