@@ -2,16 +2,33 @@
 
 BeatRoute is an engineering-thesis web application for analysing a user's music preferences. It combines Spotify listening data with Last.fm genres and audio features from ReccoBeats or Soundcharts, then presents statistics and a PCA-based music map with clustering.
 
+The current version focuses on analysis rather than playlist generation. After
+Spotify login, the user can inspect their profile, top tracks and artists,
+audio-feature statistics, Last.fm artist genres, and a PCA/clustering-based
+music map. The playlist-generator screen exists in the frontend as a prepared
+view, but the end-to-end playlist workflow is not implemented yet.
+
 ## Technology
 
 - Angular 22 and TypeScript frontend
 - Express 5 and TypeScript backend
 - Spotify Web API and Spotify Accounts OAuth
 - Last.fm API
-- ReccoBeats and Soundcharts audio features
+- ReccoBeats audio features for batch analysis and Soundcharts audio features
+  for individual track lookups
 - Vitest, Supertest, ESLint and Prettier
 
 Use Node.js 24, which is also used by GitHub Actions.
+
+## Architecture
+
+The backend is divided into domain, application, integration and HTTP layers.
+Domain modules contain PCA, clustering, audio statistics and genre
+classification without depending on Express or a provider API. Application
+modules combine operations such as building a Spotify/Last.fm track profile.
+Integration modules contain provider clients, gateways and mappers. Express
+routers validate requests and receive their services and middleware through
+explicit dependencies, which keeps the core logic independently testable.
 
 ## Local setup
 
@@ -58,7 +75,14 @@ Start the frontend and backend together:
 npm run dev
 ```
 
-The application is available at `https://127.0.0.1:4200`, the backend at `http://127.0.0.1:3000`, and OpenAPI documentation at `http://127.0.0.1:3000/api-docs`.
+The application is available at `https://127.0.0.1:4200`, the backend at
+`http://127.0.0.1:3000`, and OpenAPI documentation at
+`http://127.0.0.1:3000/api-docs`.
+
+The Angular proxy forwards `/api` and `/auth` requests to the backend. The
+backend exposes Spotify OAuth, session, profile/top-items, track audio-feature,
+Last.fm genre/track and music-map endpoints. Protected endpoints require the
+corresponding Spotify or Last.fm session.
 
 ## Quality checks
 
@@ -87,8 +111,14 @@ Backend errors use one response format:
 }
 ```
 
-`details` is present only when additional safe information is available. Failures of external services are represented by dedicated integration error classes and mapped centrally by the Express error handler.
+`details` is present only when additional safe information is available.
+Failures of Spotify, Last.fm, ReccoBeats and Soundcharts are represented by
+dedicated integration error classes and mapped centrally by the Express error
+handler (normally as `502`).
 
 ## Current deployment limitation
 
-The application currently supports local development only. Production mode requires an external `express-session` store, proxy configuration and production cookie settings.
+The application currently supports local development only. Production mode
+requires an external `express-session` store, proxy configuration and
+production cookie settings. Availability and rate limits of external APIs may
+also reduce the number or completeness of analysed tracks.
