@@ -5,7 +5,6 @@ declare module "express-session" {
     lastfm?: {
       username: string;
       sessionKey: string;
-      subscriber?: boolean;
     };
     spotify?: {
       accessToken: string;
