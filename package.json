@@ -7,17 +7,30 @@
     "frontend:start": "npm --prefix frontend run start",
     "backend:dev": "npm --prefix backend run dev",
     "frontend:build": "npm --prefix frontend run build",
+    "lint": "eslint frontend/src backend/src",
     "format": "npm --prefix frontend run format && npm --prefix backend run format",
     "format:check": "npm --prefix frontend run format:check && npm --prefix backend run format:check",
     "prepare": "husky"
   },
   "lint-staged": {
-    "frontend/**/*.{ts,html,scss,css,json,md}": "npm --prefix frontend exec -- prettier --write",
-    "backend/**/*.{ts,js,json,md}": "npm --prefix backend exec -- prettier --write"
+    "frontend/src/**/*.ts": [
+      "eslint",
+      "npm --prefix frontend exec -- prettier --write"
+    ],
+    "frontend/**/*.{html,scss,css,json,md}": "npm --prefix frontend exec -- prettier --write",
+    "backend/src/**/*.{ts,js}": [
+      "eslint",
+      "npm --prefix backend exec -- prettier --write"
+    ],
+    "backend/**/*.{json,md}": "npm --prefix backend exec -- prettier --write"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.68.0",
     "concurrently": "^9.2.1",
+    "eslint": "^10.9.1",
+    "eslint-plugin-import-x": "^4.17.1",
     "husky": "^9.1.7",
-    "lint-staged": "^17.4.1"
+    "lint-staged": "^17.4.1",
+    "typescript": "~6.0.3"
   }
 }
