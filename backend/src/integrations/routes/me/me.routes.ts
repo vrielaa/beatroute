@@ -1,13 +1,13 @@
 import { Router } from "express";
-import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
+import ensureSpotifyAccessToken from "../../spotify/middleware/ensureSpotifyAccessToken.js";
 import {
   MAX_ARTISTS_LIMIT,
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
-} from "../spotify/spotify.validators.js";
-import { defaultSpotifyGateway } from "../spotify/spotify.gateway.js";
+} from "../../spotify/spotify.validators.js";
+import { defaultSpotifyGateway } from "../../spotify/spotify.gateway.js";
 import type { RequestHandler } from "express";
-import type { SpotifyGateway } from "../spotify/spotify.types.js";
+import type { SpotifyGateway } from "../../spotify/spotify.types.js";
 
 /** Operacje Spotify potrzebne trasom danych bieżącego użytkownika. */
 type SpotifyMeGateway = Pick<

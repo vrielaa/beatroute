@@ -2,14 +2,14 @@ import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import { errorHandler } from "../../http/error-response.js";
-import { ReccoBeatsApiError } from "../reccobeats/reccobeats-api.error.js";
+import { errorHandler } from "@http/error-response.js";
+import { ReccoBeatsApiError } from "../../reccobeats/reccobeats-api.error.js";
 import { createTrackRouter } from "./track.routes.js";
 import type { RequestHandler } from "express";
 import type {
   ReccoBeatsTrackAudioFeatures,
   ReccoBeatsTrackAudioFeaturesResult,
-} from "../reccobeats/reccobeats.types.js";
+} from "../../reccobeats/reccobeats.types.js";
 
 describe("track routes", () => {
   it("requires authorization before calling route dependencies", async () => {

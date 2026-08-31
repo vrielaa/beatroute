@@ -1,11 +1,11 @@
 import { Router } from "express";
 import crypto from "crypto";
-import { appConfig } from "../../config/app.config.js";
-import { defaultSpotifyAuthClient } from "../spotify/spotify.auth.client.js";
-import { assertLastfmConfig } from "../../config/lastfm.config.js";
-import { createLastfmSession } from "../lastfm/lastfm.service.js";
-import { HttpError } from "../../http/error-response.js";
-import { saveSession } from "../../http/session.js";
+import { appConfig } from "../../../config/app.config.js";
+import { defaultSpotifyAuthClient } from "../../spotify/spotify.auth.client.js";
+import { assertLastfmConfig } from "../../../config/lastfm.config.js";
+import { createLastfmSession } from "../../lastfm/lastfm.service.js";
+import { HttpError } from "@http/error-response.js";
+import { saveSession } from "@http/session.js";
 
 const router = Router();
 

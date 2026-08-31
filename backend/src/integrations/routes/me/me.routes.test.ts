@@ -3,7 +3,7 @@ import session from "express-session";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import { errorHandler } from "../../http/error-response.js";
+import { errorHandler } from "@http/error-response.js";
 import { createMeRouter } from "./me.routes.js";
 import type { RequestHandler } from "express";
 import type {
@@ -12,7 +12,7 @@ import type {
   SpotifyTrackApiResponse,
   SpotifyArtistApiResponse,
   SpotifyUserProfileApiResponse,
-} from "../spotify/spotify.types.js";
+} from "../../spotify/spotify.types.js";
 
 describe("me routes", () => {
   it("requires Spotify authorization before calling the gateway", async () => {
