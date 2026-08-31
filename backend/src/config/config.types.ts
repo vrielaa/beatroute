@@ -1,5 +1,5 @@
 /** Zmienne środowiskowe odczytywane podczas budowania konfiguracji aplikacji. */
-export type ApplicationEnvironment = {
+type ApplicationEnvironment = {
   NODE_ENV?: string;
   PORT?: string;
   SESSION_SECRET?: string;
@@ -14,3 +14,5 @@ export type ApplicationEnvironment = {
   SOUNDCHARTS_APP_ID?: string;
   SOUNDCHARTS_API_KEY?: string;
 };
+
+export type { ApplicationEnvironment };

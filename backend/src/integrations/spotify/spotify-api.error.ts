@@ -1,5 +1,5 @@
 /** Błąd odpowiedzi otrzymanej ze Spotify Web API. */
-export class SpotifyApiError extends Error {
+class SpotifyApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
@@ -9,3 +9,5 @@ export class SpotifyApiError extends Error {
     this.name = "SpotifyApiError";
   }
 }
+
+export { SpotifyApiError };

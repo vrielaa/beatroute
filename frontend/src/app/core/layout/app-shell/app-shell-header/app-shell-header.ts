@@ -15,8 +15,10 @@ import { UserProfile } from '../../components/user-profile/user-profile';
     class: 'app-shell-header-host',
   },
 })
-export class AppShellHeader {
+class AppShellHeader {
   public readonly showAnalysisFilters = input(false);
   public readonly isAnalysisFiltersOpen = input(false);
   public readonly analysisFiltersToggle = output<void>();
 }
+
+export { AppShellHeader };

@@ -16,7 +16,7 @@ import {
     class: 'cluster-control-card card',
   },
 })
-export class ClusterControl {
+class ClusterControl {
   public readonly minClusterCount = input.required<number>();
   public readonly maxClusterCount = input.required<number>();
   public readonly selectedClusterCount = input.required<number>();
@@ -39,3 +39,5 @@ export class ClusterControl {
     this.clusterCountChange.emit(clusterCount);
   }
 }
+
+export { ClusterControl };

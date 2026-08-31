@@ -1,5 +1,5 @@
 import { fetchFromLastfm } from "../lastfm.client.js";
-import { getLastfmArtistInfo } from "../artist/service.js";
+import { lastfmArtistService } from "../artist/service.js";
 import { isLikelyGenreTag } from "../genre-classifier.js";
 import { createLastfmTrackGateway } from "./gateway.js";
 import { mapLastfmTrackMetadata, mapLastfmTrackTopTags } from "./mapper.js";
@@ -29,7 +29,7 @@ type LastfmTrackServiceDependencies = {
  * @param dependencies - Gateway utworów i funkcja pobierająca tagi artysty.
  * @returns Operacje serwisu utworów Last.fm.
  */
-export function createLastfmTrackService({
+function createLastfmTrackService({
   trackGateway,
   getArtistTags,
 }: LastfmTrackServiceDependencies): LastfmTrackService {
@@ -90,14 +90,14 @@ const defaultLastfmTrackGateway = createLastfmTrackGateway({
     fetchFromLastfm("track.getTopTags", params),
 });
 
-const defaultTrackService = createLastfmTrackService({
+/** Serwis utworów korzystający z produkcyjnych zależności Last.fm. */
+const lastfmTrackService = createLastfmTrackService({
   trackGateway: defaultLastfmTrackGateway,
   getArtistTags: async (artistName: string) => {
-    const artistInfo = await getLastfmArtistInfo(artistName);
+    const artistInfo = await lastfmArtistService.getArtistInfo(artistName);
 
     return artistInfo.tags;
   },
 });
 
-/** Pobiera informacje o utworze przy użyciu domyślnego klienta Last.fm. */
-export const getLastfmTrackInfo = defaultTrackService.getTrackInfo;
+export { createLastfmTrackService, lastfmTrackService };

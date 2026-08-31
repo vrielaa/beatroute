@@ -36,7 +36,7 @@ const CHART_TICKS = [1, 0.75, 0.5, 0.25, 0];
     class: 'audio-features-chart-host',
   },
 })
-export class AudioFeaturesChart {
+class AudioFeaturesChart {
   public readonly rows = input.required<AudioComparisonChartRow[]>();
   public readonly features = input.required<AudioComparisonFeature[]>();
   public readonly activePointTooltip = signal<ActiveChartPointTooltip | null>(null);
@@ -133,3 +133,5 @@ export class AudioFeaturesChart {
     return String(value);
   }
 }
+
+export { AudioFeaturesChart };

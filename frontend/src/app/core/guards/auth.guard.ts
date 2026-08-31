@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SpotifyService } from '@core/services/spotify.service';
 import { catchError, map, of } from 'rxjs';
 
-export const authGuard: CanActivateFn = () => {
+const authGuard: CanActivateFn = () => {
   const spotifyService = inject(SpotifyService);
   const router = inject(Router);
 
@@ -14,3 +14,5 @@ export const authGuard: CanActivateFn = () => {
     catchError(() => of(router.createUrlTree(['/login'])))
   );
 };
+
+export { authGuard };

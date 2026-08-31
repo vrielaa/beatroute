@@ -18,7 +18,7 @@ const FEATURE_DEFINITIONS: ReadonlyArray<{
   { key: 'speechiness', color: '#ef4444' },
 ];
 
-export function createAudioComparisonFeatures(): AudioComparisonFeature[] {
+function createAudioComparisonFeatures(): AudioComparisonFeature[] {
   return FEATURE_DEFINITIONS.map(({ key, color }) => ({
     key,
     color,
@@ -27,7 +27,7 @@ export function createAudioComparisonFeatures(): AudioComparisonFeature[] {
   }));
 }
 
-export function buildAudioComparisonRows(
+function buildAudioComparisonRows(
   tracks: TopTrack[],
   audioFeatures: AudioFeatures[]
 ): AudioComparisonChartRow[] {
@@ -59,7 +59,7 @@ export function buildAudioComparisonRows(
   });
 }
 
-export function areAllComparisonFeaturesSelected(
+function areAllComparisonFeaturesSelected(
   features: AudioComparisonFeature[],
   selectedKeys: AudioComparisonFeatureKey[]
 ): boolean {
@@ -68,7 +68,7 @@ export function areAllComparisonFeaturesSelected(
   return features.every((feature) => selectedKeysSet.has(feature.key));
 }
 
-export function getAudioComparisonSubtitle({
+function getAudioComparisonSubtitle({
   isLoading,
   availableTracksCount,
   requestedTracksCount,
@@ -115,3 +115,10 @@ function truncateTrackName(trackName: string): string {
 
   return trackName.length > maxLength ? `${trackName.slice(0, maxLength - 3)}...` : trackName;
 }
+
+export {
+  createAudioComparisonFeatures,
+  buildAudioComparisonRows,
+  areAllComparisonFeaturesSelected,
+  getAudioComparisonSubtitle,
+};

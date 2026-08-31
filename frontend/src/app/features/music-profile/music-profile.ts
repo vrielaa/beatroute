@@ -17,7 +17,7 @@ import { AverageBpm } from './average-bpm/average-bpm';
     class: 'music-profile-grid',
   },
 })
-export class MusicProfile {
+class MusicProfile {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly tracksStore = inject(ListeningTracksStore);
 
@@ -41,3 +41,5 @@ export class MusicProfile {
     });
   }
 }
+
+export { MusicProfile };

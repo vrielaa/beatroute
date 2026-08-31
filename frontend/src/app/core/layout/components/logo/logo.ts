@@ -10,6 +10,8 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
     class: 'brand-logo',
   },
 })
-export class Logo {
+class Logo {
   readonly logoUrl = 'logo.png';
 }
+
+export { Logo };

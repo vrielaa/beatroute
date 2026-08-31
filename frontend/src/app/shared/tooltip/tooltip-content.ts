@@ -1,4 +1,4 @@
-export type TooltipRangeContent = {
+type TooltipRangeContent = {
   label: string;
   min: string;
   max: string;
@@ -6,21 +6,21 @@ export type TooltipRangeContent = {
   highMeaning: string;
 };
 
-export type StructuredTooltipContent = {
+type StructuredTooltipContent = {
   title?: string;
   body: string;
   range?: TooltipRangeContent;
 };
 
-export type TooltipContent = string | StructuredTooltipContent;
+type TooltipContent = string | StructuredTooltipContent;
 
-export function isStructuredTooltipContent(
+function isStructuredTooltipContent(
   content: TooltipContent | null | undefined
 ): content is StructuredTooltipContent {
   return typeof content === 'object' && content !== null && typeof content.body === 'string';
 }
 
-export function tooltipContentToText(content: TooltipContent | null | undefined): string | null {
+function tooltipContentToText(content: TooltipContent | null | undefined): string | null {
   if (typeof content === 'string') {
     return content.trim() || null;
   }
@@ -39,3 +39,6 @@ export function tooltipContentToText(content: TooltipContent | null | undefined)
 
   return parts.filter(Boolean).join(' ');
 }
+
+export { isStructuredTooltipContent, tooltipContentToText };
+export type { TooltipRangeContent, StructuredTooltipContent, TooltipContent };

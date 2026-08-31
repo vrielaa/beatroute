@@ -12,7 +12,7 @@ import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filte
     class: 'analysis-filters-drawer-host',
   },
 })
-export class AnalysisFiltersDrawer {
+class AnalysisFiltersDrawer {
   public readonly isOpen = input(false);
   public readonly selectedTimeRange = input<TimeRange>('short_term');
   public readonly selectedTracksRange = input(10);
@@ -23,3 +23,5 @@ export class AnalysisFiltersDrawer {
   public readonly selectedTracksRangeChange = output<number>();
   public readonly selectedArtistsRangeChange = output<number>();
 }
+
+export { AnalysisFiltersDrawer };

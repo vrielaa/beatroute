@@ -1,19 +1,19 @@
 import { AudioFeatureInfoKey } from '@shared/audio-features/audio-feature-info';
 import { TooltipContent } from '@shared/tooltip/tooltip-content';
 
-export type AudioComparisonFeatureKey = Extract<
+type AudioComparisonFeatureKey = Extract<
   AudioFeatureInfoKey,
   'energy' | 'danceability' | 'valence' | 'acousticness' | 'liveness' | 'speechiness'
 >;
 
-export type AudioComparisonFeature = {
+type AudioComparisonFeature = {
   key: AudioComparisonFeatureKey;
   label: string;
   color: string;
   tooltip: TooltipContent;
 };
 
-export type AudioComparisonChartRow = {
+type AudioComparisonChartRow = {
   id: string;
   axisLabel: string;
   trackName: string;
@@ -21,7 +21,7 @@ export type AudioComparisonChartRow = {
   values: Record<AudioComparisonFeatureKey, number | null>;
 };
 
-export type AudioComparisonChartPoint = {
+type AudioComparisonChartPoint = {
   id: string;
   x: number;
   y: number;
@@ -31,32 +31,44 @@ export type AudioComparisonChartPoint = {
   tooltip: string;
 };
 
-export type AudioComparisonChartPlot = {
+type AudioComparisonChartPlot = {
   left: number;
   top: number;
   width: number;
   height: number;
 };
 
-export type AudioComparisonXAxisLabel = {
+type AudioComparisonXAxisLabel = {
   id: string;
   label: string;
   title: string;
   x: number;
 };
 
-export type AudioComparisonYAxisTick = {
+type AudioComparisonYAxisTick = {
   value: number;
   label: string;
   y: number;
 };
 
-export type AudioComparisonFeatureToggle = {
+type AudioComparisonFeatureToggle = {
   featureKey: AudioComparisonFeatureKey;
   checked: boolean;
 };
 
-export type AudioComparisonTrackToggle = {
+type AudioComparisonTrackToggle = {
   trackId: string;
   checked: boolean;
+};
+
+export type {
+  AudioComparisonFeatureKey,
+  AudioComparisonFeature,
+  AudioComparisonChartRow,
+  AudioComparisonChartPoint,
+  AudioComparisonChartPlot,
+  AudioComparisonXAxisLabel,
+  AudioComparisonYAxisTick,
+  AudioComparisonFeatureToggle,
+  AudioComparisonTrackToggle,
 };

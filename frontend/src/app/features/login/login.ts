@@ -11,10 +11,12 @@ import { SpotifyService } from '@core/services/spotify.service';
     class: 'login-page-host',
   },
 })
-export class Login {
+class Login {
   readonly spotifyService = inject(SpotifyService);
 
   public login(): void {
     this.spotifyService.loginWithSpotify();
   }
 }
+
+export { Login };

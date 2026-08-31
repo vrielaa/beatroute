@@ -11,7 +11,7 @@ import type {
  * @returns Nazwa pierwszego wykonawcy oraz nazwa utworu.
  * @throws {Error} Gdy odpowiedź nie zawiera wykonawcy lub nazwy utworu.
  */
-export function mapSpotifyTrackForLastfm(
+function mapSpotifyTrackForLastfm(
   spotifyTrack: SpotifyTrackApiResponse
 ): LastfmTrackIdentifier {
   const artist = spotifyTrack.artists[0]?.name;
@@ -33,7 +33,7 @@ export function mapSpotifyTrackForLastfm(
  * @param spotifyTrack - Utwór zwrócony przez Spotify Web API.
  * @returns Najważniejsze dane utworu przeznaczone dla frontendu.
  */
-export function mapSpotifyTrackResponse(
+function mapSpotifyTrackResponse(
   spotifyTrack: SpotifyTrackApiResponse
 ): SpotifyTrackSummary {
   return {
@@ -45,3 +45,5 @@ export function mapSpotifyTrackResponse(
     spotifyUrl: spotifyTrack.external_urls?.spotify ?? null,
   };
 }
+
+export { mapSpotifyTrackForLastfm, mapSpotifyTrackResponse };

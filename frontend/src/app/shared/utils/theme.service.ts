@@ -5,7 +5,7 @@ import { effect, Injectable, signal } from '@angular/core';
  * - 'light': Light theme.
  * - 'dark': Dark theme.
  */
-export type TThemeId = 'light' | 'dark';
+type TThemeId = 'light' | 'dark';
 
 /**
  * Interface representing a theme object.
@@ -13,7 +13,7 @@ export type TThemeId = 'light' | 'dark';
  * @property name - The display name of the theme.
  * @property className - The CSS class name associated with the theme.
  */
-export type ITheme = {
+type ITheme = {
   id: TThemeId;
   name: string;
   className: string;
@@ -26,7 +26,7 @@ export type ITheme = {
  * Service for managing application themes.
  * Provides functionality to set, retrieve, and persist themes.
  */
-export class ThemeService {
+class ThemeService {
   /**
    * Static array of available themes.
    * Contains predefined themes with their identifiers, names, and CSS class names.
@@ -111,3 +111,6 @@ export class ThemeService {
     return ThemeService.themes.find((theme) => theme.id === themeId) || ThemeService.themes[0];
   }
 }
+
+export { ThemeService };
+export type { TThemeId, ITheme };

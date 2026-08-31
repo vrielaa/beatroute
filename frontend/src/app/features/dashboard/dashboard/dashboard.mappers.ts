@@ -1,13 +1,11 @@
 import { ArtistGenreDistributionResponse, TopArtistsResponse } from '@src/app/core/models/models';
 
-export interface ArtistsFoundRatio {
+interface ArtistsFoundRatio {
   requestedArtistsCount: number;
   spotifyTotalArtistsCount: number;
 }
 
-export function mapArtistsFoundRatio(
-  topArtists: TopArtistsResponse | null
-): ArtistsFoundRatio | null {
+function mapArtistsFoundRatio(topArtists: TopArtistsResponse | null): ArtistsFoundRatio | null {
   if (!topArtists) return null;
 
   return {
@@ -16,7 +14,7 @@ export function mapArtistsFoundRatio(
   };
 }
 
-export function mapArtistGenres(
+function mapArtistGenres(
   distribution: ArtistGenreDistributionResponse | null
 ): Record<string, string[]> {
   if (!distribution) return {};
@@ -38,7 +36,7 @@ export function mapArtistGenres(
   }, {});
 }
 
-export function normalizeArtistName(artistName: string): string {
+function normalizeArtistName(artistName: string): string {
   return artistName.trim().toLocaleLowerCase();
 }
 
@@ -52,3 +50,6 @@ function addUniqueGenre(genres: string[], genreName: string): string[] {
 
   return alreadyExists ? genres : [...genres, genreName];
 }
+
+export { mapArtistsFoundRatio, mapArtistGenres, normalizeArtistName };
+export type { ArtistsFoundRatio };

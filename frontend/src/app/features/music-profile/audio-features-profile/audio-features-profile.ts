@@ -11,7 +11,7 @@ import { AUDIO_PROFILE_CHART, buildAudioProfileChart } from './audio-features-pr
     class: 'audio-features-profile',
   },
 })
-export class AudioFeaturesProfile {
+class AudioFeaturesProfile {
   public readonly audioStats = input<AudioStats | null>(null);
   public readonly isLoading = input(false);
 
@@ -27,3 +27,5 @@ export class AudioFeaturesProfile {
   public readonly profilePolygonPoints = computed(() => this.chart().profilePolygonPoints);
   public readonly profilePointMarkers = computed(() => this.chart().profilePointMarkers);
 }
+
+export { AudioFeaturesProfile };

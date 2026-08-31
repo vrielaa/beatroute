@@ -22,9 +22,11 @@ import {
     '(keydown.escape)': 'tooltipHide.emit()',
   },
 })
-export class AudioFeaturesChartPoint {
+class AudioFeaturesChartPoint {
   public readonly point = input.required<AudioComparisonChartPoint>();
   public readonly feature = input.required<AudioComparisonFeature>();
   public readonly tooltipShow = output<void>();
   public readonly tooltipHide = output<void>();
 }
+
+export { AudioFeaturesChartPoint };

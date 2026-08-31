@@ -39,7 +39,7 @@ function validateAppConfig(config) {
   );
 }
 
-export function createApp(config = appConfig) {
+function createApp(config = appConfig) {
   validateAppConfig(config);
 
   const app = express();
@@ -86,3 +86,5 @@ export function createApp(config = appConfig) {
 
   return app;
 }
+
+export { createApp };

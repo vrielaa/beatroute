@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from '@core/guards/auth.guard';
 import { guestGuard } from '@core/guards/guest.guard';
 
-export const routes: Routes = [
+const routes: Routes = [
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -47,3 +47,5 @@ export const routes: Routes = [
     redirectTo: '',
   },
 ];
+
+export { routes };

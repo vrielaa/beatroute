@@ -11,7 +11,7 @@ import { SpotifyService } from '@core/services/spotify.service';
     class: 'user-profile-summary',
   },
 })
-export class UserProfile {
+class UserProfile {
   readonly spotifyService = inject(SpotifyService);
 
   readonly profileImageUrl = computed(() => {
@@ -38,3 +38,5 @@ export class UserProfile {
     return this.spotifyService.userProfileResource.value()?.email ?? null;
   });
 }
+
+export { UserProfile };

@@ -4,7 +4,7 @@ import type { LastfmTag, LastfmTagApiResponse } from "../types.js";
  * Fragment surowej odpowiedzi `artist.getInfo` używany przez aplikację.
  * Pola są opcjonalne, ponieważ Last.fm może zwrócić niepełne dane artysty.
  */
-export type LastfmArtistApiResponse = {
+type LastfmArtistApiResponse = {
   /** Dane artysty; pole może być nieobecne w niepełnej odpowiedzi API. */
   artist?: {
     /** Nazwa artysty zwrócona przez Last.fm. */
@@ -22,7 +22,7 @@ export type LastfmArtistApiResponse = {
 };
 
 /** Dane artysty po przekształceniu odpowiedzi Last.fm do modelu aplikacji. */
-export type LastfmArtistInfo = {
+type LastfmArtistInfo = {
   /** Nazwa zwrócona przez Last.fm lub nazwa podana w zapytaniu. */
   name: string;
   /** Oryginalna nazwa użyta do wyszukania artysty. */
@@ -44,7 +44,7 @@ export type LastfmArtistInfo = {
  * artystów. Status pozwala obsłużyć częściową awarię bez przerywania całej
  * operacji.
  */
-export type LastfmArtistLookup =
+type LastfmArtistLookup =
   | {
       /** Zapytanie zakończyło się powodzeniem. */
       status: "fulfilled";
@@ -66,7 +66,7 @@ export type LastfmArtistLookup =
  * Port dostępu do danych artystów Last.fm używany przez warstwę serwisową.
  * Dzięki temu serwis można testować bez wykonywania prawdziwych zapytań HTTP.
  */
-export type LastfmArtistGateway = {
+type LastfmArtistGateway = {
   /** Pobiera surowe dane jednego artysty i przekazuje błąd wywołującemu. */
   lookupArtist: (artistName: string) => Promise<LastfmArtistApiResponse>;
   /** Pobiera wielu artystów, zachowując powodzenia i błędy jako wyniki. */
@@ -74,7 +74,15 @@ export type LastfmArtistGateway = {
 };
 
 /** Minimalny interfejs loggera wymagany przez gateway. */
-export type ErrorLogger = {
+type ErrorLogger = {
   /** Zapisuje komunikat błędu oraz opcjonalne dane diagnostyczne. */
   error: (...values: unknown[]) => void;
+};
+
+export type {
+  LastfmArtistApiResponse,
+  LastfmArtistInfo,
+  LastfmArtistLookup,
+  LastfmArtistGateway,
+  ErrorLogger,
 };

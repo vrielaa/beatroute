@@ -11,7 +11,7 @@ import { ThemeService } from '@src/app/shared/utils/theme.service';
     class: 'theme-toggle-host',
   },
 })
-export class DarkMode {
+class DarkMode {
   readonly themeService = inject(ThemeService);
   readonly themes = ThemeService.themes;
 
@@ -26,3 +26,5 @@ export class DarkMode {
     this.themeService.setTheme(newTheme);
   }
 }
+
+export { DarkMode };

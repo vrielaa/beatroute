@@ -14,7 +14,7 @@ import {
 @Injectable({
   providedIn: 'root',
 })
-export class SpotifyService {
+class SpotifyService {
   private readonly http = inject(HttpClient);
 
   public readonly userProfileResource = httpResource<SpotifyUserProfile>(() => ({
@@ -94,3 +94,5 @@ export class SpotifyService {
     );
   }
 }
+
+export { SpotifyService };

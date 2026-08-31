@@ -14,7 +14,7 @@ import {
     class: 'audio-track-picker-host',
   },
 })
-export class AudioTrackPicker {
+class AudioTrackPicker {
   public readonly rows = input.required<AudioComparisonChartRow[]>();
   public readonly selectedTrackIds = input.required<string[]>();
   public readonly selectionSummary = input.required<string>();
@@ -33,3 +33,5 @@ export class AudioTrackPicker {
     this.trackToggle.emit({ trackId, checked });
   }
 }
+
+export { AudioTrackPicker };

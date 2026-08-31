@@ -1,6 +1,6 @@
 import type { Session } from "express-session";
 
-export function saveSession(session: Session): Promise<void> {
+function saveSession(session: Session): Promise<void> {
   return new Promise((resolve, reject) => {
     session.save((error) => {
       if (error) {
@@ -13,7 +13,7 @@ export function saveSession(session: Session): Promise<void> {
   });
 }
 
-export function destroySession(session: Session): Promise<void> {
+function destroySession(session: Session): Promise<void> {
   return new Promise((resolve, reject) => {
     session.destroy((error) => {
       if (error) {
@@ -25,3 +25,5 @@ export function destroySession(session: Session): Promise<void> {
     });
   });
 }
+
+export { saveSession, destroySession };

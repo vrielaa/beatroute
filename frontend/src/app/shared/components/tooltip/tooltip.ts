@@ -26,7 +26,7 @@ let tooltipId = 0;
     class: 'app-tooltip-host',
   },
 })
-export class Tooltip {
+class Tooltip {
   public readonly content = input<TooltipContent | null | undefined>(null);
   public readonly isOpen = signal(false);
   public readonly tooltipId = `app-tooltip-${tooltipId++}`;
@@ -66,3 +66,5 @@ export class Tooltip {
     this.isOpen.set(false);
   }
 }
+
+export { Tooltip };

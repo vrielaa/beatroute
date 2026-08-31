@@ -12,7 +12,7 @@ import { GenreChartSegment } from '../genre-distribution.models';
     class: 'genre-distribution-list-host',
   },
 })
-export class GenreDistributionList {
+class GenreDistributionList {
   public readonly segments = input.required<GenreChartSegment[]>();
   public readonly distribution = input.required<ArtistGenreDistributionResponse>();
 
@@ -27,3 +27,5 @@ export class GenreDistributionList {
     return genre.toLocaleLowerCase().replace(/\s+/g, ' ').trim();
   }
 }
+
+export { GenreDistributionList };

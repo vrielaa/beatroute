@@ -18,7 +18,7 @@ import { BaseNavLink, NavLink } from './app-shell.models';
     class: 'app-shell',
   },
 })
-export class AppShellComponent {
+class AppShellComponent {
   public readonly spotifyService = inject(SpotifyService);
   public readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly router = inject(Router);
@@ -88,3 +88,5 @@ export class AppShellComponent {
     this.router.navigateByUrl(path);
   }
 }
+
+export { AppShellComponent };

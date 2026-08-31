@@ -21,7 +21,7 @@ const PLOT_TICKS = [-1, -0.5, 0, 0.5, 1];
     class: 'music-map-chart-card card',
   },
 })
-export class MusicMapChart {
+class MusicMapChart {
   public readonly points = input.required<MusicMapPoint[]>();
   public readonly selectedClusterId = input<number | null>(null);
 
@@ -71,3 +71,5 @@ export class MusicMapChart {
     return value === 0 ? '0' : value.toFixed(1);
   }
 }
+
+export { MusicMapChart };

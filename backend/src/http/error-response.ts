@@ -5,7 +5,7 @@ import { RequestValidationError } from "./request-validation-error.js";
 import { ReccoBeatsApiError } from "../integrations/reccobeats/reccobeats-api.error.js";
 import type { NextFunction, Request, Response } from "express";
 
-export class HttpError extends Error {
+class HttpError extends Error {
   public readonly status: number;
   public readonly code: string;
   public readonly details?: unknown;
@@ -23,7 +23,7 @@ export class HttpError extends Error {
   }
 }
 
-export function createErrorResponse(
+function createErrorResponse(
   code: string,
   message: string,
   details?: unknown
@@ -37,7 +37,7 @@ export function createErrorResponse(
   };
 }
 
-export function mapErrorToHttp(error: unknown): {
+function mapErrorToHttp(error: unknown): {
   status: number;
   body: { error: { code: string; message: string; details?: unknown } };
 } {
@@ -104,13 +104,13 @@ export function mapErrorToHttp(error: unknown): {
   };
 }
 
-export function notFoundHandler(req: Request, res: Response) {
+function notFoundHandler(req: Request, res: Response) {
   res
     .status(404)
     .json(createErrorResponse("ROUTE_NOT_FOUND", "Nie znaleziono trasy"));
 }
 
-export function errorHandler(
+function errorHandler(
   error: unknown,
   req: Request,
   res: Response,
@@ -124,3 +124,11 @@ export function errorHandler(
 
   res.status(mappedError.status).json(mappedError.body);
 }
+
+export {
+  HttpError,
+  createErrorResponse,
+  mapErrorToHttp,
+  notFoundHandler,
+  errorHandler,
+};

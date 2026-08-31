@@ -7,7 +7,7 @@ import type { LastfmTag } from "./types.js";
  * @param tags - Niezweryfikowana wartość z odpowiedzi Last.fm.
  * @returns Tagi z niepustą nazwą i adresem URL albo `null`.
  */
-export function normalizeLastfmTags(tags: unknown): LastfmTag[] {
+function normalizeLastfmTags(tags: unknown): LastfmTag[] {
   const tagsToNormalize = convertToArray(tags);
   const normalizedTags: LastfmTag[] = [];
 
@@ -75,7 +75,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
  * @param name - Oryginalna nazwa gatunku lub tagu.
  * @returns Nazwa małymi literami, bez znaków specjalnych i nadmiarowych spacji.
  */
-export function normalizeGenreName(name: string): string {
+function normalizeGenreName(name: string): string {
   return name
     .toLowerCase()
     .replace(/&/g, " n ")
@@ -352,7 +352,7 @@ const CORE_GENRE_RULES = [
  * @param name - Nazwa tagu Last.fm.
  * @returns Kanoniczna nazwa gatunku albo `null`, jeśli żadna reguła nie pasuje.
  */
-export function getCanonicalGenreName(name: string): string | null {
+function getCanonicalGenreName(name: string): string | null {
   const normalizedName = normalizeGenreName(name);
 
   if (
@@ -401,6 +401,13 @@ export function getCanonicalGenreName(name: string): string | null {
  * @param tag - Znormalizowany tag Last.fm.
  * @returns `true`, gdy klasyfikator rozpoznaje gatunek.
  */
-export function isLikelyGenreTag(tag: LastfmTag): boolean {
+function isLikelyGenreTag(tag: LastfmTag): boolean {
   return getCanonicalGenreName(tag.name) !== null;
 }
+
+export {
+  normalizeLastfmTags,
+  normalizeGenreName,
+  getCanonicalGenreName,
+  isLikelyGenreTag,
+};

@@ -21,7 +21,7 @@ import { GenreChartSegment } from './genre-distribution.models';
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
-export class GenreDistribution {
+class GenreDistribution {
   private readonly colors = ['#7c5cff', '#3478f6', '#1f9d62', '#e7a93f', '#e05f8a', '#8c98aa'];
 
   public readonly distribution = input<ArtistGenreDistributionResponse | null>(null);
@@ -116,3 +116,5 @@ export class GenreDistribution {
     );
   }
 }
+
+export { GenreDistribution };

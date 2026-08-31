@@ -32,7 +32,7 @@ type AudioFeatureItem = {
     class: 'average-audio-features',
   },
 })
-export class AverageAudioFeatures {
+class AverageAudioFeatures {
   public readonly audioStats = input<AudioStats | null>(null);
   public readonly isLoading = input(false);
 
@@ -107,3 +107,5 @@ export class AverageAudioFeatures {
     };
   }
 }
+
+export { AverageAudioFeatures };

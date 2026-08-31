@@ -1,5 +1,5 @@
 /** Surowe, opcjonalne cechy audio zwracane przez API ReccoBeats. */
-export type ReccoBeatsAudioFeatures = {
+type ReccoBeatsAudioFeatures = {
   /** Udział brzmienia akustycznego w skali od 0 do 1. */
   acousticness?: number | null;
   /** Przydatność utworu do tańca w skali od 0 do 1. */
@@ -27,7 +27,7 @@ export type ReccoBeatsAudioFeatures = {
 };
 
 /** Cechy audio znalezione dla utworu i powiązane z jego identyfikatorami. */
-export type ReccoBeatsTrackAudioFeatures = {
+type ReccoBeatsTrackAudioFeatures = {
   /** Wewnętrzny identyfikator utworu ReccoBeats. */
   id: string;
   /** Identyfikator odpowiadającego utworu Spotify. */
@@ -59,7 +59,7 @@ export type ReccoBeatsTrackAudioFeatures = {
 };
 
 /** Informacja o utworze, dla którego nie udało się pobrać cech audio. */
-export type ReccoBeatsTrackAudioFeaturesError = {
+type ReccoBeatsTrackAudioFeaturesError = {
   /** Identyfikator utworu Spotify, którego dotyczy błąd. */
   spotifyId: string;
   /** Czytelny opis niepowodzenia pobierania danych. */
@@ -67,11 +67,11 @@ export type ReccoBeatsTrackAudioFeaturesError = {
 };
 
 /** Wynik pobierania cech audio jednego utworu. */
-export type ReccoBeatsTrackAudioFeaturesResult =
+type ReccoBeatsTrackAudioFeaturesResult =
   ReccoBeatsTrackAudioFeatures | ReccoBeatsTrackAudioFeaturesError;
 
 /** Skrócone dane utworu zwracane przez wyszukiwarkę ReccoBeats. */
-export type ReccoBeatsTrackApiResponse = {
+type ReccoBeatsTrackApiResponse = {
   /** Wewnętrzny identyfikator utworu ReccoBeats. */
   id: string;
   /** Odnośnik pozwalający powiązać wynik z utworem Spotify. */
@@ -81,7 +81,7 @@ export type ReccoBeatsTrackApiResponse = {
 };
 
 /** Obsługiwane warianty odpowiedzi endpointu wyszukiwania utworów. */
-export type ReccoBeatsTracksApiResponse =
+type ReccoBeatsTracksApiResponse =
   | ReccoBeatsTrackApiResponse[]
   | {
       content?: ReccoBeatsTrackApiResponse[];
@@ -94,7 +94,7 @@ export type ReccoBeatsTracksApiResponse =
     };
 
 /** Zbiorcze statystyki obliczone na podstawie cech audio utworów. */
-export type AudioStats = {
+type AudioStats = {
   /** Liczba utworów uwzględnionych w obliczeniach. */
   trackCount: number;
   /** Średnie tempo w uderzeniach na minutę. */
@@ -131,4 +131,37 @@ export type AudioStats = {
   instrumentalTrackPercentage: number;
   /** Procent utworów o wysokim udziale mowy. */
   speechHeavyTrackPercentage: number;
+};
+
+type ReccoBeatsService = {
+  /**
+   * Pobiera cechy audio dla pojedynczego utworu Spotify.
+   *
+   * @param spotifyId - Identyfikator utworu Spotify.
+   * @returns Cechy audio albo opis błędu, jeśli nie udało się ich pobrać.
+   */
+  getTrackAudioFeaturesBySpotifyId(
+    spotifyId: string
+  ): Promise<ReccoBeatsTrackAudioFeaturesResult>;
+
+  /**
+   * Pobiera cechy audio dla wielu utworów Spotify.
+   *
+   * @param spotifyIds - Lista identyfikatorów utworów Spotify.
+   * @returns Lista wyników, w której każdy element odpowiada jednemu identyfikatorowi.
+   */
+  getManyTrackAudioFeaturesBySpotifyIds(
+    spotifyIds: string[]
+  ): Promise<ReccoBeatsTrackAudioFeaturesResult[]>;
+};
+
+export type {
+  ReccoBeatsAudioFeatures,
+  ReccoBeatsTrackAudioFeatures,
+  ReccoBeatsTrackAudioFeaturesError,
+  ReccoBeatsTrackAudioFeaturesResult,
+  ReccoBeatsTrackApiResponse,
+  ReccoBeatsTracksApiResponse,
+  AudioStats,
+  ReccoBeatsService,
 };

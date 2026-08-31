@@ -6,7 +6,7 @@ import { ArtistGenreDistributionResponse, SpotifyLastfmTrackResponse } from '../
 @Injectable({
   providedIn: 'root',
 })
-export class LastfmService {
+class LastfmService {
   private readonly http = inject(HttpClient);
 
   public getArtistGenreDistribution(
@@ -26,3 +26,5 @@ export class LastfmService {
     );
   }
 }
+
+export { LastfmService };

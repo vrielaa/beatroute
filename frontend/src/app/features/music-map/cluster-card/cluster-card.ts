@@ -11,7 +11,7 @@ import { MusicMapClusterDetail } from '../music-map.models';
     class: 'cluster-card-host',
   },
 })
-export class ClusterCard {
+class ClusterCard {
   public readonly detail = input.required<MusicMapClusterDetail>();
   public readonly isSelected = input(false);
   public readonly clusterColor = input.required<string>();
@@ -30,3 +30,5 @@ export class ClusterCard {
     return cluster.tracksCount === 1 ? '1 utwór' : `${cluster.tracksCount} utworów`;
   }
 }
+
+export { ClusterCard };

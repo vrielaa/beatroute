@@ -1,20 +1,20 @@
-export type TimeRange = 'short_term' | 'medium_term' | 'long_term';
+type TimeRange = 'short_term' | 'medium_term' | 'long_term';
 
-export interface SpotifyExternalUrls {
+interface SpotifyExternalUrls {
   spotify: string;
 }
 
-export interface SpotifyImage {
+interface SpotifyImage {
   url: string;
   height: number | null;
   width: number | null;
 }
 
-export interface SpotifyFollowers {
+interface SpotifyFollowers {
   total: number;
 }
 
-export interface SpotifyUserProfile {
+interface SpotifyUserProfile {
   id: string;
   display_name?: string | null;
   email?: string | null;
@@ -27,7 +27,7 @@ export interface SpotifyUserProfile {
   uri?: string;
 }
 
-export interface TopTrack {
+interface TopTrack {
   id: string;
   name: string;
   artists: { name: string }[];
@@ -36,7 +36,7 @@ export interface TopTrack {
   popularity: number;
 }
 
-export interface TopTracksResponse {
+interface TopTracksResponse {
   href: string;
   items: TopTrack[];
   limit: number;
@@ -46,7 +46,7 @@ export interface TopTracksResponse {
   total: number;
 }
 
-export interface TopArtist {
+interface TopArtist {
   id: string;
   name: string;
   genres: string[];
@@ -56,7 +56,7 @@ export interface TopArtist {
   external_urls: SpotifyExternalUrls;
 }
 
-export interface TopArtistsResponse {
+interface TopArtistsResponse {
   href: string;
   items: TopArtist[];
   limit: number;
@@ -66,7 +66,7 @@ export interface TopArtistsResponse {
   total: number;
 }
 
-export type AudioFeatures = {
+type AudioFeatures = {
   id?: string;
   spotifyId?: string;
   uuid?: string;
@@ -85,11 +85,11 @@ export type AudioFeatures = {
   error?: string;
 };
 
-export type MultipleAudioFeaturesResponse = {
+type MultipleAudioFeaturesResponse = {
   audio_features: AudioFeatures[];
 };
 
-export type AudioStats = {
+type AudioStats = {
   trackCount: number;
   averageBpm: number | null;
   averageEnergy: number | null;
@@ -112,7 +112,7 @@ export type AudioStats = {
   totalTracksCount: number;
 };
 
-export interface LastfmTrackInfo {
+interface LastfmTrackInfo {
   name: string | null;
   artist: string | null;
   mbid: string | null;
@@ -124,7 +124,7 @@ export interface LastfmTrackInfo {
   genreIsFallback: boolean;
 }
 
-export interface SpotifyTrackSummary {
+interface SpotifyTrackSummary {
   id: string;
   name: string;
   artists: string[];
@@ -133,23 +133,23 @@ export interface SpotifyTrackSummary {
   spotifyUrl: string | null;
 }
 
-export interface SpotifyLastfmTrackResponse {
+interface SpotifyLastfmTrackResponse {
   spotify: SpotifyTrackSummary;
   lastfm: LastfmTrackInfo;
 }
 
-export interface ArtistGenreDistributionSubgenreItem {
+interface ArtistGenreDistributionSubgenreItem {
   name: string;
   count: number;
   percentage: number;
   artists: string[];
 }
 
-export interface ArtistGenreDistributionItem extends ArtistGenreDistributionSubgenreItem {
+interface ArtistGenreDistributionItem extends ArtistGenreDistributionSubgenreItem {
   subgenres: ArtistGenreDistributionSubgenreItem[];
 }
 
-export interface ArtistGenreDistributionResponse {
+interface ArtistGenreDistributionResponse {
   genres: ArtistGenreDistributionItem[];
   totalArtists: number;
   matchedArtists: number;
@@ -158,15 +158,15 @@ export interface ArtistGenreDistributionResponse {
   source: 'lastfm-artist-info-tags';
 }
 
-export type MusicMapClusterSelectionSource = 'silhouette-score' | 'manual' | 'fallback';
+type MusicMapClusterSelectionSource = 'silhouette-score' | 'manual' | 'fallback';
 
-export interface MusicMapCandidateClusterResult {
+interface MusicMapCandidateClusterResult {
   k: number;
   inertia: number;
   silhouetteScore: number;
 }
 
-export interface MusicMapCluster {
+interface MusicMapCluster {
   id: number;
   label: string;
   description: string;
@@ -175,7 +175,7 @@ export interface MusicMapCluster {
   trackIds: string[];
 }
 
-export interface MusicMapPoint {
+interface MusicMapPoint {
   id: string;
   name: string;
   artists: string[];
@@ -192,7 +192,7 @@ export interface MusicMapPoint {
   audioFeatures: Partial<Record<string, number>>;
 }
 
-export interface MusicMapSkippedTrack {
+interface MusicMapSkippedTrack {
   id: string;
   name: string;
   artists: string[];
@@ -201,7 +201,7 @@ export interface MusicMapSkippedTrack {
   reason: string;
 }
 
-export interface MusicMapResponse {
+interface MusicMapResponse {
   source: 'spotify-top-tracks-reccobeats-audio-features';
   timeRange: TimeRange;
   requestedLimit: number;
@@ -221,3 +221,30 @@ export interface MusicMapResponse {
   points: MusicMapPoint[];
   skippedTracks: MusicMapSkippedTrack[];
 }
+
+export type {
+  TimeRange,
+  SpotifyExternalUrls,
+  SpotifyImage,
+  SpotifyFollowers,
+  SpotifyUserProfile,
+  TopTrack,
+  TopTracksResponse,
+  TopArtist,
+  TopArtistsResponse,
+  AudioFeatures,
+  MultipleAudioFeaturesResponse,
+  AudioStats,
+  LastfmTrackInfo,
+  SpotifyTrackSummary,
+  SpotifyLastfmTrackResponse,
+  ArtistGenreDistributionSubgenreItem,
+  ArtistGenreDistributionItem,
+  ArtistGenreDistributionResponse,
+  MusicMapClusterSelectionSource,
+  MusicMapCandidateClusterResult,
+  MusicMapCluster,
+  MusicMapPoint,
+  MusicMapSkippedTrack,
+  MusicMapResponse,
+};

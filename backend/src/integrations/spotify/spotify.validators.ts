@@ -24,15 +24,15 @@ type TrackIdsRequestBody = {
   trackIds?: unknown;
 };
 
-export const ALLOWED_TIME_RANGES: readonly SpotifyTimeRange[] = [
+const ALLOWED_TIME_RANGES: readonly SpotifyTimeRange[] = [
   "short_term",
   "medium_term",
   "long_term",
 ];
-export const DEFAULT_TIME_RANGE: SpotifyTimeRange = "medium_term";
-export const DEFAULT_TOP_ITEMS_LIMIT = 10;
-export const MAX_TRACKS_LIMIT = 40;
-export const MAX_ARTISTS_LIMIT = 40;
+const DEFAULT_TIME_RANGE: SpotifyTimeRange = "medium_term";
+const DEFAULT_TOP_ITEMS_LIMIT = 10;
+const MAX_TRACKS_LIMIT = 40;
+const MAX_ARTISTS_LIMIT = 40;
 
 /**
  * Waliduje opcjonalny limit elementów przekazany w query.
@@ -112,7 +112,7 @@ function parseTimeRange(value: unknown): SpotifyTimeRange {
  * @param limits - Opcjonalny maksymalny limit elementów.
  * @returns Limit oraz okres gotowe do przekazania do gatewaya Spotify.
  */
-export function parseSpotifyTopItemsQuery(
+function parseSpotifyTopItemsQuery(
   query: SpotifyTopItemsQuery = {},
   { maxLimit = MAX_TRACKS_LIMIT }: ItemCountLimit = {}
 ): SpotifyTopItemsSelection {
@@ -129,7 +129,7 @@ export function parseSpotifyTopItemsQuery(
  * @param limits - Opcjonalna maksymalna liczba identyfikatorów.
  * @returns Przycięte, niepuste identyfikatory utworów.
  */
-export function parseTrackIds(
+function parseTrackIds(
   body: TrackIdsRequestBody = {},
   { maxLimit = MAX_TRACKS_LIMIT }: ItemCountLimit = {}
 ): string[] {
@@ -176,3 +176,13 @@ function invalidTimeRangeError(): RequestValidationError {
 function isSpotifyTimeRange(value: string): value is SpotifyTimeRange {
   return ALLOWED_TIME_RANGES.some((timeRange) => timeRange === value);
 }
+
+export {
+  ALLOWED_TIME_RANGES,
+  DEFAULT_TIME_RANGE,
+  DEFAULT_TOP_ITEMS_LIMIT,
+  MAX_TRACKS_LIMIT,
+  MAX_ARTISTS_LIMIT,
+  parseSpotifyTopItemsQuery,
+  parseTrackIds,
+};

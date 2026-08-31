@@ -12,7 +12,7 @@ import { rateLimitRetryInterceptor } from '@core/rate-limit-retry.interceptor';
 
 import { ThemeService } from '@app/shared/utils/theme.service';
 
-export const appConfig: ApplicationConfig = {
+const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
@@ -24,3 +24,5 @@ export const appConfig: ApplicationConfig = {
     }),
   ],
 };
+
+export { appConfig };

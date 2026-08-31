@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { appConfig } from "../../config/app.config.js";
-import { exchangeSpotifyAuthorizationCode } from "../spotify/spotify.auth.client.js";
+import { defaultSpotifyAuthClient } from "../spotify/spotify.auth.client.js";
 import { assertLastfmConfig } from "../../config/lastfm.config.js";
 import { createLastfmSession } from "../lastfm/lastfm.service.js";
 import { HttpError } from "../../http/error-response.js";
@@ -50,7 +50,8 @@ router.get("/spotify/callback", async (req, res) => {
     throw new HttpError(400, "SPOTIFY_AUTH_STATE_MISMATCH", "State mismatch");
   }
 
-  const tokenData = await exchangeSpotifyAuthorizationCode(code);
+  const tokenData =
+    await defaultSpotifyAuthClient.exchangeAuthorizationCode(code);
 
   req.session.spotify = {
     accessToken: tokenData.access_token,

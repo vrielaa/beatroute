@@ -27,7 +27,7 @@ import {
     class: 'audio-features-comparison',
   },
 })
-export class AudioFeaturesComparison {
+class AudioFeaturesComparison {
   private lastAvailableTrackIdsKey = '';
   private readonly selectedFeatureKeys = signal<AudioComparisonFeatureKey[]>([
     'energy',
@@ -164,3 +164,5 @@ export class AudioFeaturesComparison {
     this.selectedTrackIds.set([]);
   }
 }
+
+export { AudioFeaturesComparison };

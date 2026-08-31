@@ -8,11 +8,7 @@ import type { Request, Response, NextFunction } from "express";
  * @param res - Odpowiedź Express wymagana przez kontrakt middleware.
  * @param next - Funkcja przekazująca sterowanie albo błąd do kolejnej warstwy.
  */
-export default function ensureLastfmSession(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
+function ensureLastfmSession(req: Request, res: Response, next: NextFunction) {
   if (!req.session.lastfm?.sessionKey || !req.session.lastfm?.username) {
     return next(
       new HttpError(
@@ -25,3 +21,5 @@ export default function ensureLastfmSession(
 
   next();
 }
+
+export default ensureLastfmSession;

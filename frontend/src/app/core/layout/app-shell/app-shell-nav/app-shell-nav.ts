@@ -12,7 +12,9 @@ import { NavLink } from '../app-shell.models';
     class: 'app-shell-navigation-host',
   },
 })
-export class AppShellNav {
+class AppShellNav {
   public readonly navLinks = input.required<NavLink[]>();
   public readonly navigate = output<string>();
 }
+
+export { AppShellNav };

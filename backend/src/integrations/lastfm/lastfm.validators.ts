@@ -13,7 +13,7 @@ type TrackIdentifierQuery = {
   track?: unknown;
 };
 
-export function parseArtistNames(body: ArtistNamesPayload = {}): string[] {
+function parseArtistNames(body: ArtistNamesPayload = {}): string[] {
   if (!Array.isArray(body.artists) || body.artists.length === 0) {
     throw new RequestValidationError(
       "Pole artists musi być niepustą tablicą nazw artystów"
@@ -39,7 +39,7 @@ export function parseArtistNames(body: ArtistNamesPayload = {}): string[] {
   return artists;
 }
 
-export function parseTrackInfoQuery(
+function parseTrackInfoQuery(
   query: TrackIdentifierQuery = {}
 ): LastfmTrackIdentifier {
   const mbid = typeof query.mbid === "string" ? query.mbid.trim() : "";
@@ -59,3 +59,5 @@ export function parseTrackInfoQuery(
 
   return { artist, track };
 }
+
+export { parseArtistNames, parseTrackInfoQuery };

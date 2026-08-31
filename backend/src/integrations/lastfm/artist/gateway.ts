@@ -25,7 +25,7 @@ type LastfmArtistGatewayDependencies = {
  * @returns Gateway obsługujący zapytania o jednego lub wielu artystów.
  * @throws {RangeError} Gdy rozmiar partii nie jest dodatnią liczbą całkowitą.
  */
-export function createLastfmArtistGateway({
+function createLastfmArtistGateway({
   requestArtistInfo,
   batchSize = DEFAULT_BATCH_SIZE,
   logger = console,
@@ -99,3 +99,5 @@ export function createLastfmArtistGateway({
     lookupMany,
   };
 }
+
+export { createLastfmArtistGateway };

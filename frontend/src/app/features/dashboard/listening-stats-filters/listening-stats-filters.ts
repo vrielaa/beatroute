@@ -12,7 +12,7 @@ import { Icon } from '@shared/components/icon/icon';
     class: 'listening-stats-filters',
   },
 })
-export class ListeningStatsFilters {
+class ListeningStatsFilters {
   public readonly selectedTimeRange = input<TimeRange>('short_term');
   public readonly selectedTracksRange = model<number>(10);
   public readonly selectedArtistsRange = model<number>(10);
@@ -59,3 +59,5 @@ export class ListeningStatsFilters {
     }, this.debounceTime);
   }
 }
+
+export { ListeningStatsFilters };

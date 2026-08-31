@@ -7,7 +7,7 @@ import { ReccoBeatsAudioFeatures } from "./reccobeats.types.js";
  * @param audio - Surowe cechy audio zwrócone przez ReccoBeats.
  * @returns Cechy audio z jawną wartością dla każdego obsługiwanego pola.
  */
-export function mapReccoBeatsAudioFeatures(audio: ReccoBeatsAudioFeatures) {
+function mapReccoBeatsAudioFeatures(audio: ReccoBeatsAudioFeatures) {
   return {
     acousticness: audio?.acousticness ?? null,
     danceability: audio?.danceability ?? null,
@@ -23,3 +23,5 @@ export function mapReccoBeatsAudioFeatures(audio: ReccoBeatsAudioFeatures) {
     valence: audio?.valence ?? null,
   };
 }
+
+export { mapReccoBeatsAudioFeatures };

@@ -10,7 +10,7 @@ import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
 import { mapArtistGenres, mapArtistsFoundRatio } from './dashboard.mappers';
 
 @Injectable()
-export class DashboardArtistsStore {
+class DashboardArtistsStore {
   private readonly spotifyService = inject(SpotifyService);
   private readonly lastfmService = inject(LastfmService);
   private readonly reloadTrigger = signal(0);
@@ -78,3 +78,5 @@ export class DashboardArtistsStore {
       });
   }
 }
+
+export { DashboardArtistsStore };

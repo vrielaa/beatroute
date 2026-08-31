@@ -3,7 +3,7 @@ import { AudioFeatures, AudioStats, TimeRange, TopTracksResponse } from '@core/m
 import { SpotifyService } from '@core/services/spotify.service';
 import { forkJoin, map, of, Subscription, switchMap, tap } from 'rxjs';
 
-export interface TracksFoundRatio {
+interface TracksFoundRatio {
   requestedTracksCount: number;
   spotifyTotalTracksCount: number;
   returnedTracksCount: number;
@@ -11,7 +11,7 @@ export interface TracksFoundRatio {
 }
 
 @Injectable()
-export class ListeningTracksStore {
+class ListeningTracksStore {
   private readonly spotifyService = inject(SpotifyService);
 
   public readonly topTracks = signal<TopTracksResponse | null>(null);
@@ -97,3 +97,6 @@ export class ListeningTracksStore {
     };
   }
 }
+
+export { ListeningTracksStore };
+export type { TracksFoundRatio };

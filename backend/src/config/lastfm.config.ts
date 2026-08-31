@@ -6,7 +6,7 @@ import { appConfig } from "./app.config.js";
  * @param config - Konfiguracja Last.fm, domyślnie pochodząca ze środowiska.
  * @throws {Error} Gdy brakuje klucza API, sekretu albo adresu callbacku.
  */
-export function assertLastfmConfig(config = appConfig.lastfm) {
+function assertLastfmConfig(config = appConfig.lastfm) {
   const requiredConfig = {
     LASTFM_API_KEY: config.apiKey,
     LASTFM_SHARED_SECRET: config.sharedSecret,
@@ -19,3 +19,5 @@ export function assertLastfmConfig(config = appConfig.lastfm) {
     }
   }
 }
+
+export { assertLastfmConfig };

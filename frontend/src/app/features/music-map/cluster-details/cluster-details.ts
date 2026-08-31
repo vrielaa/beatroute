@@ -13,7 +13,7 @@ import { MUSIC_MAP_CLUSTER_COLORS, MusicMapClusterDetail } from '../music-map.mo
     class: 'cluster-details-card card',
   },
 })
-export class ClusterDetails {
+class ClusterDetails {
   public readonly clusterDetails = input.required<MusicMapClusterDetail[]>();
   public readonly selectedClusterId = input<number | null>(null);
 
@@ -27,3 +27,5 @@ export class ClusterDetails {
     this.clusterSelect.emit(cluster);
   }
 }
+
+export { ClusterDetails };

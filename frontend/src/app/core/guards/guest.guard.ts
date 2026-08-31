@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SpotifyService } from '@core/services/spotify.service';
 import { map, catchError, of } from 'rxjs';
 
-export const guestGuard: CanActivateFn = () => {
+const guestGuard: CanActivateFn = () => {
   const spotifyService = inject(SpotifyService);
   const router = inject(Router);
 
@@ -12,3 +12,5 @@ export const guestGuard: CanActivateFn = () => {
     catchError(() => of(true))
   );
 };
+
+export { guestGuard };

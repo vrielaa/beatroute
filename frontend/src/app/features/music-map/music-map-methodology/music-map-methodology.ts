@@ -10,6 +10,8 @@ import { MusicMapResponse } from '@core/models/models';
     class: 'music-map-method-card card',
   },
 })
-export class MusicMapMethodology {
+class MusicMapMethodology {
   public readonly musicMap = input.required<MusicMapResponse>();
 }
+
+export { MusicMapMethodology };

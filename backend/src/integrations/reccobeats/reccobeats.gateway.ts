@@ -43,7 +43,7 @@ type ReccoBeatsAudioFeaturesApiResponse = {
 };
 
 /** Operacje odczytu danych udostępniane przez gateway ReccoBeats. */
-export type ReccoBeatsGateway = {
+type ReccoBeatsGateway = {
   /**
    * Wyszukuje utwory ReccoBeats odpowiadające identyfikatorom Spotify.
    *
@@ -110,7 +110,7 @@ function normalizeTracksResponse(
  * @param configuration - Adres API oraz implementacja mechanizmu HTTP.
  * @returns Operacje wyszukiwania utworów i pobierania ich cech audio.
  */
-export function createReccoBeatsGateway({
+function createReccoBeatsGateway({
   fetchImpl = globalThis.fetch,
   baseUrl = appConfig.reccoBeats.baseUrl,
 }: ReccoBeatsGatewayConfiguration): ReccoBeatsGateway {
@@ -175,11 +175,8 @@ export function createReccoBeatsGateway({
   };
 }
 
+/** Gateway korzystający z produkcyjnej konfiguracji ReccoBeats. */
 const defaultReccoBeatsGateway = createReccoBeatsGateway({});
-export { defaultReccoBeatsGateway };
-/** Wyszukuje utwory przy użyciu domyślnej konfiguracji ReccoBeats. */
-export const findTracksBySpotifyIds =
-  defaultReccoBeatsGateway.findTracksBySpotifyIds;
-/** Pobiera cechy audio przy użyciu domyślnej konfiguracji ReccoBeats. */
-export const getTrackAudioFeatures =
-  defaultReccoBeatsGateway.getTrackAudioFeatures;
+
+export { createReccoBeatsGateway, defaultReccoBeatsGateway };
+export type { ReccoBeatsGateway };

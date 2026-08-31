@@ -1,7 +1,7 @@
 import type { ApplicationEnvironment } from "./config.types.js";
 
 /** Uprawnienia Spotify wymagane przez funkcje dostępne w aplikacji. */
-export const SPOTIFY_SCOPES = [
+const SPOTIFY_SCOPES = [
   "user-top-read",
   "user-read-private",
   "user-read-email",
@@ -17,7 +17,7 @@ export const SPOTIFY_SCOPES = [
  * @param env - Zmienne środowiskowe procesu albo ich zamienniki używane w testach.
  * @returns Konfiguracja serwera oraz zewnętrznych integracji.
  */
-export function createAppConfig(env: ApplicationEnvironment = {}) {
+function createAppConfig(env: ApplicationEnvironment = {}) {
   return {
     server: {
       port: Number(env.PORT ?? 3000),
@@ -51,4 +51,6 @@ export function createAppConfig(env: ApplicationEnvironment = {}) {
 }
 
 /** Konfiguracja używana przez uruchomioną aplikację. */
-export const appConfig = createAppConfig(process.env);
+const appConfig = createAppConfig(process.env);
+
+export { SPOTIFY_SCOPES, createAppConfig, appConfig };

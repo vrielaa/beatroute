@@ -8,7 +8,7 @@ type RequestOptions = {
   body?: URLSearchParams;
 };
 
-export class LastfmApiError extends Error {
+class LastfmApiError extends Error {
   code: number | null;
   name: string;
 
@@ -19,7 +19,7 @@ export class LastfmApiError extends Error {
   }
 }
 
-export function createLastfmApiSignature(
+function createLastfmApiSignature(
   params: Record<string, unknown>,
   { sharedSecret = appConfig.lastfm.sharedSecret } = {}
 ): string {
@@ -117,7 +117,7 @@ async function parseAndValidateResponse(response: Response): Promise<any> {
   return data;
 }
 
-export function createLastfmClient({
+function createLastfmClient({
   fetchImpl = globalThis.fetch,
   config = appConfig.lastfm,
 } = {}) {
@@ -142,4 +142,11 @@ export function createLastfmClient({
   };
 }
 
-export const fetchFromLastfm = createLastfmClient();
+const fetchFromLastfm = createLastfmClient();
+
+export {
+  LastfmApiError,
+  createLastfmApiSignature,
+  createLastfmClient,
+  fetchFromLastfm,
+};

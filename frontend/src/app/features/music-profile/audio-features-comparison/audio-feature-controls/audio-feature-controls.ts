@@ -16,7 +16,7 @@ import {
     class: 'audio-feature-controls-host',
   },
 })
-export class AudioFeatureControls {
+class AudioFeatureControls {
   public readonly features = input.required<AudioComparisonFeature[]>();
   public readonly selectedFeatureKeys = input.required<AudioComparisonFeatureKey[]>();
   public readonly isSelectAllChecked = input(false);
@@ -40,3 +40,5 @@ export class AudioFeatureControls {
     this.featureToggle.emit({ featureKey, checked });
   }
 }
+
+export { AudioFeatureControls };

@@ -25,7 +25,7 @@ type LastfmArtistServiceDependencies = {
  * @param dependencies - Zależności serwisu artystów.
  * @returns Operacje pobierania artysty i budowania rozkładu gatunków.
  */
-export function createLastfmArtistService({
+function createLastfmArtistService({
   artistGateway,
 }: LastfmArtistServiceDependencies) {
   /**
@@ -154,13 +154,9 @@ const defaultLastfmArtistGateway = createLastfmArtistGateway({
     }) as Promise<LastfmArtistApiResponse>,
 });
 
-const defaultLastfmArtistService = createLastfmArtistService({
+/** Serwis artystów korzystający z produkcyjnego gatewaya Last.fm. */
+const lastfmArtistService = createLastfmArtistService({
   artistGateway: defaultLastfmArtistGateway,
 });
 
-/** Pobiera informacje o artyście przy użyciu domyślnego klienta Last.fm. */
-export const getLastfmArtistInfo = defaultLastfmArtistService.getArtistInfo;
-
-/** Buduje rozkład gatunków przy użyciu domyślnego klienta Last.fm. */
-export const getLastfmArtistGenreDistribution =
-  defaultLastfmArtistService.getArtistGenreDistribution;
+export { createLastfmArtistService, lastfmArtistService };

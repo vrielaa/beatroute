@@ -1,4 +1,4 @@
-export const ICONS = {
+const ICONS = {
   artists: [
     'M13.333 17.5v-1.667a3.333 3.333 0 0 0-3.333-3.333H5a3.333 3.333 0 0 0-3.333 3.333V17.5M7.5 9.167A3.333 3.333 0 1 0 7.5 2.5a3.333 3.333 0 0 0 0 6.667ZM18.333 17.5v-1.667a3.333 3.333 0 0 0-2.5-3.225M13.333 2.608a3.333 3.333 0 0 1 0 6.459',
   ],
@@ -48,4 +48,7 @@ export const ICONS = {
   ],
 } as const;
 
-export type IconName = keyof typeof ICONS;
+type IconName = keyof typeof ICONS;
+
+export { ICONS };
+export type { IconName };

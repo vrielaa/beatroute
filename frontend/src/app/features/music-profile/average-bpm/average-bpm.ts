@@ -13,8 +13,10 @@ import { Tooltip } from '@shared/components/tooltip/tooltip';
     class: 'average-bpm-card-content',
   },
 })
-export class AverageBpm {
+class AverageBpm {
   public readonly averageBpm = input<number | null>(null);
   public readonly isLoading = input(false);
   public readonly tempoTooltip = audioFeatureTooltip('tempo');
 }
+
+export { AverageBpm };

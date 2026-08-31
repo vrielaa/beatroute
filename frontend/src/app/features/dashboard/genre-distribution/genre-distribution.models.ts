@@ -1,5 +1,7 @@
 import { ArtistGenreDistributionItem } from '@core/models/models';
 
-export interface GenreChartSegment extends ArtistGenreDistributionItem {
+interface GenreChartSegment extends ArtistGenreDistributionItem {
   color: string;
 }
+
+export type { GenreChartSegment };

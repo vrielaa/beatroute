@@ -11,7 +11,7 @@ import type {
 } from "../../integrations/lastfm/track/types.js";
 
 /** Dane wymagane do pobrania profilu pojedynczego utworu. */
-export type SpotifyTrackProfileRequest = {
+type SpotifyTrackProfileRequest = {
   /** Identyfikator utworu w Spotify. */
   spotifyTrackId: string;
   /** Token użytkownika umożliwiający odczyt danych ze Spotify. */
@@ -19,7 +19,7 @@ export type SpotifyTrackProfileRequest = {
 };
 
 /** Połączone dane utworu pochodzące ze Spotify i Last.fm. */
-export type SpotifyTrackProfile = {
+type SpotifyTrackProfile = {
   /** Skrócone dane utworu Spotify przeznaczone dla klienta aplikacji. */
   spotify: SpotifyTrackSummary;
   /** Metadane i klasyfikacja gatunkowa przygotowane na podstawie Last.fm. */
@@ -49,7 +49,7 @@ type SpotifyTrackProfileDependencies = {
  * @param dependencies - Gatewaye oraz mappery wymagane przez operację.
  * @returns Funkcja pobierająca połączony profil utworu.
  */
-export function createGetSpotifyTrackLastfmInfo({
+function createGetSpotifyTrackLastfmInfo({
   getSpotifyTrackById,
   getLastfmTrackInfo,
   mapSpotifyTrackForLastfm,
@@ -69,3 +69,6 @@ export function createGetSpotifyTrackLastfmInfo({
     };
   };
 }
+
+export { createGetSpotifyTrackLastfmInfo };
+export type { SpotifyTrackProfileRequest, SpotifyTrackProfile };

@@ -2,7 +2,7 @@
  * Surowy tag otrzymany z API Last.fm.
  * Pola są opcjonalne, ponieważ zewnętrzna odpowiedź może być niepełna.
  */
-export type LastfmTagApiResponse = {
+type LastfmTagApiResponse = {
   /** Nazwa tagu, jeśli została zwrócona przez Last.fm. */
   name?: string;
   /** Adres strony tagu w Last.fm, jeśli jest dostępny. */
@@ -14,9 +14,11 @@ export type LastfmTagApiResponse = {
 /**
  * Sprawdzony tag używany wewnątrz aplikacji.
  */
-export type LastfmTag = {
+type LastfmTag = {
   /** Niepusta, przycięta nazwa tagu. */
   name: string;
   /** Adres strony tagu albo `null`, jeśli Last.fm go nie zwrócił. */
   url: string | null;
 };
+
+export type { LastfmTagApiResponse, LastfmTag };

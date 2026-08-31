@@ -1,6 +1,6 @@
 import { appConfig } from "../../config/app.config.js";
 
-export function createSoundchartsClient({
+function createSoundchartsClient({
   fetchImpl = globalThis.fetch,
   baseUrl = appConfig.soundcharts.baseUrl,
   appId = appConfig.soundcharts.appId,
@@ -27,4 +27,6 @@ export function createSoundchartsClient({
   };
 }
 
-export const fetchFromSoundcharts = createSoundchartsClient();
+const fetchFromSoundcharts = createSoundchartsClient();
+
+export { createSoundchartsClient, fetchFromSoundcharts };

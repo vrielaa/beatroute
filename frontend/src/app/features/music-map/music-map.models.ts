@@ -1,24 +1,24 @@
 import { MusicMapCluster, MusicMapPoint } from '@core/models/models';
 
-export type MusicMapAxisTick = {
+type MusicMapAxisTick = {
   value: number;
   label: string;
   x: number;
   y: number;
 };
 
-export type MusicMapClusterMetric = {
+type MusicMapClusterMetric = {
   label: string;
   value: string;
 };
 
-export type MusicMapClusterDetail = {
+type MusicMapClusterDetail = {
   cluster: MusicMapCluster;
   points: MusicMapPoint[];
   metrics: MusicMapClusterMetric[];
 };
 
-export const MUSIC_MAP_CLUSTER_COLORS = [
+const MUSIC_MAP_CLUSTER_COLORS = [
   '#ef4444',
   '#3b82f6',
   '#10b981',
@@ -28,3 +28,6 @@ export const MUSIC_MAP_CLUSTER_COLORS = [
   '#14b8a6',
   '#a855f7',
 ];
+
+export { MUSIC_MAP_CLUSTER_COLORS };
+export type { MusicMapAxisTick, MusicMapClusterMetric, MusicMapClusterDetail };

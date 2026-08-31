@@ -32,7 +32,7 @@ import {
     class: 'music-map-page',
   },
 })
-export class MusicMap {
+class MusicMap {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly spotifyService = inject(SpotifyService);
 
@@ -107,3 +107,5 @@ export class MusicMap {
     this.selectedClusterId.set(this.selectedClusterId() === cluster.id ? null : cluster.id);
   }
 }
+
+export { MusicMap };

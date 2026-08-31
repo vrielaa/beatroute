@@ -1,16 +1,16 @@
 import { fetchFromSoundcharts } from "./soundcharts.client.js";
 
-export async function getSongBySpotifyId(spotifyTrackId) {
+async function getSongBySpotifyId(spotifyTrackId) {
   return fetchFromSoundcharts(
     `/api/v2.25/song/by-platform/spotify/${spotifyTrackId}`
   );
 }
 
-export async function getSongMetadataByUuid(uuid) {
+async function getSongMetadataByUuid(uuid) {
   return fetchFromSoundcharts(`/api/v2.25/song/${uuid}`);
 }
 
-export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
+async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
   const song = await getSongBySpotifyId(spotifyTrackId);
 
   const uuid = song?.object?.uuid;
@@ -40,3 +40,9 @@ export async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId) {
     valence: audio.valence ?? null,
   };
 }
+
+export {
+  getSongBySpotifyId,
+  getSongMetadataByUuid,
+  getTrackAudioFeaturesBySpotifyId,
+};

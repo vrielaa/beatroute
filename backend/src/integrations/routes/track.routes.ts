@@ -40,7 +40,7 @@ type TrackRouterDependencies = {
  * @param dependencies - Serwis ReccoBeats, operacja Soundcharts i autoryzacja.
  * @returns Router Express obsługujący endpointy danych utworów.
  */
-export function createTrackRouter({
+function createTrackRouter({
   reccoBeatsService,
   getSoundchartsAudioFeatures,
   authorize,
@@ -102,4 +102,5 @@ const trackRouter = createTrackRouter({
   authorize: ensureSpotifyAccessToken,
 });
 
+export { createTrackRouter };
 export default trackRouter;

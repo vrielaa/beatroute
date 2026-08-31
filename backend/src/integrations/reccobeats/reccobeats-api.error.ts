@@ -1,5 +1,5 @@
 /** Fragment odpowiedzi błędu zwracanej przez API ReccoBeats. */
-export type ReccoBeatsApiErrorData = {
+type ReccoBeatsApiErrorData = {
   /** Szczegóły błędu przekazane przez zewnętrzną usługę. */
   error?: {
     /** Komunikat opisujący przyczynę niepowodzenia. */
@@ -10,7 +10,7 @@ export type ReccoBeatsApiErrorData = {
 };
 
 /** Błąd nieudanego zapytania do API ReccoBeats. */
-export class ReccoBeatsApiError extends Error {
+class ReccoBeatsApiError extends Error {
   /**
    * @param message - Czytelny opis niepowodzenia.
    * @param status - Status HTTP odpowiedzi ReccoBeats.
@@ -24,3 +24,6 @@ export class ReccoBeatsApiError extends Error {
     super(message);
   }
 }
+
+export { ReccoBeatsApiError };
+export type { ReccoBeatsApiErrorData };

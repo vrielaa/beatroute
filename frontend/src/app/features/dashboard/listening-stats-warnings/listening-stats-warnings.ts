@@ -10,7 +10,7 @@ import { TimeRange } from '@core/models/models';
     class: 'listening-stats-warnings-host',
   },
 })
-export class ListeningStatsWarnings {
+class ListeningStatsWarnings {
   public readonly selectedTimeRange = input<TimeRange>('short_term');
   public readonly tracksFoundRatio = input<{
     requestedTracksCount: number;
@@ -54,3 +54,5 @@ export class ListeningStatsWarnings {
     return ratio.spotifyTotalArtistsCount < ratio.requestedArtistsCount;
   });
 }
+
+export { ListeningStatsWarnings };

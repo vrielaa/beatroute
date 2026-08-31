@@ -1,6 +1,6 @@
 import { TooltipContent } from '@shared/tooltip/tooltip-content';
 
-export type AudioFeatureInfoKey =
+type AudioFeatureInfoKey =
   | 'tempo'
   | 'energy'
   | 'danceability'
@@ -14,10 +14,7 @@ export type AudioFeatureInfoKey =
   | 'mode'
   | 'timeSignature';
 
-export type RangedAudioFeatureInfoKey = Exclude<
-  AudioFeatureInfoKey,
-  'key' | 'mode' | 'timeSignature'
->;
+type RangedAudioFeatureInfoKey = Exclude<AudioFeatureInfoKey, 'key' | 'mode' | 'timeSignature'>;
 
 type AudioFeatureInfo = {
   label: string;
@@ -31,7 +28,7 @@ type AudioFeatureInfo = {
   highMeaning?: string;
 };
 
-export const AUDIO_FEATURE_INFO: Record<AudioFeatureInfoKey, AudioFeatureInfo> = {
+const AUDIO_FEATURE_INFO: Record<AudioFeatureInfoKey, AudioFeatureInfo> = {
   tempo: {
     label: 'BPM',
     description: 'Tempo utworu',
@@ -154,7 +151,7 @@ export const AUDIO_FEATURE_INFO: Record<AudioFeatureInfoKey, AudioFeatureInfo> =
   },
 };
 
-export function audioFeatureTooltip(key: AudioFeatureInfoKey): TooltipContent {
+function audioFeatureTooltip(key: AudioFeatureInfoKey): TooltipContent {
   const feature = AUDIO_FEATURE_INFO[key];
 
   if (hasAudioFeatureRange(feature)) {
@@ -177,7 +174,7 @@ export function audioFeatureTooltip(key: AudioFeatureInfoKey): TooltipContent {
   };
 }
 
-export function rangedAudioFeatureInfo(
+function rangedAudioFeatureInfo(
   key: RangedAudioFeatureInfoKey
 ): Required<Pick<AudioFeatureInfo, 'min' | 'max' | 'decimals' | 'lowMeaning' | 'highMeaning'>> &
   AudioFeatureInfo {
@@ -215,3 +212,6 @@ function formatRangeValue(
 
   return feature.unit ? `${formattedValue} ${feature.unit}` : formattedValue;
 }
+
+export { AUDIO_FEATURE_INFO, audioFeatureTooltip, rangedAudioFeatureInfo };
+export type { AudioFeatureInfoKey, RangedAudioFeatureInfoKey };

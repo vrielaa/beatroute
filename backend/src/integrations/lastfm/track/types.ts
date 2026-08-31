@@ -1,7 +1,7 @@
 import type { LastfmTag, LastfmTagApiResponse } from "../types.js";
 
 /** Fragment surowej odpowiedzi `track.getInfo` używany przez aplikację. */
-export type LastfmTrackApiResponse = {
+type LastfmTrackApiResponse = {
   /** Dane utworu; pole może być nieobecne w niepełnej odpowiedzi API. */
   track?: {
     /** Nazwa utworu zwrócona przez Last.fm. */
@@ -28,7 +28,7 @@ export type LastfmTrackApiResponse = {
 };
 
 /** Metadane utworu po sprawdzeniu i znormalizowaniu odpowiedzi Last.fm. */
-export type LastfmTrackMetadata = {
+type LastfmTrackMetadata = {
   /** Nazwa utworu albo `null`, jeśli odpowiedź jej nie zawiera. */
   name: string | null;
   /** Nazwa artysty z Last.fm, z zapytania albo `null`. */
@@ -42,7 +42,7 @@ export type LastfmTrackMetadata = {
 };
 
 /** Informacje o utworze zwracane przez serwis do pozostałych warstw aplikacji. */
-export type LastfmTrackInfo = {
+type LastfmTrackInfo = {
   /** Nazwa utworu albo `null`. */
   name: string | null;
   /** Rozwiązana nazwa artysty albo `null`. */
@@ -64,7 +64,7 @@ export type LastfmTrackInfo = {
 };
 
 /** Fragment surowej odpowiedzi `track.getTopTags` używany przez aplikację. */
-export type LastfmTrackTopTagsApiResponse = {
+type LastfmTrackTopTagsApiResponse = {
   /** Kontener top tagów zwrócony przez osobną metodę Last.fm. */
   toptags?: {
     /** Pojedynczy tag albo tablica tagów z zewnętrznego API. */
@@ -79,14 +79,14 @@ export type LastfmTrackTopTagsApiResponse = {
  * `lastfm-artist-info-tags` oznacza fallback do tagów artysty.
  * Wartość `null` informuje, że żadne źródło nie dostarczyło gatunku.
  */
-export type LastfmGenreSource =
+type LastfmGenreSource =
   | "lastfm-top-tags"
   | "lastfm-track-top-tags"
   | "lastfm-artist-info-tags"
   | null;
 
 /** Adaptery zewnętrznych metod wymagane do utworzenia gatewaya. */
-export type LastfmTrackGatewayDependencies = {
+type LastfmTrackGatewayDependencies = {
   /** Wykonuje zapytanie `track.getInfo`. */
   requestTrackInfo: (
     params: LastfmTrackRequestParams
@@ -99,7 +99,7 @@ export type LastfmTrackGatewayDependencies = {
 };
 
 /** Port dostępu do danych jednego utworu Last.fm. */
-export type LastfmTrackGateway = {
+type LastfmTrackGateway = {
   /** Pobiera podstawowe dane utworu i osadzone top tagi. */
   lookupTrack(
     identifier: LastfmTrackIdentifier
@@ -115,7 +115,7 @@ export type LastfmTrackGateway = {
  * Jednoznaczny identyfikator utworu akceptowany przez Last.fm: MBID albo para
  * nazw artysty i utworu.
  */
-export type LastfmTrackIdentifier =
+type LastfmTrackIdentifier =
   | {
       /** Identyfikator utworu w MusicBrainz. */
       mbid: string;
@@ -134,13 +134,13 @@ export type LastfmTrackIdentifier =
     };
 
 /** Parametry wysyłane do Last.fm po włączeniu automatycznej korekty nazw. */
-export type LastfmTrackRequestParams = LastfmTrackIdentifier & {
+type LastfmTrackRequestParams = LastfmTrackIdentifier & {
   /** Wartość `1` włącza poprawianie nazw przez Last.fm. */
   autocorrect: 1;
 };
 
 /** Publiczny kontrakt serwisu pobierającego i klasyfikującego dane utworów Last.fm. */
-export type LastfmTrackService = {
+type LastfmTrackService = {
   /**
    * Pobiera metadane utworu i przypisuje mu gatunki na podstawie tagów Last.fm.
    * Najpierw wykorzystuje tagi zwrócone razem z informacjami o utworze. Jeśli
@@ -153,4 +153,17 @@ export type LastfmTrackService = {
    * @returns Metadane utworu, rozpoznane gatunki i informację o źródle tagów.
    */
   getTrackInfo(identifier: LastfmTrackIdentifier): Promise<LastfmTrackInfo>;
+};
+
+export type {
+  LastfmTrackApiResponse,
+  LastfmTrackMetadata,
+  LastfmTrackInfo,
+  LastfmTrackTopTagsApiResponse,
+  LastfmGenreSource,
+  LastfmTrackGatewayDependencies,
+  LastfmTrackGateway,
+  LastfmTrackIdentifier,
+  LastfmTrackRequestParams,
+  LastfmTrackService,
 };

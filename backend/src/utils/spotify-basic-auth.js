@@ -1,6 +1,6 @@
 import { appConfig } from "../config/app.config.js";
 
-export function getSpotifyBasicAuthHeader({
+function getSpotifyBasicAuthHeader({
   clientId = appConfig.spotify.clientId,
   clientSecret = appConfig.spotify.clientSecret,
 } = {}) {
@@ -8,3 +8,5 @@ export function getSpotifyBasicAuthHeader({
 
   return `Basic ${value}`;
 }
+
+export { getSpotifyBasicAuthHeader };

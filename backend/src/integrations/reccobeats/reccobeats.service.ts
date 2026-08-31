@@ -17,7 +17,7 @@ type ReccoBeatsServiceDependencies = {
  * @param dependencies - Gateway udostępniający dane ReccoBeats.
  * @returns Operacje pobierania cech audio dla jednego lub wielu utworów Spotify.
  */
-export function createReccoBeatsService({
+function createReccoBeatsService({
   reccoBeatsGateway,
 }: ReccoBeatsServiceDependencies) {
   /**
@@ -148,6 +148,8 @@ export function createReccoBeatsService({
 }
 
 /** Serwis ReccoBeats korzystający z produkcyjnej konfiguracji gatewaya. */
-export const reccoBeatsService = createReccoBeatsService({
+const reccoBeatsService = createReccoBeatsService({
   reccoBeatsGateway: defaultReccoBeatsGateway,
 });
+
+export { createReccoBeatsService, reccoBeatsService };

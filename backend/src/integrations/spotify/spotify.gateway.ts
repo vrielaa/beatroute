@@ -17,7 +17,7 @@ const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
  * @param configuration - Implementacja `fetch` i opcjonalny bazowy adres API.
  * @returns Operacje pobierające utwory, artystów i profil użytkownika.
  */
-export function createSpotifyGateway({
+function createSpotifyGateway({
   fetchImpl = globalThis.fetch,
   apiRoot = DEFAULT_SPOTIFY_API_ROOT,
 }: SpotifyApiConfiguration = {}): SpotifyGateway {
@@ -144,12 +144,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/** Gateway korzystający z produkcyjnej konfiguracji Spotify Web API. */
 const defaultSpotifyGateway = createSpotifyGateway();
 
-export const getSpotifyTrackById = defaultSpotifyGateway.getSpotifyTrackById;
-export const getCurrentUserTopTracks =
-  defaultSpotifyGateway.getCurrentUserTopTracks;
-export const getCurrentUserTopArtists =
-  defaultSpotifyGateway.getCurrentUserTopArtists;
-export const getCurrentUserProfile =
-  defaultSpotifyGateway.getCurrentUserProfile;
+export { createSpotifyGateway, defaultSpotifyGateway };

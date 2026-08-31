@@ -35,7 +35,7 @@ type PointTooltip = {
     '[attr.transform]': "'translate(' + tooltip().x + ' ' + tooltip().y + ')'",
   },
 })
-export class AudioFeaturesChartTooltip {
+class AudioFeaturesChartTooltip {
   public readonly point = input.required<AudioComparisonChartPoint>();
   public readonly feature = input.required<AudioComparisonFeature>();
   public readonly chartWidth = input.required<number>();
@@ -79,3 +79,5 @@ export class AudioFeaturesChartTooltip {
     return textWidth > maxTextWidth ? maxTextWidth : null;
   }
 }
+
+export { AudioFeaturesChartTooltip };

@@ -1,26 +1,24 @@
 import { MusicMapCluster, MusicMapResponse } from '@core/models/models';
 import { MusicMapClusterDetail, MusicMapClusterMetric } from './music-map.models';
 
-export const MUSIC_MAP_CLUSTER_LIMITS = {
+const MUSIC_MAP_CLUSTER_LIMITS = {
   default: 4,
   min: 2,
   max: 8,
 } as const;
 
-export function getMaxMusicMapClusterCount(tracksCount: number): number {
+function getMaxMusicMapClusterCount(tracksCount: number): number {
   return Math.max(
     MUSIC_MAP_CLUSTER_LIMITS.min,
     Math.min(MUSIC_MAP_CLUSTER_LIMITS.max, tracksCount - 1)
   );
 }
 
-export function clampMusicMapClusterCount(value: number, max: number): number {
+function clampMusicMapClusterCount(value: number, max: number): number {
   return Math.min(Math.max(value, MUSIC_MAP_CLUSTER_LIMITS.min), max);
 }
 
-export function buildMusicMapClusterDetails(
-  musicMap: MusicMapResponse | null
-): MusicMapClusterDetail[] {
+function buildMusicMapClusterDetails(musicMap: MusicMapResponse | null): MusicMapClusterDetail[] {
   if (!musicMap) return [];
 
   return musicMap.clusters.map((cluster) => ({
@@ -48,3 +46,10 @@ function formatPercentage(value: number | undefined): string {
 function formatBpm(value: number | undefined): string {
   return typeof value === 'number' ? `${Math.round(value)} BPM` : 'Brak danych';
 }
+
+export {
+  MUSIC_MAP_CLUSTER_LIMITS,
+  getMaxMusicMapClusterCount,
+  clampMusicMapClusterCount,
+  buildMusicMapClusterDetails,
+};

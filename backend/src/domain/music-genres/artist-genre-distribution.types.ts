@@ -1,33 +1,43 @@
-export type GenreCandidate = {
+type GenreCandidate = {
   canonicalName: string | null;
   key: string;
   name: string;
 };
 
-export type Artist = ({ resolvedName: string } | { name: string }) & {
+type Artist = ({ resolvedName: string } | { name: string }) & {
   requestedName?: string;
   genreCandidates?: GenreCandidate[];
 };
 
-export type SubgenreAccumulator = {
+type SubgenreAccumulator = {
   name: string;
   count: number;
   artistNamesSet: Set<string>;
 };
 
-export type SubgenreMap = Map<string, SubgenreAccumulator>;
+type SubgenreMap = Map<string, SubgenreAccumulator>;
 
-export type GenreAccumulator = {
+type GenreAccumulator = {
   name: string;
   count: number;
   artistNamesSet: Set<string>;
   subgenreMap: SubgenreMap;
 };
 
-export type GenreMap = Map<string, GenreAccumulator>;
+type GenreMap = Map<string, GenreAccumulator>;
 
-export type GenreAccumulation = {
+type GenreAccumulation = {
   genreMap: GenreMap;
   unmatchedArtists: string[];
   totalGenreMatches: number;
+};
+
+export type {
+  GenreCandidate,
+  Artist,
+  SubgenreAccumulator,
+  SubgenreMap,
+  GenreAccumulator,
+  GenreMap,
+  GenreAccumulation,
 };

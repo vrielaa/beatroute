@@ -13,7 +13,7 @@ import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
     class: 'most-listened-track-item',
   },
 })
-export class MostListenedTrackItem {
+class MostListenedTrackItem {
   public readonly track = input.required<TopTrack>();
   public readonly index = input.required<number>();
   public readonly featureRows = input.required<TrackAudioFeatureRow[]>();
@@ -25,3 +25,5 @@ export class MostListenedTrackItem {
   );
   public readonly hasAudioFeatures = computed(() => this.featureRows().length > 0);
 }
+
+export { MostListenedTrackItem };

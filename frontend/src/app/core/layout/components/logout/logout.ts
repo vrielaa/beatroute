@@ -12,7 +12,7 @@ import { Icon } from '@shared/components/icon/icon';
     class: 'logout-action',
   },
 })
-export class Logout {
+class Logout {
   readonly spotifyService = inject(SpotifyService);
 
   public logout(): void {
@@ -26,3 +26,5 @@ export class Logout {
     });
   }
 }
+
+export { Logout };

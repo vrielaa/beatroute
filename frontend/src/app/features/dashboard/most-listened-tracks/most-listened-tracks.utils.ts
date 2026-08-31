@@ -14,9 +14,7 @@ const PERIOD_LABELS: Record<TimeRange, string> = {
   long_term: 'ostatniego roku',
 };
 
-export function indexAudioFeaturesBySpotifyId(
-  audioFeatures: AudioFeatures[]
-): Map<string, AudioFeatures> {
+function indexAudioFeaturesBySpotifyId(audioFeatures: AudioFeatures[]): Map<string, AudioFeatures> {
   return new Map(
     audioFeatures
       .filter((features): features is AudioFeatures & { spotifyId: string } =>
@@ -26,7 +24,7 @@ export function indexAudioFeaturesBySpotifyId(
   );
 }
 
-export function buildTrackAudioFeatureRows(features: AudioFeatures | null): TrackAudioFeatureRow[] {
+function buildTrackAudioFeatureRows(features: AudioFeatures | null): TrackAudioFeatureRow[] {
   if (!features || features.error) return [];
 
   return [
@@ -45,11 +43,11 @@ export function buildTrackAudioFeatureRows(features: AudioFeatures | null): Trac
   ];
 }
 
-export function getListeningPeriodLabel(timeRange: TimeRange): string {
+function getListeningPeriodLabel(timeRange: TimeRange): string {
   return PERIOD_LABELS[timeRange];
 }
 
-export function formatHiddenTracksLabel(count: number): string {
+function formatHiddenTracksLabel(count: number): string {
   if (count === 1) return 'utwór';
   if (count > 1 && count < 5) return 'utwory';
 
@@ -85,3 +83,10 @@ function formatMode(value: number | null | undefined): string {
 function formatTimeSignature(value: number | null | undefined): string {
   return typeof value === 'number' ? `${value}/4` : 'Brak danych';
 }
+
+export {
+  indexAudioFeaturesBySpotifyId,
+  buildTrackAudioFeatureRows,
+  getListeningPeriodLabel,
+  formatHiddenTracksLabel,
+};

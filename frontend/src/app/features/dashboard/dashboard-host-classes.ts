@@ -1,1 +1,3 @@
-export const DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS = 'dashboard-full-width-section';
+const DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS = 'dashboard-full-width-section';
+
+export { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS };

@@ -1,4 +1,4 @@
-export function mapSoundchartsAudioFeatures(audioFeatures) {
+function mapSoundchartsAudioFeatures(audioFeatures) {
   return {
     acousticness: audioFeatures.acousticness ?? null,
     danceability: audioFeatures.danceability ?? null,
@@ -14,3 +14,5 @@ export function mapSoundchartsAudioFeatures(audioFeatures) {
     timeSignature: audioFeatures.time_signature ?? null,
   };
 }
+
+export { mapSoundchartsAudioFeatures };

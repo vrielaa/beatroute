@@ -23,7 +23,7 @@ import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-class
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
-export class MostListenedArtists {
+class MostListenedArtists {
   private readonly collapsedItemsLimit = 10;
   private readonly skeletonGrid = viewChild<ElementRef<HTMLOListElement>>('skeletonGrid');
   private readonly skeletonCount = signal(1);
@@ -115,3 +115,5 @@ export class MostListenedArtists {
     return 'artystów';
   }
 }
+
+export { MostListenedArtists };

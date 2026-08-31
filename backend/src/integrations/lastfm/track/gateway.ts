@@ -15,7 +15,7 @@ import type {
  * @param dependencies - Adaptery metod `track.getInfo` i `track.getTopTags`.
  * @returns Gateway obsługujący dane i top tagi jednego utworu.
  */
-export function createLastfmTrackGateway({
+function createLastfmTrackGateway({
   requestTrackInfo,
   requestTrackTopTags,
 }: LastfmTrackGatewayDependencies): LastfmTrackGateway {
@@ -59,3 +59,5 @@ function createRequestParams(
     autocorrect: 1,
   };
 }
+
+export { createLastfmTrackGateway };

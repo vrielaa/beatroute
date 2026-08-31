@@ -1,14 +1,14 @@
 /** Okres statystyk obsługiwany przez endpointy Spotify top items. */
-export type SpotifyTimeRange = "short_term" | "medium_term" | "long_term";
+type SpotifyTimeRange = "short_term" | "medium_term" | "long_term";
 
 /** Odnośniki do zasobów w aplikacji Spotify. */
-export type SpotifyExternalUrls = {
+type SpotifyExternalUrls = {
   /** Publiczny adres zasobu w Spotify. */
   spotify?: string;
 };
 
 /** Obraz zwracany przez Spotify. */
-export type SpotifyImage = {
+type SpotifyImage = {
   /** Adres obrazu. */
   url: string;
   /** Wysokość obrazu albo `null`, gdy Spotify jej nie podaje. */
@@ -18,13 +18,13 @@ export type SpotifyImage = {
 };
 
 /** Skrócone dane artysty zagnieżdżone w innym zasobie Spotify. */
-export type SpotifyArtistReference = {
+type SpotifyArtistReference = {
   /** Nazwa artysty. */
   name: string;
 };
 
 /** Dane albumu potrzebne podczas przetwarzania utworu. */
-export type SpotifyAlbumApiResponse = {
+type SpotifyAlbumApiResponse = {
   /** Nazwa albumu. */
   name: string;
   /** Artyści przypisani do albumu. */
@@ -34,7 +34,7 @@ export type SpotifyAlbumApiResponse = {
 };
 
 /** Dane pojedynczego utworu zwracane przez Spotify Web API. */
-export type SpotifyTrackApiResponse = {
+type SpotifyTrackApiResponse = {
   /** Identyfikator utworu w Spotify. */
   id: string;
   /** Nazwa utworu. */
@@ -54,13 +54,13 @@ export type SpotifyTrackApiResponse = {
 };
 
 /** Liczba obserwujących zasób Spotify. */
-export type SpotifyFollowers = {
+type SpotifyFollowers = {
   /** Łączna liczba obserwujących. */
   total: number;
 };
 
 /** Dane artysty zwracane przez Spotify Web API. */
-export type SpotifyArtistApiResponse = {
+type SpotifyArtistApiResponse = {
   /** Identyfikator artysty w Spotify. */
   id: string;
   /** Nazwa artysty. */
@@ -78,7 +78,7 @@ export type SpotifyArtistApiResponse = {
 };
 
 /** Stronicowana odpowiedź Spotify zawierająca zasoby jednego typu. */
-export type SpotifyPage<T> = {
+type SpotifyPage<T> = {
   /** Adres bieżącej strony wyników. */
   href: string;
   /** Zasoby znajdujące się na bieżącej stronie. */
@@ -96,14 +96,13 @@ export type SpotifyPage<T> = {
 };
 
 /** Odpowiedź endpointu zwracającego najczęściej słuchane utwory. */
-export type SpotifyTopTracksApiResponse = SpotifyPage<SpotifyTrackApiResponse>;
+type SpotifyTopTracksApiResponse = SpotifyPage<SpotifyTrackApiResponse>;
 
 /** Odpowiedź endpointu zwracającego najczęściej słuchanych artystów. */
-export type SpotifyTopArtistsApiResponse =
-  SpotifyPage<SpotifyArtistApiResponse>;
+type SpotifyTopArtistsApiResponse = SpotifyPage<SpotifyArtistApiResponse>;
 
 /** Profil aktualnie zalogowanego użytkownika Spotify. */
-export type SpotifyUserProfileApiResponse = {
+type SpotifyUserProfileApiResponse = {
   /** Identyfikator użytkownika. */
   id: string;
   /** Publiczna nazwa użytkownika. */
@@ -121,7 +120,7 @@ export type SpotifyUserProfileApiResponse = {
 };
 
 /** Parametry wyboru najczęściej słuchanych zasobów. */
-export type SpotifyTopItemsSelection = {
+type SpotifyTopItemsSelection = {
   /** Maksymalna liczba zwracanych elementów. */
   limit: number;
   /** Analizowany okres. */
@@ -129,7 +128,7 @@ export type SpotifyTopItemsSelection = {
 };
 
 /** Konfiguracja połączenia ze Spotify Web API. */
-export type SpotifyApiConfiguration = {
+type SpotifyApiConfiguration = {
   /** Implementacja `fetch`, którą można zastąpić w testach. */
   fetchImpl?: typeof globalThis.fetch;
   /** Bazowy adres Spotify Web API. */
@@ -137,7 +136,7 @@ export type SpotifyApiConfiguration = {
 };
 
 /** Operacje odczytu danych udostępniane przez gateway Spotify. */
-export type SpotifyGateway = {
+type SpotifyGateway = {
   /** Pobiera pojedynczy utwór po jego identyfikatorze. */
   getSpotifyTrackById(
     spotifyTrackId: string,
@@ -160,7 +159,7 @@ export type SpotifyGateway = {
 };
 
 /** Skrócone dane utworu zwracane przez endpoint łączący Spotify z Last.fm. */
-export type SpotifyTrackSummary = {
+type SpotifyTrackSummary = {
   /** Identyfikator utworu w Spotify. */
   id: string;
   /** Nazwa utworu. */
@@ -173,4 +172,23 @@ export type SpotifyTrackSummary = {
   durationMs: number | null;
   /** Publiczny adres utworu w Spotify. */
   spotifyUrl: string | null;
+};
+
+export type {
+  SpotifyTimeRange,
+  SpotifyExternalUrls,
+  SpotifyImage,
+  SpotifyArtistReference,
+  SpotifyAlbumApiResponse,
+  SpotifyTrackApiResponse,
+  SpotifyFollowers,
+  SpotifyArtistApiResponse,
+  SpotifyPage,
+  SpotifyTopTracksApiResponse,
+  SpotifyTopArtistsApiResponse,
+  SpotifyUserProfileApiResponse,
+  SpotifyTopItemsSelection,
+  SpotifyApiConfiguration,
+  SpotifyGateway,
+  SpotifyTrackSummary,
 };

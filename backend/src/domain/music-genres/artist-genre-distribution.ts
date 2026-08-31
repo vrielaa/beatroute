@@ -288,7 +288,7 @@ function buildGenres(genreMap: GenreMap, totalGenreMatches: number) {
  * @param artists - Artyści wraz z kandydatami gatunków.
  * @returns Rozkład gatunków oraz zbiorcze statystyki dopasowania.
  */
-export function buildArtistGenreDistribution(artists: Artist[]) {
+function buildArtistGenreDistribution(artists: Artist[]) {
   const { genreMap, unmatchedArtists, totalGenreMatches } =
     accumulateGenres(artists);
 
@@ -302,3 +302,5 @@ export function buildArtistGenreDistribution(artists: Artist[]) {
     unmatchedArtists,
   };
 }
+
+export { buildArtistGenreDistribution };

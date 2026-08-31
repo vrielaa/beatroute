@@ -10,4 +10,6 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
     class: 'placeholder-page',
   },
 })
-export class PlaylistGenerator {}
+class PlaylistGenerator {}
+
+export { PlaylistGenerator };

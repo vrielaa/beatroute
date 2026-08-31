@@ -87,7 +87,7 @@ function percentage(count: number, total: number) {
  * @param audioFeatures - Cechy audio i błędy pobierania poszczególnych utworów.
  * @returns Średnie, dominanty, liczności i wartości procentowe profilu muzycznego.
  */
-export function calculateAudioStats(
+function calculateAudioStats(
   audioFeatures: ReccoBeatsTrackAudioFeaturesResult[]
 ): AudioStats {
   const validTracks = audioFeatures.filter(
@@ -184,3 +184,5 @@ export function calculateAudioStats(
     ),
   };
 }
+
+export { calculateAudioStats };

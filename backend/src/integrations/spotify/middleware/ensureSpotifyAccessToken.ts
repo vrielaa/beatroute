@@ -2,7 +2,7 @@ import { refreshAccessToken } from "../../../utils/spotify.js";
 import { HttpError } from "../../../http/error-response.js";
 import type { Request, Response, NextFunction } from "express";
 
-export default async function ensureSpotifyAccessToken(
+async function ensureSpotifyAccessToken(
   req: Request,
   res: Response,
   next: NextFunction
@@ -41,3 +41,5 @@ export default async function ensureSpotifyAccessToken(
     );
   }
 }
+
+export default ensureSpotifyAccessToken;

@@ -14,7 +14,7 @@ import type { LastfmTag } from "../types.js";
  * @param requestedArtist - Nazwa artysty przekazana w zapytaniu, jeśli istnieje.
  * @returns Znormalizowane metadane i tagi utworu.
  */
-export function mapLastfmTrackMetadata(
+function mapLastfmTrackMetadata(
   response: LastfmTrackApiResponse,
   requestedArtist: string | null
 ): LastfmTrackMetadata {
@@ -33,8 +33,10 @@ export function mapLastfmTrackMetadata(
  * @param response - Surowa odpowiedź metody `track.getTopTags`.
  * @returns Znormalizowane tagi w kolejności zwróconej przez Last.fm.
  */
-export function mapLastfmTrackTopTags(
+function mapLastfmTrackTopTags(
   response: LastfmTrackTopTagsApiResponse
 ): LastfmTag[] {
   return normalizeLastfmTags(response.toptags?.tag);
 }
+
+export { mapLastfmTrackMetadata, mapLastfmTrackTopTags };

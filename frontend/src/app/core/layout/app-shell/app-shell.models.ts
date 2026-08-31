@@ -1,7 +1,7 @@
 import { Signal } from '@angular/core';
 import { IconName } from '@shared/icons/icons';
 
-export type BaseNavLink = {
+type BaseNavLink = {
   label: string;
   path: string;
   exact?: boolean;
@@ -10,6 +10,8 @@ export type BaseNavLink = {
   showAnalysisFilters?: boolean;
 };
 
-export type NavLink = BaseNavLink & {
+type NavLink = BaseNavLink & {
   isActive: Signal<boolean>;
 };
+
+export type { BaseNavLink, NavLink };

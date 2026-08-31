@@ -18,7 +18,7 @@ import { ListeningStatsWarnings } from '../listening-stats-warnings/listening-st
     class: 'dashboard-grid',
   },
 })
-export class Dashboard {
+class Dashboard {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly tracksStore = inject(ListeningTracksStore);
   private readonly artistsStore = inject(DashboardArtistsStore);
@@ -66,3 +66,5 @@ export class Dashboard {
     this.artistsStore.retry();
   }
 }
+
+export { Dashboard };

@@ -5,11 +5,7 @@ import {
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
 } from "../spotify/spotify.validators.js";
-import {
-  getCurrentUserProfile,
-  getCurrentUserTopArtists,
-  getCurrentUserTopTracks,
-} from "../spotify/spotify.gateway.js";
+import { defaultSpotifyGateway } from "../spotify/spotify.gateway.js";
 import type { RequestHandler } from "express";
 import type { SpotifyGateway } from "../spotify/spotify.types.js";
 
@@ -38,7 +34,7 @@ type SpotifyMeRouterDependencies = {
  * @param dependencies - Gateway Spotify i middleware autoryzacji.
  * @returns Router obsługujący profil, top utwory i top artystów.
  */
-export function createMeRouter({
+function createMeRouter({
   spotifyGateway,
   authorize,
 }: SpotifyMeRouterDependencies): Router {
@@ -89,12 +85,9 @@ export function createMeRouter({
 
 /** Router skonfigurowany z produkcyjnymi zależnościami Spotify. */
 const meRouter = createMeRouter({
-  spotifyGateway: {
-    getCurrentUserProfile,
-    getCurrentUserTopTracks,
-    getCurrentUserTopArtists,
-  },
+  spotifyGateway: defaultSpotifyGateway,
   authorize: ensureSpotifyAccessToken,
 });
 
+export { createMeRouter };
 export default meRouter;

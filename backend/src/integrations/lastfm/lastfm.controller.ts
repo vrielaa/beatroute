@@ -1,8 +1,8 @@
-import { getLastfmArtistGenreDistribution } from "./artist/service.js";
+import { lastfmArtistService } from "./artist/service.js";
 import { getLastfmUserInfo } from "./lastfm.service.js";
-import { getLastfmTrackInfo as fetchLastfmTrackInfo } from "./track/service.js";
+import { lastfmTrackService } from "./track/service.js";
 import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
-import { getSpotifyTrackById } from "../spotify/spotify.gateway.js";
+import { defaultSpotifyGateway } from "../spotify/spotify.gateway.js";
 import {
   mapSpotifyTrackForLastfm,
   mapSpotifyTrackResponse,
@@ -15,13 +15,13 @@ type SpotifyTrackRouteParams = {
 };
 
 const getSpotifyTrackLastfmInfoUseCase = createGetSpotifyTrackLastfmInfo({
-  getSpotifyTrackById,
-  getLastfmTrackInfo: fetchLastfmTrackInfo,
+  getSpotifyTrackById: defaultSpotifyGateway.getSpotifyTrackById,
+  getLastfmTrackInfo: lastfmTrackService.getTrackInfo,
   mapSpotifyTrackForLastfm,
   mapSpotifyTrackResponse,
 });
 
-export async function getLastfmMe(req: Request, res: Response) {
+async function getLastfmMe(req: Request, res: Response) {
   const lastfmSession = req.session.lastfm;
 
   if (!lastfmSession) {
@@ -33,21 +33,22 @@ export async function getLastfmMe(req: Request, res: Response) {
   res.json(user);
 }
 
-export async function getLastfmTrackInfo(req: Request, res: Response) {
+async function getLastfmTrackInfo(req: Request, res: Response) {
   const query = parseTrackInfoQuery(req.query);
-  const trackInfo = await fetchLastfmTrackInfo(query);
+  const trackInfo = await lastfmTrackService.getTrackInfo(query);
 
   res.json(trackInfo);
 }
 
-export async function getArtistGenreDistribution(req: Request, res: Response) {
+async function getArtistGenreDistribution(req: Request, res: Response) {
   const artists = parseArtistNames(req.body);
-  const distribution = await getLastfmArtistGenreDistribution(artists);
+  const distribution =
+    await lastfmArtistService.getArtistGenreDistribution(artists);
 
   res.json(distribution);
 }
 
-export async function getSpotifyTrackLastfmInfo(
+async function getSpotifyTrackLastfmInfo(
   req: Request<SpotifyTrackRouteParams>,
   res: Response
 ) {
@@ -64,3 +65,10 @@ export async function getSpotifyTrackLastfmInfo(
 
   res.json(result);
 }
+
+export {
+  getLastfmMe,
+  getLastfmTrackInfo,
+  getArtistGenreDistribution,
+  getSpotifyTrackLastfmInfo,
+};

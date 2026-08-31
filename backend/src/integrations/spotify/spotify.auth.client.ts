@@ -13,7 +13,7 @@ import type {
  * Zachowuje status HTTP i oryginalne dane odpowiedzi do centralnego mapowania
  * błędów aplikacji.
  */
-export class SpotifyAuthApiError extends Error {
+class SpotifyAuthApiError extends Error {
   /** Status HTTP odpowiedzi Spotify. */
   public readonly status: number;
   /** Oryginalne dane odpowiedzi błędu albo `null`. */
@@ -40,7 +40,7 @@ export class SpotifyAuthApiError extends Error {
  * @param configuration - Adres tokenowy, dane autoryzacji i implementacja HTTP.
  * @returns Operacje Spotify Accounts API związane z tokenami użytkownika.
  */
-export function createSpotifyAuthClient({
+function createSpotifyAuthClient({
   fetchImpl = globalThis.fetch,
   tokenUrl = "https://accounts.spotify.com/api/token",
   basicAuthHeader = getSpotifyBasicAuthHeader(),
@@ -132,11 +132,11 @@ function getSpotifyAuthErrorMessage(data: unknown): string | null {
   return typeof errorDescription === "string" ? errorDescription : null;
 }
 
+/** Klient korzystający z produkcyjnej konfiguracji Spotify Accounts API. */
 const defaultSpotifyAuthClient = createSpotifyAuthClient();
 
-/** Wymienia kod OAuth przy użyciu domyślnej konfiguracji Spotify. */
-export const exchangeSpotifyAuthorizationCode =
-  defaultSpotifyAuthClient.exchangeAuthorizationCode;
-/** Odświeża access token przy użyciu domyślnej konfiguracji Spotify. */
-export const refreshSpotifyAccessToken =
-  defaultSpotifyAuthClient.refreshAccessToken;
+export {
+  SpotifyAuthApiError,
+  createSpotifyAuthClient,
+  defaultSpotifyAuthClient,
+};

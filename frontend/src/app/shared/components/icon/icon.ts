@@ -11,7 +11,7 @@ import { ICONS, IconName } from '@shared/icons/icons';
     class: 'inline-icon',
   },
 })
-export class Icon {
+class Icon {
   public readonly name = input.required<IconName>();
   public readonly size = input(20);
   public readonly viewBox = input('0 0 20 20');
@@ -19,3 +19,5 @@ export class Icon {
 
   public readonly paths = computed(() => ICONS[this.name()]);
 }
+
+export { Icon };

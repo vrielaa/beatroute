@@ -10,8 +10,10 @@ import { Component, input, ChangeDetectionStrategy } from '@angular/core';
     class: 'genre-distribution-donut-host',
   },
 })
-export class GenreDistributionDonut {
+class GenreDistributionDonut {
   public readonly matchedArtists = input.required<number>();
   public readonly chartAriaLabel = input.required<string>();
   public readonly chartBackground = input.required<string>();
 }
+
+export { GenreDistributionDonut };

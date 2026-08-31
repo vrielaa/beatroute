@@ -20,7 +20,7 @@ import type {
  * @param requestedName - Nazwa użyta w zapytaniu do Last.fm.
  * @returns Ujednolicony model artysty z listą kandydatów na gatunki.
  */
-export function mapLastfmArtistInfo(
+function mapLastfmArtistInfo(
   response: LastfmArtistApiResponse,
   requestedName: string
 ): LastfmArtistInfo {
@@ -46,9 +46,7 @@ export function mapLastfmArtistInfo(
  * @param lookup - Udany lub nieudany wynik pobrania danych artysty.
  * @returns Artysta przygotowany do budowania rozkładu gatunków.
  */
-export function mapArtistLookupToGenreInput(
-  lookup: LastfmArtistLookup
-): Artist {
+function mapArtistLookupToGenreInput(lookup: LastfmArtistLookup): Artist {
   if (lookup.status === "rejected") {
     return {
       resolvedName: lookup.requestedName,
@@ -69,3 +67,5 @@ export function mapArtistLookupToGenreInput(
     })),
   };
 }
+
+export { mapLastfmArtistInfo, mapArtistLookupToGenreInput };

@@ -21,7 +21,7 @@ import {
     class: DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS,
   },
 })
-export class MostListenedTracks {
+class MostListenedTracks {
   private readonly collapsedItemsLimit = 5;
 
   public readonly tracks = input<TopTrack[]>([]);
@@ -66,3 +66,5 @@ export class MostListenedTracks {
     return buildTrackAudioFeatureRows(this.audioFeaturesFor(track));
   }
 }
+
+export { MostListenedTracks };

@@ -4,7 +4,7 @@ import { TimeRange } from '@core/models/models';
 @Injectable({
   providedIn: 'root',
 })
-export class AnalysisFiltersStore {
+class AnalysisFiltersStore {
   public readonly selectedTimeRange = signal<TimeRange>('short_term');
   public readonly selectedTracksRange = signal(10);
   public readonly selectedArtistsRange = signal(10);
@@ -21,3 +21,5 @@ export class AnalysisFiltersStore {
     this.selectedArtistsRange.set(artistsRange);
   }
 }
+
+export { AnalysisFiltersStore };

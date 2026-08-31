@@ -5,7 +5,7 @@ const MAX_RETRIES = 3;
 const MAX_DELAY_MS = 30_000;
 const BASE_DELAY_MS = 1_000;
 
-export const rateLimitRetryInterceptor: HttpInterceptorFn = (req, next) => {
+const rateLimitRetryInterceptor: HttpInterceptorFn = (req, next) => {
   const method = req.method.toUpperCase();
 
   if (method !== 'GET') {
@@ -31,3 +31,5 @@ export const rateLimitRetryInterceptor: HttpInterceptorFn = (req, next) => {
     })
   );
 };
+
+export { rateLimitRetryInterceptor };

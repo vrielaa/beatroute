@@ -1,7 +1,7 @@
 import { AudioStats } from '@core/models/models';
 import { AUDIO_FEATURE_INFO, AudioFeatureInfoKey } from '@shared/audio-features/audio-feature-info';
 
-export const AUDIO_PROFILE_CHART = {
+const AUDIO_PROFILE_CHART = {
   viewBox: '0 0 520 380',
   centerX: 260,
   centerY: 205,
@@ -34,7 +34,7 @@ type AudioProfilePoint = AudioProfileFeature & {
   displayValue: string;
 };
 
-export type AudioProfileChartModel = {
+type AudioProfileChartModel = {
   features: AudioProfileFeature[];
   hasAnyFeature: boolean;
   axes: AudioProfileAxis[];
@@ -66,7 +66,7 @@ const STATS_KEYS: Record<(typeof RADAR_FEATURE_KEYS)[number], keyof AudioStats> 
   speechiness: 'averageSpeechiness',
 };
 
-export function buildAudioProfileChart(stats: AudioStats | null): AudioProfileChartModel {
+function buildAudioProfileChart(stats: AudioStats | null): AudioProfileChartModel {
   const features = RADAR_FEATURE_KEYS.map((key) => ({
     key,
     label: AUDIO_FEATURE_INFO[key].label,
@@ -164,3 +164,6 @@ function clampValue(value: number): number {
 function roundCoordinate(value: number): number {
   return Number(value.toFixed(2));
 }
+
+export { AUDIO_PROFILE_CHART, buildAudioProfileChart };
+export type { AudioProfileChartModel };

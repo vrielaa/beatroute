@@ -1,5 +1,5 @@
 /** Konfiguracja połączenia ze Spotify Accounts API. */
-export type SpotifyAuthConfiguration = {
+type SpotifyAuthConfiguration = {
   /** Implementacja `fetch`, którą można zastąpić w testach. */
   fetchImpl?: typeof globalThis.fetch;
   /** Adres endpointu wydającego tokeny. */
@@ -11,7 +11,7 @@ export type SpotifyAuthConfiguration = {
 };
 
 /** Parametry wymiany kodu autoryzacyjnego na tokeny. */
-export type SpotifyAuthorizationCodeRequest = {
+type SpotifyAuthorizationCodeRequest = {
   /** Grant OAuth używany podczas pierwszej wymiany kodu. */
   grant_type: "authorization_code";
   /** Jednorazowy kod otrzymany w callbacku Spotify. */
@@ -21,7 +21,7 @@ export type SpotifyAuthorizationCodeRequest = {
 };
 
 /** Parametry odświeżenia tokenu dostępu. */
-export type SpotifyRefreshTokenRequest = {
+type SpotifyRefreshTokenRequest = {
   /** Grant OAuth używany podczas odświeżania tokenu. */
   grant_type: "refresh_token";
   /** Refresh token zapisany podczas wcześniejszej autoryzacji. */
@@ -29,11 +29,11 @@ export type SpotifyRefreshTokenRequest = {
 };
 
 /** Parametry obsługiwane przez endpoint tokenowy Spotify. */
-export type SpotifyTokenRequest =
+type SpotifyTokenRequest =
   SpotifyAuthorizationCodeRequest | SpotifyRefreshTokenRequest;
 
 /** Wspólne pola poprawnej odpowiedzi tokenowej Spotify. */
-export type SpotifyTokenResponse = {
+type SpotifyTokenResponse = {
   /** Token używany do autoryzowania zapytań do Spotify Web API. */
   access_token: string;
   /** Schemat autoryzacji wymagany w nagłówku HTTP. */
@@ -47,17 +47,27 @@ export type SpotifyTokenResponse = {
 };
 
 /** Odpowiedź pierwszej wymiany kodu, która zawiera refresh token. */
-export type SpotifyAuthorizationTokenResponse = SpotifyTokenResponse & {
+type SpotifyAuthorizationTokenResponse = SpotifyTokenResponse & {
   /** Refresh token wymagany do późniejszego odnawiania dostępu. */
   refresh_token: string;
 };
 
 /** Operacje udostępniane przez klienta Spotify Accounts API. */
-export type SpotifyAuthClient = {
+type SpotifyAuthClient = {
   /** Wymienia jednorazowy kod autoryzacyjny na tokeny użytkownika. */
   exchangeAuthorizationCode(
     code: string
   ): Promise<SpotifyAuthorizationTokenResponse>;
   /** Pobiera nowy access token przy użyciu istniejącego refresh tokenu. */
   refreshAccessToken(refreshToken: string): Promise<SpotifyTokenResponse>;
+};
+
+export type {
+  SpotifyAuthConfiguration,
+  SpotifyAuthorizationCodeRequest,
+  SpotifyRefreshTokenRequest,
+  SpotifyTokenRequest,
+  SpotifyTokenResponse,
+  SpotifyAuthorizationTokenResponse,
+  SpotifyAuthClient,
 };
