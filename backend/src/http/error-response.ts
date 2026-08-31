@@ -1,8 +1,5 @@
-import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
-import { LastfmApiError } from "@integrations/lastfm/lastfm.client.js";
-import { SpotifyAuthApiError } from "@integrations/spotify/spotify.auth.client.js";
+import { IntegrationApiError } from "@integrations/integration-api.error.js";
 import { RequestValidationError } from "./request-validation-error.js";
-import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import type { NextFunction, Request, Response } from "express";
 
 class HttpError extends Error {
@@ -55,44 +52,8 @@ function mapErrorToHttp(error: unknown): {
     };
   }
 
-  if (error instanceof SpotifyApiError) {
-    return {
-      status: error.status,
-      body: createErrorResponse("SPOTIFY_API_ERROR", error.message, error.data),
-    };
-  }
-
-  if (error instanceof LastfmApiError) {
-    return {
-      status: error.code === 9 ? 401 : 502,
-      body: createErrorResponse("LASTFM_API_ERROR", error.message, {
-        lastfmCode: error.code,
-      }),
-    };
-  }
-
-  if (error instanceof SpotifyAuthApiError) {
-    return {
-      status: error.status,
-      body: createErrorResponse(
-        "SPOTIFY_AUTH_API_ERROR",
-        error.message,
-        error.data
-      ),
-    };
-  }
-
-  if (error instanceof ReccoBeatsApiError) {
-    return {
-      status: 502,
-      body: createErrorResponse(
-        "RECCOBEATS_API_ERROR",
-        "Nie udało się pobrać danych z ReccoBeats",
-        {
-          upstreamStatus: error.status,
-        }
-      ),
-    };
+  if (error instanceof IntegrationApiError) {
+    return mapIntegrationError(error);
   }
 
   return {
@@ -102,6 +63,57 @@ function mapErrorToHttp(error: unknown): {
       "Wewnętrzny błąd serwera"
     ),
   };
+}
+
+/** Mapuje wspólny błąd integracji na publiczną odpowiedź HTTP. */
+function mapIntegrationError(error: IntegrationApiError) {
+  const lastfmCode = getLastfmErrorCode(error);
+  const status = getIntegrationHttpStatus(error, lastfmCode);
+  const code = `${error.integration.replace("-", "_").toUpperCase()}_API_ERROR`;
+
+  return {
+    status,
+    body: createErrorResponse(code, error.message, {
+      integration: error.integration,
+      upstreamStatus: error.upstreamStatus,
+      ...(lastfmCode === null ? {} : { upstreamCode: lastfmCode }),
+    }),
+  };
+}
+
+/** Wyznacza status zwracany klientowi dla błędu zewnętrznej usługi. */
+function getIntegrationHttpStatus(
+  error: IntegrationApiError,
+  lastfmCode: number | null
+): number {
+  if (error.integration === "lastfm") {
+    return lastfmCode === 9 ? 401 : 502;
+  }
+
+  if (
+    (error.integration === "spotify" || error.integration === "spotify-auth") &&
+    error.upstreamStatus !== null
+  ) {
+    return error.upstreamStatus;
+  }
+
+  return 502;
+}
+
+/** Odczytuje liczbowy kod błędu Last.fm ze szczegółów integracji. */
+function getLastfmErrorCode(error: IntegrationApiError): number | null {
+  if (
+    error.integration !== "lastfm" ||
+    typeof error.details !== "object" ||
+    error.details === null ||
+    !("lastfmCode" in error.details)
+  ) {
+    return null;
+  }
+
+  const code = error.details.lastfmCode;
+
+  return typeof code === "number" ? code : null;
 }
 
 function notFoundHandler(req: Request, res: Response) {

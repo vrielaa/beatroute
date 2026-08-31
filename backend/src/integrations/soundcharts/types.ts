@@ -10,7 +10,7 @@ type SoundchartsAudioFeatures = {
   valence?: number | null;
   key?: number | null;
   mode?: number | null;
-  time_signature?: number | null;
+  timeSignature?: number | null;
 };
 
 type SoundchartsApiSongResponse = {

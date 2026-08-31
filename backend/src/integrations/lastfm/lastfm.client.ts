@@ -1,23 +1,13 @@
 import crypto from "crypto";
 import { appConfig } from "../../config/app.config.js";
 import { assertLastfmConfig } from "../../config/lastfm.config.js";
+import { LastfmApiError } from "./lastfm-api.error.js";
 
 type RequestOptions = {
   headers: Record<string, string>;
   method: string;
   body?: URLSearchParams;
 };
-
-class LastfmApiError extends Error {
-  code: number | null;
-  name: string;
-
-  constructor(message: string, code: number | null = null) {
-    super(message);
-    this.name = "LastfmApiError";
-    this.code = code;
-  }
-}
 
 function createLastfmApiSignature(
   params: Record<string, unknown>,
@@ -137,16 +127,18 @@ function createLastfmClient({
     );
     const { url, options } = prepareFetchArgs(httpMethod, stringParams, config);
 
-    const response = await fetchImpl(url, options as any);
+    let response: Response;
+
+    try {
+      response = await fetchImpl(url, options as RequestInit);
+    } catch {
+      throw new LastfmApiError("Nie udało się połączyć z Last.fm");
+    }
+
     return parseAndValidateResponse(response);
   };
 }
 
 const fetchFromLastfm = createLastfmClient();
 
-export {
-  LastfmApiError,
-  createLastfmApiSignature,
-  createLastfmClient,
-  fetchFromLastfm,
-};
+export { createLastfmApiSignature, createLastfmClient, fetchFromLastfm };

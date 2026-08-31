@@ -1,58 +1,102 @@
 import { fetchFromSoundcharts } from "./client.js";
+import { mapSoundchartsAudioFeatures } from "./mapper.js";
+import { SoundchartsApiError } from "./soundcharts-api.error.js";
 import {
   type SoundchartsApiSongResponse,
-  type SoundchartsApiErrorResponse,
+  type SoundchartsApiResponse,
 } from "./types.js";
 
-async function getSongBySpotifyId(
-  spotifyTrackId: string
-): Promise<SoundchartsApiSongResponse | SoundchartsApiErrorResponse> {
-  return fetchFromSoundcharts(
-    `/api/v2.25/song/by-platform/spotify/${spotifyTrackId}`
-  );
-}
+type SoundchartsServiceDependencies = {
+  request: (endpointPath: string) => Promise<SoundchartsApiResponse>;
+};
 
-async function getSongMetadataByUuid(uuid: string) {
-  return fetchFromSoundcharts(`/api/v2.25/song/${uuid}`);
-}
-
-async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId: string) {
-  const song = await getSongBySpotifyId(spotifyTrackId);
-
-  if ("errors" in song) {
-    throw new Error(song?.errors?.[0]?.message || "Soundcharts request failed");
+/** Tworzy serwis mapujący odpowiedzi Soundcharts na dane aplikacji. */
+function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
+  async function getSongBySpotifyId(
+    spotifyTrackId: string
+  ): Promise<SoundchartsApiSongResponse> {
+    return requestSong(
+      `/api/v2.25/song/by-platform/spotify/${encodeURIComponent(spotifyTrackId)}`
+    );
   }
 
-  const uuid = song?.object?.uuid;
-  const audio = song?.object?.audio;
-
-  if (!uuid) {
-    throw new Error("Soundcharts UUID not found");
+  async function getSongMetadataByUuid(
+    uuid: string
+  ): Promise<SoundchartsApiSongResponse> {
+    return requestSong(`/api/v2.25/song/${encodeURIComponent(uuid)}`);
   }
 
-  if (!audio) {
-    throw new Error("Soundcharts audio features not found");
+  async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId: string) {
+    const song = await getSongBySpotifyId(spotifyTrackId);
+    const songData = song.object;
+
+    if (!songData || typeof songData !== "object") {
+      throw new SoundchartsApiError(
+        "Soundcharts zwrócił niepoprawne dane utworu"
+      );
+    }
+
+    const { uuid, audio } = songData;
+
+    if (!uuid) {
+      throw new SoundchartsApiError("Soundcharts nie zwrócił UUID utworu");
+    }
+
+    if (!audio) {
+      throw new SoundchartsApiError(
+        "Soundcharts nie zwrócił cech audio utworu"
+      );
+    }
+
+    return {
+      uuid,
+      ...mapSoundchartsAudioFeatures(audio),
+    };
+  }
+
+  async function requestSong(
+    endpointPath: string
+  ): Promise<SoundchartsApiSongResponse> {
+    const response = await request(endpointPath);
+
+    if (!response || typeof response !== "object") {
+      throw new SoundchartsApiError(
+        "Soundcharts zwrócił niepoprawną odpowiedź"
+      );
+    }
+
+    if ("errors" in response) {
+      throw new SoundchartsApiError(
+        response.errors[0]?.message || "Soundcharts request failed",
+        null,
+        response
+      );
+    }
+
+    return response;
   }
 
   return {
-    uuid,
-    acousticness: audio.acousticness ?? null,
-    danceability: audio.danceability ?? null,
-    energy: audio.energy ?? null,
-    instrumentalness: audio.instrumentalness ?? null,
-    key: audio.key ?? null,
-    liveness: audio.liveness ?? null,
-    loudness: audio.loudness ?? null,
-    mode: audio.mode ?? null,
-    speechiness: audio.speechiness ?? null,
-    tempo: audio.tempo ?? null,
-    timeSignature: audio.timeSignature ?? null,
-    valence: audio.valence ?? null,
+    getSongBySpotifyId,
+    getSongMetadataByUuid,
+    getTrackAudioFeaturesBySpotifyId,
   };
 }
+
+const soundchartsService = createSoundchartsService({
+  request: fetchFromSoundcharts,
+});
+
+const {
+  getSongBySpotifyId,
+  getSongMetadataByUuid,
+  getTrackAudioFeaturesBySpotifyId,
+} = soundchartsService;
 
 export {
   getSongBySpotifyId,
   getSongMetadataByUuid,
   getTrackAudioFeaturesBySpotifyId,
+  createSoundchartsService,
 };
+export type { SoundchartsServiceDependencies };

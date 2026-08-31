@@ -1,3 +1,5 @@
+import { IntegrationApiError } from "../integration-api.error.js";
+
 /** Fragment odpowiedzi błędu zwracanej przez API ReccoBeats. */
 type ReccoBeatsApiErrorData = {
   /** Szczegóły błędu przekazane przez zewnętrzną usługę. */
@@ -10,7 +12,7 @@ type ReccoBeatsApiErrorData = {
 };
 
 /** Błąd nieudanego zapytania do API ReccoBeats. */
-class ReccoBeatsApiError extends Error {
+class ReccoBeatsApiError extends IntegrationApiError {
   /**
    * @param message - Czytelny opis niepowodzenia.
    * @param status - Status HTTP odpowiedzi ReccoBeats.
@@ -21,9 +23,9 @@ class ReccoBeatsApiError extends Error {
     public readonly status: number,
     public readonly data: unknown
   ) {
-    super(message);
+    super("reccobeats", message, status, data);
+    this.name = "ReccoBeatsApiError";
   }
 }
 
 export { ReccoBeatsApiError };
-export type { ReccoBeatsApiErrorData };

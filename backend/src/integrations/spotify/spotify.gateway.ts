@@ -35,12 +35,33 @@ function createSpotifyGateway({
     accessToken: string,
     fallbackErrorMessage: string
   ): Promise<T> {
-    const response = await fetchImpl(`${apiRoot}${endpoint}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    const data: unknown = await response.json();
+    let response: Response;
+
+    try {
+      response = await fetchImpl(`${apiRoot}${endpoint}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+    } catch (cause) {
+      throw new SpotifyApiError(
+        "Nie udało się połączyć ze Spotify",
+        502,
+        cause
+      );
+    }
+
+    let data: unknown;
+
+    try {
+      data = await response.json();
+    } catch (cause) {
+      throw new SpotifyApiError(
+        "Spotify zwrócił odpowiedź inną niż JSON",
+        502,
+        cause
+      );
+    }
 
     if (!response.ok) {
       throw new SpotifyApiError(

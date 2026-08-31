@@ -1,27 +1,45 @@
 import { defaultSpotifyAuthClient } from "@integrations/spotify/spotify.auth.client.js";
-import { Request } from "express";
+import type { Request } from "express";
+import type { SpotifyAuthClient } from "@integrations/spotify/spotify.auth.types.js";
 
-async function refreshAccessToken(req: Request): Promise<void> {
-  const spotifySession = req.session.spotify;
+type RefreshSpotifyAccessTokenDependencies = {
+  authClient: Pick<SpotifyAuthClient, "refreshAccessToken">;
+  now: () => number;
+};
 
-  if (!spotifySession) {
-    throw new Error("Brak sesji Spotify");
-  }
+/** Tworzy operację odświeżania danych dostępowych zapisanych w sesji. */
+function createRefreshAccessToken({
+  authClient,
+  now,
+}: RefreshSpotifyAccessTokenDependencies) {
+  return async function refreshAccessToken(req: Request): Promise<void> {
+    const spotifySession = req.session.spotify;
 
-  const refreshToken = spotifySession.refreshToken;
+    if (!spotifySession) {
+      throw new Error("Brak sesji Spotify");
+    }
 
-  if (!refreshToken) {
-    throw new Error("Brak refresh tokena");
-  }
+    const refreshToken = spotifySession.refreshToken;
 
-  const data = await defaultSpotifyAuthClient.refreshAccessToken(refreshToken);
+    if (!refreshToken) {
+      throw new Error("Brak refresh tokena");
+    }
 
-  spotifySession.accessToken = data.access_token;
-  spotifySession.expiresAt = Date.now() + data.expires_in * 1000;
+    const data = await authClient.refreshAccessToken(refreshToken);
 
-  if (data.refresh_token) {
-    spotifySession.refreshToken = data.refresh_token;
-  }
+    spotifySession.accessToken = data.access_token;
+    spotifySession.expiresAt = now() + data.expires_in * 1000;
+
+    if (data.refresh_token) {
+      spotifySession.refreshToken = data.refresh_token;
+    }
+  };
 }
 
-export { refreshAccessToken };
+const refreshAccessToken = createRefreshAccessToken({
+  authClient: defaultSpotifyAuthClient,
+  now: Date.now,
+});
+
+export { createRefreshAccessToken, refreshAccessToken };
+export type { RefreshSpotifyAccessTokenDependencies };

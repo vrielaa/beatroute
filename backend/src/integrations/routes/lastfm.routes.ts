@@ -8,22 +8,52 @@ import {
   getSpotifyTrackLastfmInfo,
 } from "../lastfm/lastfm.controller.js";
 
-const router = Router();
+type LastfmRouterDependencies = {
+  authorizeLastfm: typeof ensureLastfmSession;
+  authorizeSpotify: typeof ensureSpotifyAccessToken;
+  handlers: {
+    getLastfmMe: typeof getLastfmMe;
+    getLastfmTrackInfo: typeof getLastfmTrackInfo;
+    getArtistGenreDistribution: typeof getArtistGenreDistribution;
+    getSpotifyTrackLastfmInfo: typeof getSpotifyTrackLastfmInfo;
+  };
+};
 
-router.get("/me", ensureLastfmSession, getLastfmMe);
+/** Tworzy router endpointów Last.fm z jawnymi handlerami i autoryzacją. */
+function createLastfmRouter({
+  authorizeLastfm,
+  authorizeSpotify,
+  handlers,
+}: LastfmRouterDependencies) {
+  const lastfmRouter = Router();
 
-router.get("/track-info", getLastfmTrackInfo);
+  lastfmRouter.get("/me", authorizeLastfm, handlers.getLastfmMe);
+  lastfmRouter.get("/track-info", handlers.getLastfmTrackInfo);
+  lastfmRouter.post(
+    "/artist-genres",
+    authorizeSpotify,
+    handlers.getArtistGenreDistribution
+  );
+  lastfmRouter.get(
+    "/spotify-tracks/:spotifyTrackId",
+    authorizeSpotify,
+    handlers.getSpotifyTrackLastfmInfo
+  );
 
-router.post(
-  "/artist-genres",
-  ensureSpotifyAccessToken,
-  getArtistGenreDistribution
-);
+  return lastfmRouter;
+}
 
-router.get(
-  "/spotify-tracks/:spotifyTrackId",
-  ensureSpotifyAccessToken,
-  getSpotifyTrackLastfmInfo
-);
+const lastfmRouter = createLastfmRouter({
+  authorizeLastfm: ensureLastfmSession,
+  authorizeSpotify: ensureSpotifyAccessToken,
+  handlers: {
+    getLastfmMe,
+    getLastfmTrackInfo,
+    getArtistGenreDistribution,
+    getSpotifyTrackLastfmInfo,
+  },
+});
 
-export default router;
+export { createLastfmRouter };
+export type { LastfmRouterDependencies };
+export default lastfmRouter;

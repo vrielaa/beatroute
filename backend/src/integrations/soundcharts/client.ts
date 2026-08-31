@@ -3,32 +3,63 @@ import {
   type SoundchartsApiResponse,
   type SoundchartsApiErrorResponse,
 } from "./types.js";
+import { SoundchartsApiError } from "./soundcharts-api.error.js";
+
+/** Zależności klienta Soundcharts możliwe do zastąpienia w testach. */
+type SoundchartsClientConfiguration = {
+  fetchImpl?: typeof fetch;
+  baseUrl?: string;
+  appId?: string;
+  apiKey?: string;
+};
 
 function createSoundchartsClient({
   fetchImpl = globalThis.fetch,
   baseUrl = appConfig.soundcharts.baseUrl,
   appId = appConfig.soundcharts.appId,
   apiKey = appConfig.soundcharts.apiKey,
-} = {}) {
-  return async function fetchFromSoundcharts(endpointPath: string) {
-    const response = await fetchImpl(`${baseUrl}${endpointPath}`, {
-      headers: {
-        "x-app-id": appId,
-        "x-api-key": apiKey,
-        Accept: "application/json",
-      },
-    });
+}: SoundchartsClientConfiguration = {}) {
+  return async function fetchFromSoundcharts(
+    endpointPath: string
+  ): Promise<SoundchartsApiResponse> {
+    let response: Response;
 
-    const data = (await response.json()) as SoundchartsApiResponse;
+    try {
+      response = await fetchImpl(`${baseUrl}${endpointPath}`, {
+        headers: {
+          "x-app-id": appId,
+          "x-api-key": apiKey,
+          Accept: "application/json",
+        },
+      });
+    } catch (cause) {
+      throw new SoundchartsApiError(
+        "Nie udało się połączyć z Soundcharts",
+        null,
+        cause
+      );
+    }
+
+    let data: SoundchartsApiResponse;
+
+    try {
+      data = (await response.json()) as SoundchartsApiResponse;
+    } catch (cause) {
+      throw new SoundchartsApiError(
+        "Soundcharts zwrócił odpowiedź inną niż JSON",
+        response.status,
+        cause
+      );
+    }
 
     if (!response.ok) {
-      if (data as SoundchartsApiErrorResponse) {
-        const errorData = data as SoundchartsApiErrorResponse;
+      const errorData = data as SoundchartsApiErrorResponse;
 
-        throw new Error(
-          errorData?.errors?.[0]?.message || "Soundcharts request failed"
-        );
-      }
+      throw new SoundchartsApiError(
+        errorData.errors?.[0]?.message || "Soundcharts request failed",
+        response.status,
+        data
+      );
     }
 
     return data;
@@ -38,3 +69,4 @@ function createSoundchartsClient({
 const fetchFromSoundcharts = createSoundchartsClient();
 
 export { createSoundchartsClient, fetchFromSoundcharts };
+export type { SoundchartsClientConfiguration };

@@ -124,13 +124,33 @@ function createReccoBeatsGateway({
   async function request<ResponseData>(
     endpointPath: string
   ): Promise<ResponseData> {
-    const response = await fetchImpl(`${baseUrl}${endpointPath}`, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
+    let response: Response;
 
-    const data: unknown = await response.json();
+    try {
+      response = await fetchImpl(`${baseUrl}${endpointPath}`, {
+        headers: {
+          Accept: "application/json",
+        },
+      });
+    } catch (cause) {
+      throw new ReccoBeatsApiError(
+        "Nie udało się połączyć z ReccoBeats",
+        502,
+        cause
+      );
+    }
+
+    let data: unknown;
+
+    try {
+      data = await response.json();
+    } catch (cause) {
+      throw new ReccoBeatsApiError(
+        "ReccoBeats zwróciło odpowiedź inną niż JSON",
+        response.status,
+        cause
+      );
+    }
 
     if (!response.ok) {
       throw new ReccoBeatsApiError(

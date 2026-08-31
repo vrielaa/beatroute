@@ -26,4 +26,17 @@ function destroySession(session: Session): Promise<void> {
   });
 }
 
-export { saveSession, destroySession };
+function regenerateSession(session: Session): Promise<void> {
+  return new Promise((resolve, reject) => {
+    session.regenerate((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+export { saveSession, destroySession, regenerateSession };

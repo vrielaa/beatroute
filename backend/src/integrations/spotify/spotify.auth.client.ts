@@ -1,5 +1,6 @@
 import { appConfig } from "../../config/app.config.js";
 import { getSpotifyBasicAuthHeader } from "../../utils/spotify-basic-auth.js";
+import { SpotifyAuthApiError } from "./spotify-auth-api.error.js";
 import type {
   SpotifyAuthClient,
   SpotifyAuthConfiguration,
@@ -7,30 +8,6 @@ import type {
   SpotifyTokenRequest,
   SpotifyTokenResponse,
 } from "./spotify.auth.types.js";
-
-/**
- * Błąd zwracany przez Spotify Accounts API podczas pobierania tokenów.
- * Zachowuje status HTTP i oryginalne dane odpowiedzi do centralnego mapowania
- * błędów aplikacji.
- */
-class SpotifyAuthApiError extends Error {
-  /** Status HTTP odpowiedzi Spotify. */
-  public readonly status: number;
-  /** Oryginalne dane odpowiedzi błędu albo `null`. */
-  public readonly data: unknown | null;
-
-  /**
-   * @param message - Czytelny komunikat błędu.
-   * @param status - Status HTTP odpowiedzi Spotify.
-   * @param data - Oryginalne dane odpowiedzi błędu.
-   */
-  constructor(message: string, status: number, data: unknown | null = null) {
-    super(message);
-    this.name = "SpotifyAuthApiError";
-    this.status = status;
-    this.data = data;
-  }
-}
 
 /**
  * Tworzy klienta obsługującego wymianę i odświeżanie tokenów Spotify.
@@ -56,15 +33,36 @@ function createSpotifyAuthClient({
   async function requestToken<T extends SpotifyTokenResponse>(
     params: SpotifyTokenRequest
   ): Promise<T> {
-    const response = await fetchImpl(tokenUrl, {
-      method: "POST",
-      headers: {
-        Authorization: basicAuthHeader,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams(Object.entries(params)),
-    });
-    const data: unknown = await response.json();
+    let response: Response;
+
+    try {
+      response = await fetchImpl(tokenUrl, {
+        method: "POST",
+        headers: {
+          Authorization: basicAuthHeader,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(Object.entries(params)),
+      });
+    } catch (cause) {
+      throw new SpotifyAuthApiError(
+        "Nie udało się połączyć ze Spotify Accounts",
+        502,
+        cause
+      );
+    }
+
+    let data: unknown;
+
+    try {
+      data = await response.json();
+    } catch (cause) {
+      throw new SpotifyAuthApiError(
+        "Spotify Accounts zwróciło odpowiedź inną niż JSON",
+        502,
+        cause
+      );
+    }
 
     if (!response.ok) {
       throw new SpotifyAuthApiError(
@@ -135,8 +133,4 @@ function getSpotifyAuthErrorMessage(data: unknown): string | null {
 /** Klient korzystający z produkcyjnej konfiguracji Spotify Accounts API. */
 const defaultSpotifyAuthClient = createSpotifyAuthClient();
 
-export {
-  SpotifyAuthApiError,
-  createSpotifyAuthClient,
-  defaultSpotifyAuthClient,
-};
+export { createSpotifyAuthClient, defaultSpotifyAuthClient };

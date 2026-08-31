@@ -13,7 +13,7 @@ function mapSoundchartsAudioFeatures(audioFeatures: SoundchartsAudioFeatures) {
     valence: audioFeatures.valence ?? null,
     key: audioFeatures.key ?? null,
     mode: audioFeatures.mode ?? null,
-    timeSignature: audioFeatures.time_signature ?? null,
+    timeSignature: audioFeatures.timeSignature ?? null,
   };
 }
 
