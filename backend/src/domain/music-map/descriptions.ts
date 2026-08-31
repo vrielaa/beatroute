@@ -1,4 +1,4 @@
-import type { AudioFeatureValues } from "./music-map.types.js";
+import type { AudioFeatureValues } from "./types.js";
 
 /**
  * Wybiera krótką nazwę klastra na podstawie dominujących średnich cech audio.
@@ -7,7 +7,7 @@ import type { AudioFeatureValues } from "./music-map.types.js";
  * @param features - Średnie cechy audio utworów należących do klastra.
  * @returns Krótka etykieta klastra przeznaczona dla interfejsu.
  */
-export function describeClusterName(features: AudioFeatureValues): string {
+function describeClusterName(features: AudioFeatureValues): string {
   if (features.energy >= 0.65 && features.danceability >= 0.6) {
     return "Energetyczne i taneczne";
   }
@@ -42,7 +42,7 @@ export function describeClusterName(features: AudioFeatureValues): string {
  * @param features - Cechy pojedynczego utworu lub średnie cechy klastra.
  * @returns Czytelny opis charakteru muzycznego w języku polskim.
  */
-export function describeAudioCharacter(features: AudioFeatureValues): string {
+function describeAudioCharacter(features: AudioFeatureValues): string {
   const labels = [];
 
   if (features.energy >= 0.7 && features.tempo >= 120) {
@@ -101,3 +101,5 @@ export function describeAudioCharacter(features: AudioFeatureValues): string {
     ? labels.join(", ")
     : "bez jednej dominującej cechy: energia, taneczność, nastrój, akustyczność, mowa, instrumentalność i tempo są bliżej wartości pośrednich";
 }
+
+export { describeClusterName, describeAudioCharacter };

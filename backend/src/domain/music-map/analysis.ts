@@ -1,29 +1,49 @@
 import { kmeans } from "ml-kmeans";
 import { PCA } from "ml-pca";
+import { average, round, scaleNumberToRange } from "./math.js";
 import type {
-  ClusteringResult,
-  Coordinate,
+  ClusterCandidateEvaluation,
   MusicMapAnalysis,
-  MusicMapCandidateClusterResult,
-  MusicMapCoordinates,
   MusicMapFeatureKey,
-  NumericMatrix,
-} from "./music-map.types.js";
+  PcaCoordinate,
+} from "./types.js";
 
 const DEFAULT_KMEANS_SEED = 42;
 const MAX_AUTO_CLUSTER_COUNT = 8;
 
+/** Macierz, w której każdy wiersz jest wektorem cech jednego utworu. */
+type FeatureMatrix = number[][];
+
+/** Etykiety klastrów i centroidy potrzebne do obliczenia inertia. */
+type KMeansResult = {
+  clusters: number[];
+  centroids: number[][];
+};
+
+/** Wynik PCA wraz z udziałem wariancji wyjaśnionej przez wyznaczone osie. */
+type PcaResult = {
+  coordinates: PcaCoordinate[];
+  explainedVariance: number[];
+};
+
+/** Dane brane pod uwagę przy wyborze liczby klastrów. */
+type ClusterSelection = {
+  candidateClusterResults: ClusterCandidateEvaluation[];
+  maxSupportedClusterCount: number;
+  requestedClusterCount: number | null;
+};
+
 /**
  * Analizuje wektory cech audio: usuwa stałe wymiary, standaryzuje dane,
- * dobiera liczbę klastrów, wykonuje K-means i wyznacza projekcję PCA.
+ * dobiera liczbę klastrów, wykonuje K-means i wyznacza współrzędne PCA.
  *
  * @param featureVectors - Wektory cech audio analizowanych utworów.
  * @param featureKeys - Nazwy kolejnych wymiarów każdego wektora.
  * @param requestedClusterCount - Ręcznie wybrana liczba klastrów lub `null`.
- * @returns Wynik klasteryzacji i dwuwymiarowej projekcji.
+ * @returns Wynik klasteryzacji i dwuwymiarowej analizy PCA.
  */
-export function analyzeMusicMapRows(
-  featureVectors: NumericMatrix,
+function analyzeFeatureVectors(
+  featureVectors: FeatureMatrix,
   featureKeys: MusicMapFeatureKey[],
   requestedClusterCount: number | null
 ): MusicMapAnalysis {
@@ -59,7 +79,7 @@ export function analyzeMusicMapRows(
       ? "silhouette-score"
       : "fallback";
   const clusterLabels = clusterMatrix(scaledMatrix, selectedClusterCount);
-  const projection = projectScaledMatrix(scaledMatrix);
+  const pcaResult = calculatePca(scaledMatrix);
 
   return {
     activeFeatureKeys,
@@ -67,8 +87,8 @@ export function analyzeMusicMapRows(
     selectedClusterCountSource,
     candidateClusterResults,
     clusterLabels,
-    coordinates: projection.coordinates,
-    explainedVariance: projection.explainedVariance,
+    pcaCoordinates: pcaResult.coordinates,
+    explainedVariance: pcaResult.explainedVariance,
   };
 }
 
@@ -80,7 +100,7 @@ export function analyzeMusicMapRows(
  * @throws {TypeError} Gdy wektor zawiera wartość, która nie jest skończoną liczbą.
  */
 function validateAnalysisData(
-  featureVectors: NumericMatrix,
+  featureVectors: FeatureMatrix,
   featureKeys: MusicMapFeatureKey[],
   requestedClusterCount: number | null
 ): void {
@@ -116,7 +136,7 @@ function validateAnalysisData(
  * @returns Analiza z jednym klastrem lub bez klastrów i zerowymi punktami.
  */
 function buildFallbackAnalysis(
-  featureVectors: NumericMatrix,
+  featureVectors: FeatureMatrix,
   activeFeatureKeys: MusicMapFeatureKey[]
 ): MusicMapAnalysis {
   return {
@@ -125,7 +145,7 @@ function buildFallbackAnalysis(
     selectedClusterCountSource: "fallback",
     candidateClusterResults: [],
     clusterLabels: featureVectors.map(() => 0),
-    coordinates: featureVectors.map((): Coordinate => [0, 0]),
+    pcaCoordinates: featureVectors.map((): PcaCoordinate => [0, 0]),
     explainedVariance: [],
   };
 }
@@ -139,7 +159,7 @@ function buildFallbackAnalysis(
  * @returns Indeksy cech posiadających co najmniej dwie różne wartości.
  */
 function getVariableFeatureIndexes(
-  featureVectors: NumericMatrix,
+  featureVectors: FeatureMatrix,
   featureKeys: MusicMapFeatureKey[]
 ): number[] {
   if (featureVectors.length < 2) {
@@ -162,7 +182,7 @@ function getVariableFeatureIndexes(
  * @param matrix - Macierz, w której wiersze są utworami, a kolumny cechami.
  * @returns Standaryzowana macierz o tych samych wymiarach.
  */
-function standardizeMatrix(matrix: NumericMatrix): NumericMatrix {
+function standardizeMatrix(matrix: FeatureMatrix): FeatureMatrix {
   const columnsCount = matrix[0]?.length ?? 0;
   const means = Array.from({ length: columnsCount }, (_, columnIndex) =>
     average(matrix.map((row) => row[columnIndex]))
@@ -194,8 +214,8 @@ function standardizeMatrix(matrix: NumericMatrix): NumericMatrix {
  * @returns Wyniki jakości dla kolejnych wartości `k`.
  */
 function evaluateClusterCandidates(
-  matrix: NumericMatrix
-): MusicMapCandidateClusterResult[] {
+  matrix: FeatureMatrix
+): ClusterCandidateEvaluation[] {
   const maxClusterCount = getMaxSupportedClusterCount(matrix);
 
   if (maxClusterCount < 2) {
@@ -230,11 +250,7 @@ function selectClusterCount({
   candidateClusterResults,
   maxSupportedClusterCount,
   requestedClusterCount,
-}: {
-  candidateClusterResults: MusicMapCandidateClusterResult[];
-  maxSupportedClusterCount: number;
-  requestedClusterCount: number | null;
-}): number {
+}: ClusterSelection): number {
   if (requestedClusterCount) {
     return Math.min(requestedClusterCount, maxSupportedClusterCount);
   }
@@ -266,7 +282,7 @@ function selectClusterCount({
  * @param matrix - Standaryzowana macierz cech.
  * @returns Maksymalna obsługiwana liczba klastrów.
  */
-function getMaxSupportedClusterCount(matrix: NumericMatrix): number {
+function getMaxSupportedClusterCount(matrix: FeatureMatrix): number {
   return Math.min(
     MAX_AUTO_CLUSTER_COUNT,
     matrix.length - 1,
@@ -281,7 +297,7 @@ function getMaxSupportedClusterCount(matrix: NumericMatrix): number {
  * @param clusterCount - Liczba klastrów do utworzenia.
  * @returns Etykieta klastra dla każdego wiersza macierzy.
  */
-function clusterMatrix(matrix: NumericMatrix, clusterCount: number): number[] {
+function clusterMatrix(matrix: FeatureMatrix, clusterCount: number): number[] {
   if (clusterCount < 2) {
     return matrix.map(() => 0);
   }
@@ -293,14 +309,14 @@ function clusterMatrix(matrix: NumericMatrix, clusterCount: number): number[] {
 
 /**
  * Redukuje standaryzowane dane do dwóch wymiarów metodą PCA.
- * Dla jednej aktywnej cechy stosuje projekcję jednowymiarową.
+ * Dla jednej aktywnej cechy tworzy jednowymiarowy odpowiednik wyniku PCA.
  *
  * @param matrix - Standaryzowana macierz cech.
  * @returns Współrzędne punktów i wariancja wyjaśniona przez osie.
  */
-function projectScaledMatrix(matrix: NumericMatrix): MusicMapCoordinates {
+function calculatePca(matrix: FeatureMatrix): PcaResult {
   if (matrix[0].length === 1) {
-    return projectSingleFeature(matrix);
+    return calculateSingleFeaturePca(matrix);
   }
 
   const pca = new PCA(matrix, { center: false, scale: false });
@@ -309,7 +325,7 @@ function projectScaledMatrix(matrix: NumericMatrix): MusicMapCoordinates {
     coordinates: pca
       .predict(matrix, { nComponents: 2 })
       .to2DArray()
-      .map((row): Coordinate => [row[0] ?? 0, row[1] ?? 0]),
+      .map((row): PcaCoordinate => [row[0] ?? 0, row[1] ?? 0]),
     explainedVariance: pca
       .getExplainedVariance()
       .slice(0, 2)
@@ -318,20 +334,19 @@ function projectScaledMatrix(matrix: NumericMatrix): MusicMapCoordinates {
 }
 
 /**
- * Projektuje jedną aktywną cechę na oś X w zakresie od -1 do 1.
+ * Umieszcza jedną aktywną cechę na osi X w zakresie od -1 do 1.
  *
  * @param matrix - Macierz zawierająca jedną kolumnę cech.
- * @returns Jednowymiarowa projekcja zapisana jako współrzędne 2D.
+ * @returns Jednowymiarowy wynik PCA zapisany jako współrzędne 2D.
  */
-function projectSingleFeature(matrix: NumericMatrix): MusicMapCoordinates {
+function calculateSingleFeaturePca(matrix: FeatureMatrix): PcaResult {
   const values = matrix.map((row) => row[0]);
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const spread = max - min || 1;
 
   return {
-    coordinates: values.map((value): Coordinate => [
-      ((value - min) / spread) * 2 - 1,
+    coordinates: values.map((value): PcaCoordinate => [
+      scaleNumberToRange(value, min, max, -1, 1),
       0,
     ]),
     explainedVariance: [1],
@@ -346,10 +361,7 @@ function projectSingleFeature(matrix: NumericMatrix): MusicMapCoordinates {
  * @param result - Etykiety i centroidy zwrócone przez K-means.
  * @returns Wartość inertia dla podziału.
  */
-function calculateInertia(
-  matrix: NumericMatrix,
-  result: ClusteringResult
-): number {
+function calculateInertia(matrix: FeatureMatrix, result: KMeansResult): number {
   return matrix.reduce((sum, row, index) => {
     const centroid = result.centroids[result.clusters[index]];
 
@@ -366,7 +378,7 @@ function calculateInertia(
  * @returns Średni silhouette score albo zero dla niepoprawnego podziału.
  */
 function calculateSilhouetteScore(
-  matrix: NumericMatrix,
+  matrix: FeatureMatrix,
   clusterLabels: number[]
 ): number {
   const uniqueClusters = [...new Set(clusterLabels)];
@@ -421,7 +433,7 @@ function calculateSilhouetteScore(
  * @param matrix - Macierz analizowanych próbek.
  * @returns Liczba różnych wierszy macierzy.
  */
-function getUniqueRowsCount(matrix: NumericMatrix): number {
+function getUniqueRowsCount(matrix: FeatureMatrix): number {
   return new Set(
     matrix.map((row) => row.map((value) => round(value, 8)).join(":"))
   ).size;
@@ -440,12 +452,4 @@ function euclideanDistance(left: number[], right: number[]): number {
   return Math.sqrt(squaredEuclideanDistance(left, right));
 }
 
-/** Oblicza średnią arytmetyczną wartości. */
-function average(values: number[]): number {
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-/** Zaokrągla wartość do wskazanej liczby miejsc po przecinku. */
-function round(value: number, digits = 4): number {
-  return Number(value.toFixed(digits));
-}
+export { analyzeFeatureVectors };

@@ -13,7 +13,7 @@ import sessionRoutes from "@integrations/routes/session.routes.js";
 import meRoutes from "@integrations/routes/me/me.routes.js";
 import tracksRoutes from "@integrations/routes/track/track.routes.js";
 import lastfmRoutes from "@integrations/routes/lastfm.routes.js";
-import musicMapRoutes from "@integrations/routes/music-map.routes.js";
+import musicMapRoutes from "@integrations/routes/music-map/routes.js";
 import { errorHandler, notFoundHandler } from "@http/error-response.js";
 
 function validateAppConfig(config) {

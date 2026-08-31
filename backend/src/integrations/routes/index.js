@@ -4,7 +4,7 @@ import meRoutes from "./me/me.routes.js";
 import sessionRoutes from "./session.routes.js";
 import tracksRoutes from "./track/track.routes.js";
 import lastfmRoutes from "./lastfm.routes.js";
-import musicMapRoutes from "./music-map.routes.js";
+import musicMapRoutes from "./music-map/routes.js";
 
 const router = Router();
 
