@@ -8,9 +8,9 @@ import { validateEnv } from "./utils/validateEnv.js";
 
 import { appConfig } from "./config/app.config.js";
 
-import authRoutes from "@integrations/routes/auth/auth.routes.js";
+import authRoutes from "@integrations/routes/auth/routes.js";
 import sessionRoutes from "@integrations/routes/session.routes.js";
-import meRoutes from "@integrations/routes/me/me.routes.js";
+import meRoutes from "@integrations/routes/me/routes.js";
 import tracksRoutes from "@integrations/routes/track/track.routes.js";
 import lastfmRoutes from "@integrations/routes/lastfm.routes.js";
 import musicMapRoutes from "@integrations/routes/music-map/routes.js";

@@ -4,7 +4,7 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
 import { errorHandler } from "@http/error-response.js";
-import { createMeRouter } from "./me.routes.js";
+import { createMeRouter } from "./routes.js";
 import type { RequestHandler } from "express";
 import type {
   SpotifyGateway,
