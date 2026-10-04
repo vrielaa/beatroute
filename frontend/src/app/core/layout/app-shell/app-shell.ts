@@ -1,7 +1,6 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, isActive } from '@angular/router';
 
-import { SpotifyService } from '@core/services/spotify.service';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
 import { AnalysisFiltersDrawer } from './analysis-filters-drawer/analysis-filters-drawer';
 import { AppShellHeader } from './app-shell-header/app-shell-header';
@@ -19,7 +18,6 @@ import { BaseNavLink, NavLink } from './app-shell.models';
   },
 })
 class AppShellComponent {
-  public readonly spotifyService = inject(SpotifyService);
   public readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly router = inject(Router);
 

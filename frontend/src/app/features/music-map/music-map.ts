@@ -6,15 +6,14 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { MusicMapCluster, MusicMapResponse } from '@core/models/models';
-import { SpotifyService } from '@core/services/spotify.service';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
 import { Subscription } from 'rxjs';
 import { ClusterControl } from './cluster-control/cluster-control';
 import { ClusterDetails } from './cluster-details/cluster-details';
 import { MusicMapChart } from './music-map-chart/music-map-chart';
 import { MusicMapMethodology } from './music-map-methodology/music-map-methodology';
-import { MusicMapClusterDetail } from './music-map.models';
+import { MusicMapApiService } from './music-map-api.service';
+import type { MusicMapCluster, MusicMapClusterDetail, MusicMapResponse } from './music-map.models';
 import {
   MUSIC_MAP_CLUSTER_LIMITS,
   buildMusicMapClusterDetails,
@@ -34,7 +33,7 @@ import {
 })
 class MusicMap {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
-  private readonly spotifyService = inject(SpotifyService);
+  private readonly musicMapApi = inject(MusicMapApiService);
 
   public readonly minClusterCount = MUSIC_MAP_CLUSTER_LIMITS.min;
   public readonly selectedTimeRange = this.analysisFiltersStore.selectedTimeRange;
@@ -68,7 +67,7 @@ class MusicMap {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    return this.spotifyService
+    return this.musicMapApi
       .getMusicMap(
         this.selectedTimeRange(),
         this.selectedTracksRange(),

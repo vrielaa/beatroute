@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { SpotifyService } from '@core/services/spotify.service';
+import { AuthApiService } from '@core/api/auth/auth-api.service';
 import { Icon } from '@shared/components/icon/icon';
 
 @Component({
@@ -13,10 +13,10 @@ import { Icon } from '@shared/components/icon/icon';
   },
 })
 class Logout {
-  readonly spotifyService = inject(SpotifyService);
+  private readonly authApi = inject(AuthApiService);
 
   public logout(): void {
-    this.spotifyService.logout().subscribe({
+    this.authApi.logout().subscribe({
       next: () => {
         window.location.href = '/login';
       },

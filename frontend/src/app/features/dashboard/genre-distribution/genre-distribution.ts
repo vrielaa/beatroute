@@ -1,10 +1,10 @@
 import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
-import {
+import type {
   ArtistGenreDistributionSubgenreItem,
   ArtistGenreDistributionItem,
   ArtistGenreDistributionResponse,
-  TimeRange,
-} from '@src/app/core/models/models';
+} from '@core/api/lastfm/lastfm.models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
 import { Icon } from '@shared/components/icon/icon';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 import { GenreDistributionDonut } from './genre-distribution-donut/genre-distribution-donut';

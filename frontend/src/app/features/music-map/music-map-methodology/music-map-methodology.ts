@@ -1,5 +1,5 @@
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
-import { MusicMapResponse } from '@core/models/models';
+import type { MusicMapResponse } from '../music-map.models';
 
 @Component({
   selector: 'app-music-map-methodology',

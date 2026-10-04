@@ -1,5 +1,5 @@
 import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
-import { AudioStats } from '@core/models/models';
+import type { AudioStats } from '@core/api/tracks/audio-features.models';
 import { AUDIO_PROFILE_CHART, buildAudioProfileChart } from './audio-features-profile.utils';
 
 @Component({

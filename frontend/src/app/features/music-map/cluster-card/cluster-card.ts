@@ -1,6 +1,5 @@
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { MusicMapCluster, MusicMapPoint } from '@core/models/models';
-import { MusicMapClusterDetail } from '../music-map.models';
+import type { MusicMapCluster, MusicMapClusterDetail, MusicMapPoint } from '../music-map.models';
 
 @Component({
   selector: 'app-cluster-card',

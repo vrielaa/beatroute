@@ -1,4 +1,5 @@
-import { AudioFeatures, TopTrack } from '@core/models/models';
+import type { TopTrack } from '@core/api/spotify/spotify.models';
+import type { AudioFeatures } from '@core/api/tracks/audio-features.models';
 import { AUDIO_FEATURE_INFO, audioFeatureTooltip } from '@shared/audio-features/audio-feature-info';
 import {
   AudioComparisonChartRow,

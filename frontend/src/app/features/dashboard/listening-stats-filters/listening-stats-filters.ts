@@ -1,5 +1,5 @@
 import { Component, input, model, output, ChangeDetectionStrategy } from '@angular/core';
-import { TimeRange } from '@src/app/core/models/models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
 import { Icon } from '@shared/components/icon/icon';
 
 @Component({

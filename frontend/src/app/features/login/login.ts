@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { SpotifyService } from '@core/services/spotify.service';
+import { AuthApiService } from '@core/api/auth/auth-api.service';
 
 @Component({
   selector: 'app-login',
@@ -12,10 +12,10 @@ import { SpotifyService } from '@core/services/spotify.service';
   },
 })
 class Login {
-  readonly spotifyService = inject(SpotifyService);
+  private readonly authApi = inject(AuthApiService);
 
   public login(): void {
-    this.spotifyService.loginWithSpotify();
+    this.authApi.loginWithSpotify();
   }
 }
 

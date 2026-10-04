@@ -1,5 +1,6 @@
 import { Component, computed, effect, input, signal, ChangeDetectionStrategy } from '@angular/core';
-import { AudioFeatures, TopTrack } from '@core/models/models';
+import type { TopTrack } from '@core/api/spotify/spotify.models';
+import type { AudioFeatures } from '@core/api/tracks/audio-features.models';
 import { Icon } from '@shared/components/icon/icon';
 import { AudioFeatureControls } from './audio-feature-controls/audio-feature-controls';
 import { AudioFeaturesChart } from './audio-features-chart/audio-features-chart';

@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ArtistGenreDistributionResponse, SpotifyLastfmTrackResponse } from '../models/models';
+import type {
+  ArtistGenreDistributionResponse,
+  SpotifyLastfmTrackResponse,
+} from '@core/api/lastfm/lastfm.models';
 
 @Injectable({
   providedIn: 'root',

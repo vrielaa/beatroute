@@ -1,4 +1,4 @@
-import { ArtistGenreDistributionItem } from '@core/models/models';
+import type { ArtistGenreDistributionItem } from '@core/api/lastfm/lastfm.models';
 
 interface GenreChartSegment extends ArtistGenreDistributionItem {
   color: string;

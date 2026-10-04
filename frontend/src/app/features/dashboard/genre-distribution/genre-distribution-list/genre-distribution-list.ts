@@ -1,5 +1,5 @@
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
-import { ArtistGenreDistributionResponse } from '@core/models/models';
+import type { ArtistGenreDistributionResponse } from '@core/api/lastfm/lastfm.models';
 import { GenreChartSegment } from '../genre-distribution.models';
 
 @Component({

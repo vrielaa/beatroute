@@ -1,5 +1,5 @@
 import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
-import { AudioStats } from '@core/models/models';
+import type { AudioStats } from '@core/api/tracks/audio-features.models';
 import {
   AUDIO_FEATURE_INFO,
   RangedAudioFeatureInfoKey,

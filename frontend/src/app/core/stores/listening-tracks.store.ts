@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AudioFeatures, AudioStats, TimeRange, TopTracksResponse } from '@core/models/models';
-import { SpotifyService } from '@core/services/spotify.service';
+import type { TimeRange, TopTracksResponse } from '@core/api/spotify/spotify.models';
+import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
+import type { AudioFeatures, AudioStats } from '@core/api/tracks/audio-features.models';
+import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
 import { forkJoin, map, of, Subscription, switchMap, tap } from 'rxjs';
 
 interface TracksFoundRatio {
@@ -12,7 +14,8 @@ interface TracksFoundRatio {
 
 @Injectable()
 class ListeningTracksStore {
-  private readonly spotifyService = inject(SpotifyService);
+  private readonly spotifyApi = inject(SpotifyApiService);
+  private readonly trackAnalysisApi = inject(TrackAnalysisApiService);
 
   public readonly topTracks = signal<TopTracksResponse | null>(null);
   public readonly audioStats = signal<AudioStats | null>(null);
@@ -34,7 +37,7 @@ class ListeningTracksStore {
     this.audioFeatures.set([]);
     this.isAudioStatsLoading.set(true);
 
-    return this.spotifyService
+    return this.spotifyApi
       .getTopTracks(timeRange, tracksRange)
       .pipe(
         tap((response) => this.topTracks.set(response)),
@@ -46,14 +49,14 @@ class ListeningTracksStore {
           }
 
           if (!includeAudioFeatures) {
-            return this.spotifyService
-              .getTracksAudioStats(trackIds)
+            return this.trackAnalysisApi
+              .getAudioStats(trackIds)
               .pipe(map((stats) => ({ stats, audioFeatures: [] })));
           }
 
           return forkJoin({
-            stats: this.spotifyService.getTracksAudioStats(trackIds),
-            audioFeaturesResponse: this.spotifyService.getTracksAudioFeatures(trackIds),
+            stats: this.trackAnalysisApi.getAudioStats(trackIds),
+            audioFeaturesResponse: this.trackAnalysisApi.getAudioFeatures(trackIds),
           }).pipe(
             map(({ stats, audioFeaturesResponse }) => ({
               stats,

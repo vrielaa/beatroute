@@ -1,17 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import {
-  ArtistGenreDistributionResponse,
-  TimeRange,
-  TopArtistsResponse,
-} from '@src/app/core/models/models';
+import type { ArtistGenreDistributionResponse } from '@core/api/lastfm/lastfm.models';
+import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
+import type { TimeRange, TopArtistsResponse } from '@core/api/spotify/spotify.models';
 import { LastfmService } from '@core/services/lastfm.service';
-import { SpotifyService } from '@core/services/spotify.service';
 import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
 import { mapArtistGenres, mapArtistsFoundRatio } from './dashboard.mappers';
 
 @Injectable()
 class DashboardArtistsStore {
-  private readonly spotifyService = inject(SpotifyService);
+  private readonly spotifyApi = inject(SpotifyApiService);
   private readonly lastfmService = inject(LastfmService);
   private readonly reloadTrigger = signal(0);
 
@@ -38,7 +35,7 @@ class DashboardArtistsStore {
     this.isGenreDistributionLoading.set(true);
     this.hasGenreDistributionError.set(false);
 
-    return this.spotifyService
+    return this.spotifyApi
       .getTopArtists(timeRange, artistsRange)
       .pipe(
         tap((response) => {

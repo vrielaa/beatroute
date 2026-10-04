@@ -1,5 +1,9 @@
-import { MusicMapCluster, MusicMapResponse } from '@core/models/models';
-import { MusicMapClusterDetail, MusicMapClusterMetric } from './music-map.models';
+import type {
+  MusicMapCluster,
+  MusicMapClusterDetail,
+  MusicMapClusterMetric,
+  MusicMapResponse,
+} from './music-map.models';
 
 const MUSIC_MAP_CLUSTER_LIMITS = {
   default: 4,

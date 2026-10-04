@@ -1,4 +1,68 @@
-import { MusicMapCluster, MusicMapPoint } from '@core/models/models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
+
+type MusicMapClusterSelectionSource = 'silhouette-score' | 'manual' | 'fallback';
+
+interface MusicMapCandidateClusterResult {
+  k: number;
+  inertia: number;
+  silhouetteScore: number;
+}
+
+interface MusicMapCluster {
+  id: number;
+  label: string;
+  description: string;
+  averageAudioFeatures: Partial<Record<string, number>>;
+  tracksCount: number;
+  trackIds: string[];
+}
+
+interface MusicMapPoint {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  imageUrl: string | null;
+  spotifyUrl: string | null;
+  description: string;
+  clusterDescription: string;
+  x: number;
+  y: number;
+  rawX: number;
+  rawY: number;
+  cluster: number;
+  audioFeatures: Partial<Record<string, number>>;
+}
+
+interface MusicMapSkippedTrack {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  spotifyUrl: string | null;
+  reason: string;
+}
+
+interface MusicMapResponse {
+  source: 'spotify-top-tracks-reccobeats-audio-features';
+  timeRange: TimeRange;
+  requestedLimit: number;
+  spotifyReturnedTracksCount: number;
+  spotifyTotalTracksCount: number;
+  requestedClusterCount: number | null;
+  selectedClusterCount: number;
+  selectedClusterCountSource: MusicMapClusterSelectionSource;
+  appliedClusterCount: number;
+  candidateClusterResults: MusicMapCandidateClusterResult[];
+  featureKeys: string[];
+  activeFeatureKeys: string[];
+  explainedVariance: number[];
+  tracksWithAudioFeaturesCount: number;
+  skippedTracksCount: number;
+  clusters: MusicMapCluster[];
+  points: MusicMapPoint[];
+  skippedTracks: MusicMapSkippedTrack[];
+}
 
 type MusicMapAxisTick = {
   value: number;
@@ -30,4 +94,14 @@ const MUSIC_MAP_CLUSTER_COLORS = [
 ];
 
 export { MUSIC_MAP_CLUSTER_COLORS };
-export type { MusicMapAxisTick, MusicMapClusterMetric, MusicMapClusterDetail };
+export type {
+  MusicMapClusterSelectionSource,
+  MusicMapCandidateClusterResult,
+  MusicMapCluster,
+  MusicMapPoint,
+  MusicMapSkippedTrack,
+  MusicMapResponse,
+  MusicMapAxisTick,
+  MusicMapClusterMetric,
+  MusicMapClusterDetail,
+};

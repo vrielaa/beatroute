@@ -1,5 +1,5 @@
 import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
-import { TopTrack } from '@core/models/models';
+import type { TopTrack } from '@core/api/spotify/spotify.models';
 import { Tooltip } from '@shared/components/tooltip/tooltip';
 import { TrackAudioFeatureRow } from '../most-listened-tracks.models';
 

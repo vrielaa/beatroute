@@ -1,6 +1,6 @@
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
-import { MusicMapPoint } from '@core/models/models';
-import { MUSIC_MAP_CLUSTER_COLORS, MusicMapAxisTick } from '../music-map.models';
+import { MUSIC_MAP_CLUSTER_COLORS } from '../music-map.models';
+import type { MusicMapAxisTick, MusicMapPoint } from '../music-map.models';
 
 const PLOT_WIDTH = 1000;
 const PLOT_HEIGHT = 420;

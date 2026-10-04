@@ -9,7 +9,7 @@ import {
   viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { TimeRange, TopArtist } from '@src/app/core/models/models';
+import type { TimeRange, TopArtist } from '@core/api/spotify/spotify.models';
 import { Icon } from '@shared/components/icon/icon';
 import { DASHBOARD_FULL_WIDTH_SECTION_HOST_CLASS } from '../dashboard-host-classes';
 

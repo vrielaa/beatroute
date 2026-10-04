@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { TimeRange } from '@core/models/models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
 
 @Injectable({
   providedIn: 'root',

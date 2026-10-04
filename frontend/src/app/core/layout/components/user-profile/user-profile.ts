@@ -1,5 +1,5 @@
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
-import { SpotifyService } from '@core/services/spotify.service';
+import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
 
 @Component({
   selector: 'app-user-profile',
@@ -12,30 +12,30 @@ import { SpotifyService } from '@core/services/spotify.service';
   },
 })
 class UserProfile {
-  readonly spotifyService = inject(SpotifyService);
+  private readonly spotifyApi = inject(SpotifyApiService);
 
   readonly profileImageUrl = computed(() => {
-    if (!this.spotifyService.userProfileResource.hasValue()) {
+    if (!this.spotifyApi.userProfileResource.hasValue()) {
       return null;
     }
 
-    return this.spotifyService.userProfileResource.value()?.images?.[0]?.url ?? null;
+    return this.spotifyApi.userProfileResource.value()?.images?.[0]?.url ?? null;
   });
 
   readonly userName = computed(() => {
-    if (!this.spotifyService.userProfileResource.hasValue()) {
+    if (!this.spotifyApi.userProfileResource.hasValue()) {
       return null;
     }
 
-    return this.spotifyService.userProfileResource.value()?.display_name ?? null;
+    return this.spotifyApi.userProfileResource.value()?.display_name ?? null;
   });
 
   readonly userEmail = computed(() => {
-    if (!this.spotifyService.userProfileResource.hasValue()) {
+    if (!this.spotifyApi.userProfileResource.hasValue()) {
       return null;
     }
 
-    return this.spotifyService.userProfileResource.value()?.email ?? null;
+    return this.spotifyApi.userProfileResource.value()?.email ?? null;
   });
 }
 

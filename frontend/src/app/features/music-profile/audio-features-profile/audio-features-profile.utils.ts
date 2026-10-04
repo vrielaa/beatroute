@@ -1,4 +1,4 @@
-import { AudioStats } from '@core/models/models';
+import type { AudioStats } from '@core/api/tracks/audio-features.models';
 import { AUDIO_FEATURE_INFO, AudioFeatureInfoKey } from '@shared/audio-features/audio-feature-info';
 
 const AUDIO_PROFILE_CHART = {

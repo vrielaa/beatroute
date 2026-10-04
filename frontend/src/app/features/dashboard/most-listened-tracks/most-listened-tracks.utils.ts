@@ -1,4 +1,5 @@
-import { AudioFeatures, TimeRange } from '@core/models/models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
+import type { AudioFeatures } from '@core/api/tracks/audio-features.models';
 import {
   AUDIO_FEATURE_INFO,
   AudioFeatureInfoKey,

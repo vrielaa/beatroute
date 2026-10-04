@@ -1,4 +1,5 @@
-import { ArtistGenreDistributionResponse, TopArtistsResponse } from '@src/app/core/models/models';
+import type { ArtistGenreDistributionResponse } from '@core/api/lastfm/lastfm.models';
+import type { TopArtistsResponse } from '@core/api/spotify/spotify.models';
 
 interface ArtistsFoundRatio {
   requestedArtistsCount: number;

@@ -1,5 +1,5 @@
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { TimeRange } from '@core/models/models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
 import { ListeningStatsFilters } from '@features/dashboard/listening-stats-filters/listening-stats-filters';
 
 @Component({
