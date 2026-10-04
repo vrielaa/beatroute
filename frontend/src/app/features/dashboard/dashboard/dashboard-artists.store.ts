@@ -1,15 +1,15 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { ArtistGenreDistributionResponse } from '@core/api/lastfm/lastfm.models';
+import { LastfmApiService } from '@core/api/lastfm/lastfm-api.service';
 import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
 import type { TimeRange, TopArtistsResponse } from '@core/api/spotify/spotify.models';
-import { LastfmService } from '@core/services/lastfm.service';
 import { catchError, of, Subscription, switchMap, tap } from 'rxjs';
 import { mapArtistGenres, mapArtistsFoundRatio } from './dashboard.mappers';
 
 @Injectable()
 class DashboardArtistsStore {
   private readonly spotifyApi = inject(SpotifyApiService);
-  private readonly lastfmService = inject(LastfmService);
+  private readonly lastfmApi = inject(LastfmApiService);
   private readonly reloadTrigger = signal(0);
 
   public readonly topArtists = signal<TopArtistsResponse | null>(null);
@@ -49,7 +49,7 @@ class DashboardArtistsStore {
             return of(null);
           }
 
-          return this.lastfmService.getArtistGenreDistribution(artistNames).pipe(
+          return this.lastfmApi.getArtistGenreDistribution(artistNames).pipe(
             catchError((error) => {
               console.error('Błąd pobierania gatunków artystów:', error);
               this.hasGenreDistributionError.set(true);

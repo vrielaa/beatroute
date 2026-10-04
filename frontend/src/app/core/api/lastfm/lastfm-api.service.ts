@@ -9,7 +9,7 @@ import type {
 @Injectable({
   providedIn: 'root',
 })
-class LastfmService {
+class LastfmApiService {
   private readonly http = inject(HttpClient);
 
   public getArtistGenreDistribution(
@@ -30,4 +30,4 @@ class LastfmService {
   }
 }
 
-export { LastfmService };
+export { LastfmApiService };
