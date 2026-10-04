@@ -7,9 +7,9 @@ import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.erro
 import { createTrackRouter } from "./track.routes.js";
 import type { RequestHandler } from "express";
 import type {
-  ReccoBeatsTrackAudioFeatures,
-  ReccoBeatsTrackAudioFeaturesResult,
-} from "@integrations/reccobeats/reccobeats.types.js";
+  TrackAudioFeatures,
+  TrackAudioFeaturesResult,
+} from "@application/tracks/track-analysis.types.js";
 
 describe("track routes", () => {
   it("requires authorization before calling route dependencies", async () => {
@@ -35,9 +35,8 @@ describe("track routes", () => {
       .expect(401);
 
     expect(dependencies.getSoundchartsAudioFeatures).not.toHaveBeenCalled();
-    expect(
-      dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds
-    ).not.toHaveBeenCalled();
+    expect(dependencies.trackAnalysis.getAudioFeatures).not.toHaveBeenCalled();
+    expect(dependencies.trackAnalysis.getAudioStats).not.toHaveBeenCalled();
   });
 
   it("returns Soundcharts audio features for the requested Spotify track", async () => {
@@ -71,20 +70,16 @@ describe("track routes", () => {
         message: "trackIds musi być niepustą tablicą",
       },
     });
-    expect(
-      dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds
-    ).not.toHaveBeenCalled();
+    expect(dependencies.trackAnalysis.getAudioFeatures).not.toHaveBeenCalled();
   });
 
   it("returns a separate ReccoBeats result for every requested track", async () => {
     const dependencies = createRouteDependencies();
-    const results: ReccoBeatsTrackAudioFeaturesResult[] = [
+    const results: TrackAudioFeaturesResult[] = [
       createAudioFeatures("spotify-1"),
       { spotifyId: "spotify-2", error: "Track not found" },
     ];
-    dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
-      results
-    );
+    dependencies.trackAnalysis.getAudioFeatures.mockResolvedValue(results);
     const app = createTestApp(dependencies);
 
     const response = await request(app)
@@ -93,19 +88,36 @@ describe("track routes", () => {
       .expect(200);
 
     expect(response.body).toEqual({ audio_features: results });
-    expect(
-      dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds
-    ).toHaveBeenCalledWith(["spotify-1", "spotify-2"]);
+    expect(dependencies.trackAnalysis.getAudioFeatures).toHaveBeenCalledWith([
+      "spotify-1",
+      "spotify-2",
+    ]);
   });
 
   it("calculates statistics and reports requested and found track counts", async () => {
     const dependencies = createRouteDependencies();
-    dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
-      [
-        createAudioFeatures("spotify-1", { tempo: 120 }),
-        { spotifyId: "spotify-2", error: "Track not found" },
-      ]
-    );
+    dependencies.trackAnalysis.getAudioStats.mockResolvedValue({
+      trackCount: 1,
+      averageBpm: 120,
+      averageEnergy: 0.8,
+      averageDanceability: 0.7,
+      averageValence: 0.65,
+      averageAcousticness: 0.2,
+      averageInstrumentalness: 0.1,
+      averageLiveness: 0.15,
+      averageSpeechiness: 0.05,
+      averageLoudness: -5,
+      dominantKey: 2,
+      dominantMode: 1,
+      dominantTimeSignature: 4,
+      majorPercentage: 100,
+      minorPercentage: 0,
+      liveTrackPercentage: 0,
+      instrumentalTrackPercentage: 0,
+      speechHeavyTrackPercentage: 0,
+      totalTracksCount: 2,
+      foundTracksCount: 1,
+    });
     const app = createTestApp(dependencies);
 
     const response = await request(app)
@@ -119,6 +131,10 @@ describe("track routes", () => {
       foundTracksCount: 1,
       totalTracksCount: 2,
     });
+    expect(dependencies.trackAnalysis.getAudioStats).toHaveBeenCalledWith([
+      "spotify-1",
+      "spotify-2",
+    ]);
   });
 
   it("maps a ReccoBeats failure to Bad Gateway", async () => {
@@ -126,9 +142,7 @@ describe("track routes", () => {
     const apiError = new ReccoBeatsApiError("ReccoBeats unavailable", 530, {
       error_code: 1033,
     });
-    dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds.mockRejectedValue(
-      apiError
-    );
+    dependencies.trackAnalysis.getAudioFeatures.mockRejectedValue(apiError);
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -161,13 +175,10 @@ function createRouteDependencies() {
   const authorize: RequestHandler = (_request, _response, next) => next();
 
   return {
-    reccoBeatsService: {
-      getManyTrackAudioFeaturesBySpotifyIds:
-        vi.fn<
-          (
-            spotifyIds: string[]
-          ) => Promise<ReccoBeatsTrackAudioFeaturesResult[]>
-        >(),
+    trackAnalysis: {
+      getAudioFeatures:
+        vi.fn<(spotifyIds: string[]) => Promise<TrackAudioFeaturesResult[]>>(),
+      getAudioStats: vi.fn(),
     },
     getSoundchartsAudioFeatures:
       vi.fn<(spotifyTrackId: string) => Promise<unknown>>(),
@@ -187,8 +198,8 @@ function createTestApp(dependencies: Parameters<typeof createTrackRouter>[0]) {
 
 function createAudioFeatures(
   spotifyId: string,
-  overrides: Partial<ReccoBeatsTrackAudioFeatures> = {}
-): ReccoBeatsTrackAudioFeatures {
+  overrides: Partial<TrackAudioFeatures> = {}
+): TrackAudioFeatures {
   return {
     id: `recco-${spotifyId}`,
     spotifyId,

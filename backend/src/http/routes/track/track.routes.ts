@@ -1,14 +1,13 @@
 import { Router } from "express";
 import { getTrackAudioFeaturesBySpotifyId } from "@integrations/soundcharts/service.js";
-import { calculateAudioStats } from "@integrations/reccobeats/reccobeats.stats.js";
-import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
+import { trackAnalysisService } from "./track-analysis.composition.js";
 import {
   MAX_TRACKS_LIMIT,
   parseTrackIds,
 } from "@integrations/spotify/spotify.validators.js";
 import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import type { RequestHandler } from "express";
-import type { ReccoBeatsTrackAudioFeaturesResult } from "@integrations/reccobeats/reccobeats.types.js";
+import type { TrackAnalysisService } from "@application/tracks/track-analysis.service.js";
 
 /** Parametry URL endpointu pobierającego cechy pojedynczego utworu. */
 type SpotifyTrackRouteParams = {
@@ -18,12 +17,8 @@ type SpotifyTrackRouteParams = {
 
 /** Zależności zewnętrzne wymagane przez router danych utworów. */
 type TrackRouterDependencies = {
-  /** Operacje zbiorczego pobierania cech audio z ReccoBeats. */
-  reccoBeatsService: {
-    getManyTrackAudioFeaturesBySpotifyIds: (
-      spotifyIds: string[]
-    ) => Promise<ReccoBeatsTrackAudioFeaturesResult[]>;
-  };
+  /** Przypadki użycia pobierania i analizowania cech audio. */
+  trackAnalysis: TrackAnalysisService;
 
   /** Pobiera z Soundcharts cechy audio pojedynczego utworu Spotify. */
   getSoundchartsAudioFeatures(spotifyTrackId: string): Promise<unknown>;
@@ -41,7 +36,7 @@ type TrackRouterDependencies = {
  * @returns Router Express obsługujący endpointy danych utworów.
  */
 function createTrackRouter({
-  reccoBeatsService,
+  trackAnalysis,
   getSoundchartsAudioFeatures,
   authorize,
 }: TrackRouterDependencies) {
@@ -65,8 +60,7 @@ function createTrackRouter({
   router.post("/audio-features", authorize, async (req, res) => {
     const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-    const results =
-      await reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(trackIds);
+    const results = await trackAnalysis.getAudioFeatures(trackIds);
 
     res.json({ audio_features: results });
   });
@@ -78,18 +72,9 @@ function createTrackRouter({
   router.post("/audio-stats", authorize, async (req, res) => {
     const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-    const results =
-      await reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(trackIds);
+    const stats = await trackAnalysis.getAudioStats(trackIds);
 
-    const stats = calculateAudioStats(results);
-
-    const totalStats = {
-      ...stats,
-      totalTracksCount: trackIds.length,
-      foundTracksCount: stats.trackCount,
-    };
-
-    res.json(totalStats);
+    res.json(stats);
   });
 
   return router;
@@ -97,7 +82,7 @@ function createTrackRouter({
 
 /** Router utworów skonfigurowany z produkcyjnymi zależnościami aplikacji. */
 const trackRouter = createTrackRouter({
-  reccoBeatsService,
+  trackAnalysis: trackAnalysisService,
   getSoundchartsAudioFeatures: getTrackAudioFeaturesBySpotifyId,
   authorize: ensureSpotifyAccessToken,
 });
