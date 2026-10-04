@@ -1,6 +1,9 @@
-import { lastfmArtistService } from "@integrations/lastfm/artist/service.js";
-import { getLastfmUserInfo } from "@integrations/lastfm/lastfm.service.js";
-import { lastfmTrackService } from "@integrations/lastfm/track/service.js";
+import { createArtistGenreDistribution } from "@application/lastfm/artist-genre-distribution.js";
+import { createLastfmTrackInfo } from "@application/lastfm/track-info.js";
+import { lastfmArtistReader } from "@integrations/lastfm/artist/reader.js";
+import { getLastfmUserInfo } from "@integrations/lastfm/lastfm.user.js";
+import { isLikelyGenreTag } from "@integrations/lastfm/genre-classifier.js";
+import { lastfmTrackReader } from "@integrations/lastfm/track/reader.js";
 import {
   parseArtistNames,
   parseTrackInfoQuery,
@@ -18,6 +21,16 @@ type SpotifyTrackRouteParams = {
   spotifyTrackId: string;
 };
 
+const lastfmTrackInfoService = createLastfmTrackInfo({
+  trackReader: lastfmTrackReader,
+  getArtistTags: lastfmArtistReader.getArtistTags,
+  isGenreTag: isLikelyGenreTag,
+});
+
+const defaultGetArtistGenreDistribution = createArtistGenreDistribution({
+  artistReader: lastfmArtistReader,
+});
+
 const defaultGetSpotifyTrackLastfmInfo = createGetSpotifyTrackLastfmInfo({
   spotifyTracks: {
     async getTrack(spotifyTrackId, accessToken) {
@@ -32,13 +45,13 @@ const defaultGetSpotifyTrackLastfmInfo = createGetSpotifyTrackLastfmInfo({
       };
     },
   },
-  trackMetadata: lastfmTrackService,
+  trackMetadata: lastfmTrackInfoService,
 });
 
 type LastfmControllerDependencies = {
   getUserInfo: typeof getLastfmUserInfo;
-  getTrackInfo: typeof lastfmTrackService.getTrackInfo;
-  getGenreDistribution: typeof lastfmArtistService.getArtistGenreDistribution;
+  getTrackInfo: typeof lastfmTrackInfoService.getTrackInfo;
+  getGenreDistribution: typeof defaultGetArtistGenreDistribution;
   getSpotifyTrackInfo: typeof defaultGetSpotifyTrackLastfmInfo;
 };
 
@@ -111,8 +124,8 @@ function createLastfmController({
 
 const lastfmController = createLastfmController({
   getUserInfo: getLastfmUserInfo,
-  getTrackInfo: lastfmTrackService.getTrackInfo,
-  getGenreDistribution: lastfmArtistService.getArtistGenreDistribution,
+  getTrackInfo: lastfmTrackInfoService.getTrackInfo,
+  getGenreDistribution: defaultGetArtistGenreDistribution,
   getSpotifyTrackInfo: defaultGetSpotifyTrackLastfmInfo,
 });
 

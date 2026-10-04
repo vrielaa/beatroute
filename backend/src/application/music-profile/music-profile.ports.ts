@@ -1,8 +1,10 @@
-/** Identyfikator tekstowy utworu używany do pobrania jego metadanych. */
-type MusicProfileTrackIdentifier = {
-  artist: string;
-  track: string;
-};
+import type {
+  LastfmTag,
+  LastfmTrackInfo,
+  LastfmTrackNameIdentifier,
+} from "@application/lastfm/types.js";
+
+type MusicProfileTrackIdentifier = LastfmTrackNameIdentifier;
 
 /** Skrócone dane utworu prezentowane przez aplikację. */
 type MusicProfileSpotifyTrack = {
@@ -15,27 +17,10 @@ type MusicProfileSpotifyTrack = {
 };
 
 /** Tag przypisany do utworu przez zewnętrzne źródło metadanych. */
-type MusicProfileTag = {
-  name: string;
-  url: string | null;
-};
+type MusicProfileTag = LastfmTag;
 
 /** Informacje gatunkowe i metadane jednego utworu. */
-type MusicProfileTrackInfo = {
-  name: string | null;
-  artist: string | null;
-  mbid: string | null;
-  url: string | null;
-  genre: string | null;
-  genreCandidates: string[];
-  tags: MusicProfileTag[];
-  genreSource:
-    | "lastfm-top-tags"
-    | "lastfm-track-top-tags"
-    | "lastfm-artist-info-tags"
-    | null;
-  genreIsFallback: boolean;
-};
+type MusicProfileTrackInfo = LastfmTrackInfo;
 
 /** Dane Spotify przygotowane do dalszego pobrania informacji o utworze. */
 type MusicProfileSpotifyLookup = {

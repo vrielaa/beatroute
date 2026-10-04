@@ -1,4 +1,11 @@
-import type { LastfmTag, LastfmTagApiResponse } from "../types.js";
+import type {
+  LastfmGenreSource,
+  LastfmTag,
+  LastfmTrackIdentifier,
+  LastfmTrackInfo,
+  LastfmTrackMetadata,
+} from "@application/lastfm/types.js";
+import type { LastfmTagApiResponse } from "../types.js";
 
 /** Fragment surowej odpowiedzi `track.getInfo` używany przez aplikację. */
 type LastfmTrackApiResponse = {
@@ -27,42 +34,6 @@ type LastfmTrackApiResponse = {
   };
 };
 
-/** Metadane utworu po sprawdzeniu i znormalizowaniu odpowiedzi Last.fm. */
-type LastfmTrackMetadata = {
-  /** Nazwa utworu albo `null`, jeśli odpowiedź jej nie zawiera. */
-  name: string | null;
-  /** Nazwa artysty z Last.fm, z zapytania albo `null`. */
-  artist: string | null;
-  /** Identyfikator MusicBrainz albo `null`. */
-  mbid: string | null;
-  /** Adres strony utworu w Last.fm albo `null`. */
-  url: string | null;
-  /** Wszystkie znormalizowane tagi osadzone w `track.getInfo`. */
-  tags: LastfmTag[];
-};
-
-/** Informacje o utworze zwracane przez serwis do pozostałych warstw aplikacji. */
-type LastfmTrackInfo = {
-  /** Nazwa utworu albo `null`. */
-  name: string | null;
-  /** Rozwiązana nazwa artysty albo `null`. */
-  artist: string | null;
-  /** Identyfikator MusicBrainz albo `null`. */
-  mbid: string | null;
-  /** Adres strony utworu w Last.fm albo `null`. */
-  url: string | null;
-  /** Nazwa pierwszego tagu rozpoznanego jako gatunek. */
-  genre: string | null;
-  /** Wszystkie tagi z wybranego źródła rozpoznane jako gatunki. */
-  genreCandidates: string[];
-  /** Wszystkie znormalizowane tagi z ostatecznie sprawdzanego źródła. */
-  tags: LastfmTag[];
-  /** Źródło tagów użytych do wyznaczenia gatunku. */
-  genreSource: LastfmGenreSource;
-  /** Informuje, czy gatunek pochodzi z tagów artysty zamiast utworu. */
-  genreIsFallback: boolean;
-};
-
 /** Fragment surowej odpowiedzi `track.getTopTags` używany przez aplikację. */
 type LastfmTrackTopTagsApiResponse = {
   /** Kontener top tagów zwrócony przez osobną metodę Last.fm. */
@@ -71,19 +42,6 @@ type LastfmTrackTopTagsApiResponse = {
     tag?: LastfmTagApiResponse | LastfmTagApiResponse[];
   };
 };
-
-/**
- * Źródło tagów, z których udało się wyznaczyć gatunek utworu:
- * `lastfm-top-tags` oznacza tagi osadzone w `track.getInfo`,
- * `lastfm-track-top-tags` oznacza wynik `track.getTopTags`, a
- * `lastfm-artist-info-tags` oznacza fallback do tagów artysty.
- * Wartość `null` informuje, że żadne źródło nie dostarczyło gatunku.
- */
-type LastfmGenreSource =
-  | "lastfm-top-tags"
-  | "lastfm-track-top-tags"
-  | "lastfm-artist-info-tags"
-  | null;
 
 /** Adaptery zewnętrznych metod wymagane do utworzenia gatewaya. */
 type LastfmTrackGatewayDependencies = {
@@ -111,48 +69,10 @@ type LastfmTrackGateway = {
   ): Promise<LastfmTrackTopTagsApiResponse>;
 };
 
-/**
- * Jednoznaczny identyfikator utworu akceptowany przez Last.fm: MBID albo para
- * nazw artysty i utworu.
- */
-type LastfmTrackIdentifier =
-  | {
-      /** Identyfikator utworu w MusicBrainz. */
-      mbid: string;
-      /** Niedozwolone w wariancie wykorzystującym MBID. */
-      artist?: never;
-      /** Niedozwolone w wariancie wykorzystującym MBID. */
-      track?: never;
-    }
-  | {
-      /** Niedozwolone w wariancie wykorzystującym nazwy. */
-      mbid?: never;
-      /** Nazwa artysty wymagana razem z nazwą utworu. */
-      artist: string;
-      /** Nazwa utworu wymagana razem z nazwą artysty. */
-      track: string;
-    };
-
 /** Parametry wysyłane do Last.fm po włączeniu automatycznej korekty nazw. */
 type LastfmTrackRequestParams = LastfmTrackIdentifier & {
   /** Wartość `1` włącza poprawianie nazw przez Last.fm. */
   autocorrect: 1;
-};
-
-/** Publiczny kontrakt serwisu pobierającego i klasyfikującego dane utworów Last.fm. */
-type LastfmTrackService = {
-  /**
-   * Pobiera metadane utworu i przypisuje mu gatunki na podstawie tagów Last.fm.
-   * Najpierw wykorzystuje tagi zwrócone razem z informacjami o utworze. Jeśli
-   * nie zawierają one gatunku, pobiera osobno najpopularniejsze tagi utworu,
-   * a następnie — jako ostatnie źródło — tagi artysty. Gdy żadne źródło nie
-   * zawiera gatunku, zwraca pustą listę kandydatów i wartość `null` w polu
-   * `genre`.
-   *
-   * @param identifier - MBID utworu albo para zawierająca nazwę artysty i utworu.
-   * @returns Metadane utworu, rozpoznane gatunki i informację o źródle tagów.
-   */
-  getTrackInfo(identifier: LastfmTrackIdentifier): Promise<LastfmTrackInfo>;
 };
 
 export type {
@@ -165,5 +85,4 @@ export type {
   LastfmTrackGateway,
   LastfmTrackIdentifier,
   LastfmTrackRequestParams,
-  LastfmTrackService,
 };
