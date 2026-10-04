@@ -3,7 +3,7 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
 import { errorHandler } from "@http/error-response.js";
-import { createLastfmRouter } from "./lastfm.routes.js";
+import { createLastfmRouter } from "./lastfm-data.routes.js";
 import type { RequestHandler } from "express";
 
 describe("Last.fm routes", () => {

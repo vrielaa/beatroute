@@ -1,9 +1,9 @@
 import { Router } from "express";
-import authRoutes from "./auth/routes.js";
+import authRoutes from "./auth/auth.routes.js";
 import meRoutes from "./me/routes.js";
 import sessionRoutes from "./session.routes.js";
 import tracksRoutes from "./track/track.routes.js";
-import lastfmRoutes from "./lastfm.routes.js";
+import lastfmRoutes from "./lastfm-data.routes.js";
 import musicMapRoutes from "./music-map/routes.js";
 
 const router = Router();

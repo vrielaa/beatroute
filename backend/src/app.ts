@@ -7,11 +7,11 @@ import { validateEnv } from "./utils/validateEnv.js";
 
 import { appConfig, type AppConfig } from "./config/app.config.js";
 
-import authRoutes from "@integrations/routes/auth/routes.js";
+import authRoutes from "@integrations/routes/auth/auth.routes.js";
 import sessionRoutes from "@integrations/routes/session.routes.js";
 import meRoutes from "@integrations/routes/me/routes.js";
 import tracksRoutes from "@integrations/routes/track/track.routes.js";
-import lastfmRoutes from "@integrations/routes/lastfm.routes.js";
+import lastfmRoutes from "@integrations/routes/lastfm-data.routes.js";
 import musicMapRoutes from "@integrations/routes/music-map/routes.js";
 import { errorHandler, notFoundHandler } from "@http/error-response.js";
 

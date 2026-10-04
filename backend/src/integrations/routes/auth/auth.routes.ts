@@ -1,6 +1,6 @@
 import { Router } from "express";
-import spotifyAuthRouter from "./spotify.routes.js";
-import lastfmAuthRouter from "./lastfm.routes.js";
+import spotifyAuthRouter from "./spotify-auth.routes.js";
+import lastfmAuthRouter from "./lastfm-auth.routes.js";
 
 const authRouter = Router();
 
