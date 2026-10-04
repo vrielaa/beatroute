@@ -50,4 +50,25 @@ function round(value: number, digits = 4): number {
 function isFiniteNumber(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
-export { average, scaleNumberToRange, round, isFiniteNumber };
+
+/** Oblicza kwadrat odległości euklidesowej pomiędzy dwoma wektorami. */
+function squaredEuclideanDistance(left: number[], right: number[]): number {
+  return left.reduce(
+    (sum, value, index) => sum + (value - right[index]) ** 2,
+    0
+  );
+}
+
+/** Oblicza odległość euklidesową pomiędzy dwoma wektorami. */
+function euclideanDistance(left: number[], right: number[]): number {
+  return Math.sqrt(squaredEuclideanDistance(left, right));
+}
+
+export {
+  average,
+  scaleNumberToRange,
+  round,
+  isFiniteNumber,
+  squaredEuclideanDistance,
+  euclideanDistance,
+};

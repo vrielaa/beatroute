@@ -31,4 +31,41 @@ describe("analyzeFeatureVectors", () => {
       RangeError
     );
   });
+
+  it("ignores constant features and returns PCA coordinates for every track", () => {
+    const result = analyzeFeatureVectors(
+      [
+        [0.1, 120],
+        [0.2, 120],
+        [0.8, 120],
+        [0.9, 120],
+      ],
+      ["energy", "tempo"],
+      null
+    );
+
+    expect(result.activeFeatureKeys).toEqual(["energy"]);
+    expect(result.clusterLabels).toHaveLength(4);
+    expect(result.pcaCoordinates).toHaveLength(4);
+    expect(result.explainedVariance).toEqual([1]);
+  });
+
+  it("uses fallback selection when the sample is too small to compare clusters", () => {
+    const result = analyzeFeatureVectors([[0.2], [0.8]], ["energy"], null);
+
+    expect(result.selectedClusterCount).toBe(1);
+    expect(result.selectedClusterCountSource).toBe("fallback");
+  });
+
+  it("applies a valid manually selected cluster count", () => {
+    const result = analyzeFeatureVectors(
+      [[0.1], [0.2], [0.8], [0.9]],
+      ["energy"],
+      2
+    );
+
+    expect(result.selectedClusterCount).toBe(2);
+    expect(result.selectedClusterCountSource).toBe("manual");
+    expect(new Set(result.clusterLabels).size).toBe(2);
+  });
 });

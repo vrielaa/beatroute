@@ -15,6 +15,9 @@ type MusicMapFeatureKey =
   | "key"
   | "mode";
 
+/** Macierz, w której każdy wiersz jest wektorem cech jednego utworu. */
+type FeatureMatrix = number[][];
+
 /** Kompletny zestaw liczbowych cech audio jednego utworu lub klastra. */
 type AudioFeatureValues = Record<MusicMapFeatureKey, number>;
 
@@ -194,6 +197,7 @@ type MusicMapRequest = MusicMapSelection & {
 };
 
 export type {
+  FeatureMatrix,
   MusicMapFeatureKey,
   AudioFeatureValues,
   MusicMapTrack,
