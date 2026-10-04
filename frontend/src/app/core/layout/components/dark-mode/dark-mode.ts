@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { ThemeService } from '@src/app/shared/utils/theme.service';
+import { ThemeService } from '@core/theme/theme.service';
 
 @Component({
   selector: 'app-dark-mode',
@@ -20,10 +20,9 @@ class DarkMode {
   }
 
   public toggleDarkMode(): void {
-    const currentTheme = this.themeService.currentTheme();
-    const newTheme =
-      currentTheme === ThemeService.themes[0] ? ThemeService.themes[1] : ThemeService.themes[0];
-    this.themeService.setTheme(newTheme);
+    const nextTheme = this.isDarkMode() ? ThemeService.themes[0] : ThemeService.themes[1];
+
+    this.themeService.setTheme(nextTheme);
   }
 }
 

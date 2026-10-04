@@ -8,9 +8,8 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from '@app/app.routes';
 import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
-import { rateLimitRetryInterceptor } from '@core/rate-limit-retry.interceptor';
-
-import { ThemeService } from '@app/shared/utils/theme.service';
+import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
+import { ThemeService } from '@core/theme/theme.service';
 
 const appConfig: ApplicationConfig = {
   providers: [
