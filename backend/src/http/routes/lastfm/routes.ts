@@ -8,6 +8,7 @@ import {
   getSpotifyTrackLastfmInfo,
 } from "@http/controllers/lastfm.controller.js";
 
+/** Zależności wymagane przez endpointy danych Last.fm. */
 type LastfmRouterDependencies = {
   authorizeLastfm: typeof ensureLastfmSession;
   authorizeSpotify: typeof ensureSpotifyAccessToken;

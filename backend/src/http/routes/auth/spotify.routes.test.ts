@@ -6,7 +6,7 @@ import { regenerateSession, saveSession } from "@http/session.js";
 
 import { errorHandler } from "@http/error-handler.js";
 import { SpotifyAuthApiError } from "@integrations/spotify/auth/api-error.js";
-import { createSpotifyAuthRouter } from "./spotify-auth.routes.js";
+import { createSpotifyAuthRouter } from "./spotify.routes.js";
 import type { RequestHandler } from "express";
 import type { Session } from "express-session";
 import type { SpotifyAuthClient } from "@integrations/spotify/auth/types.js";

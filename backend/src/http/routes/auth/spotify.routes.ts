@@ -7,6 +7,8 @@ import { regenerateSession, saveSession } from "@http/session.js";
 import type { Session } from "express-session";
 import type { SpotifyAuthClient } from "@integrations/spotify/auth/types.js";
 
+/** Zależności oraz konfiguracja przepływu OAuth Spotify. */
+
 type SpotifyAuthRouterConfig = {
   clientId: string;
   redirectUri: string;

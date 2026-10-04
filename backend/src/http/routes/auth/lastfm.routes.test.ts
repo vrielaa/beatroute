@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { regenerateSession, saveSession } from "@http/session.js";
 import { errorHandler } from "@http/error-handler.js";
 import { LastfmApiError } from "@integrations/lastfm/lastfm-api.error.js";
-import { createLastfmAuthRouter } from "./lastfm-auth.routes.js";
+import { createLastfmAuthRouter } from "./lastfm.routes.js";
 import type { RequestHandler } from "express";
 import type { Session } from "express-session";
 

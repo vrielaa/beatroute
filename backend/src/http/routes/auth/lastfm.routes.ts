@@ -7,6 +7,8 @@ import { HttpError } from "@http/errors/http-error.js";
 import { regenerateSession, saveSession } from "@http/session.js";
 import type { Session } from "express-session";
 
+/** Zależności oraz konfiguracja przepływu autoryzacji Last.fm. */
+
 type LastfmSessionData = { key: string; name: string };
 
 type LastfmAuthRouterConfig = {

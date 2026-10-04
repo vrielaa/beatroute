@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { RequestValidationError } from "@http/request-validation-error.js";
-import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
+import { parseArtistNames, parseTrackInfoQuery } from "./validators.js";
 
 describe("parseArtistNames", () => {
   it("trims and returns valid artist names", () => {

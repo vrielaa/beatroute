@@ -2,6 +2,7 @@ import { Router } from "express";
 import { destroySession, saveSession } from "@http/session.js";
 import type { Session } from "express-session";
 
+/** Zależności wymagane przez endpointy sesji aplikacji. */
 type SessionRouterDependencies = {
   save: (session: Session) => Promise<void>;
   destroy: (session: Session) => Promise<void>;

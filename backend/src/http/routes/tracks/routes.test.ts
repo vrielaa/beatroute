@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { errorHandler } from "@http/error-handler.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
-import { createTrackRouter } from "./track.routes.js";
+import { createTrackRouter } from "./routes.js";
 import type { RequestHandler } from "express";
 import type {
   TrackAudioFeatures,

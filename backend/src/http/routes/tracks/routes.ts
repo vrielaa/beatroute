@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getTrackAudioFeaturesBySpotifyId } from "@integrations/soundcharts/service.js";
-import { trackAnalysisService } from "./track-analysis.composition.js";
+import { trackAnalysisService } from "./composition.js";
 import {
   MAX_TRACKS_LIMIT,
   parseTrackIds,

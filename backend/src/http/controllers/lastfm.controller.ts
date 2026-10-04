@@ -7,7 +7,7 @@ import { lastfmTrackReader } from "@integrations/lastfm/track/reader.js";
 import {
   parseArtistNames,
   parseTrackInfoQuery,
-} from "@integrations/lastfm/lastfm.validators.js";
+} from "@http/routes/lastfm/validators.js";
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import {
   mapSpotifyTrackForLastfm,

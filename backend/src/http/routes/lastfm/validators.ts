@@ -1,5 +1,5 @@
 import { RequestValidationError } from "@http/request-validation-error.js";
-import type { LastfmTrackIdentifier } from "./track/types.js";
+import type { LastfmTrackIdentifier } from "@application/lastfm/types.js";
 
 /** Niezweryfikowane body żądania zawierającego nazwy artystów. */
 type ArtistNamesPayload = {
