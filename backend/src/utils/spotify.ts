@@ -1,6 +1,11 @@
 import { defaultSpotifyAuthClient } from "@integrations/spotify/spotify.auth.client.js";
+import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
+import { SpotifyReauthorizationRequiredError } from "@integrations/spotify/spotify-reauthorization-required.error.js";
 import type { Request } from "express";
-import type { SpotifyAuthClient } from "@integrations/spotify/spotify.auth.types.js";
+import type {
+  SpotifyAuthClient,
+  SpotifyTokenResponse,
+} from "@integrations/spotify/spotify.auth.types.js";
 
 type RefreshSpotifyAccessTokenDependencies = {
   authClient: Pick<SpotifyAuthClient, "refreshAccessToken">;
@@ -16,19 +21,34 @@ function createRefreshAccessToken({
     const spotifySession = req.session.spotify;
 
     if (!spotifySession) {
-      throw new Error("Brak sesji Spotify");
+      throw new SpotifyReauthorizationRequiredError();
     }
 
     const refreshToken = spotifySession.refreshToken;
 
     if (!refreshToken) {
-      throw new Error("Brak refresh tokena");
+      throw new SpotifyReauthorizationRequiredError();
     }
 
-    const data = await authClient.refreshAccessToken(refreshToken);
+    let data: SpotifyTokenResponse;
+
+    try {
+      data = await authClient.refreshAccessToken(refreshToken);
+    } catch (error) {
+      if (
+        error instanceof SpotifyAuthApiError &&
+        error.oauthCode === "invalid_grant"
+      ) {
+        throw new SpotifyReauthorizationRequiredError();
+      }
+
+      throw error;
+    }
 
     spotifySession.accessToken = data.access_token;
     spotifySession.expiresAt = now() + data.expires_in * 1000;
+    spotifySession.scope = data.scope;
+    spotifySession.tokenType = data.token_type;
 
     if (data.refresh_token) {
       spotifySession.refreshToken = data.refresh_token;

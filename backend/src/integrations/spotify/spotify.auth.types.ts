@@ -8,6 +8,36 @@ type SpotifyAuthConfiguration = {
   basicAuthHeader?: string;
   /** Adres callbacku zarejestrowany w panelu Spotify. */
   redirectUri?: string;
+  /** Maksymalny czas oczekiwania na odpowiedź Spotify Accounts. */
+  requestTimeoutMs?: number;
+};
+
+/** Rodzaj technicznej awarii podczas komunikacji ze Spotify Accounts. */
+type SpotifyAuthErrorKind =
+  "oauth" | "network" | "timeout" | "invalid-response";
+
+/** Dane potrzebne do sklasyfikowania błędu Spotify Accounts. */
+type SpotifyAuthApiErrorOptions = {
+  /** Ogólna kategoria awarii. */
+  kind: SpotifyAuthErrorKind;
+  /** Status HTTP zwrócony przez Spotify, jeśli odpowiedź została odebrana. */
+  upstreamStatus?: number | null;
+  /** Kod OAuth z pola `error`, na przykład `invalid_grant`. */
+  oauthCode?: string | null;
+  /** Liczba sekund przekazana przez Spotify w nagłówku `Retry-After`. */
+  retryAfterSeconds?: number | null;
+  /** Oryginalne dane odpowiedzi przydatne w diagnostyce backendu. */
+  data?: unknown;
+  /** Pierwotny wyjątek połączenia, który nie jest zwracany klientowi API. */
+  cause?: unknown;
+};
+
+/** Poprawnie odczytany błąd zgodny z formatem OAuth Spotify. */
+type SpotifyOAuthErrorResponse = {
+  /** Kod błędu przeznaczony do obsługi programistycznej. */
+  code: string;
+  /** Opcjonalny opis błędu przeznaczony dla człowieka. */
+  description: string | null;
 };
 
 /** Parametry wymiany kodu autoryzacyjnego na tokeny. */
@@ -64,6 +94,9 @@ type SpotifyAuthClient = {
 
 export type {
   SpotifyAuthConfiguration,
+  SpotifyAuthErrorKind,
+  SpotifyAuthApiErrorOptions,
+  SpotifyOAuthErrorResponse,
   SpotifyAuthorizationCodeRequest,
   SpotifyRefreshTokenRequest,
   SpotifyTokenRequest,

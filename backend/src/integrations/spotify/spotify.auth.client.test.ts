@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createSpotifyAuthClient } from "./spotify.auth.client.js";
 import { SpotifyAuthApiError } from "./spotify-auth-api.error.js";
+import type { SpotifyTokenResponse } from "./spotify.auth.types.js";
 
 describe("Spotify auth client", () => {
   it("exchanges an authorization code for tokens", async () => {
@@ -72,13 +73,133 @@ describe("Spotify auth client", () => {
     await expect(request).rejects.toBeInstanceOf(SpotifyAuthApiError);
     await expect(request).rejects.toMatchObject({
       message: "Refresh token revoked",
-      status: 400,
+      kind: "oauth",
+      upstreamStatus: 400,
+      oauthCode: "invalid_grant",
       data: errorData,
+    });
+  });
+
+  it("classifies connection failures without treating them as expired sessions", async () => {
+    const connectionError = new TypeError("fetch failed");
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockRejectedValue(connectionError),
+      basicAuthHeader: "Basic credentials",
+    });
+
+    await expect(
+      client.refreshAccessToken("refresh-token")
+    ).rejects.toMatchObject({
+      kind: "network",
+      upstreamStatus: null,
+      oauthCode: null,
+      originalCause: connectionError,
+    });
+  });
+
+  it("classifies a request timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockRejectedValue(timeoutError),
+      basicAuthHeader: "Basic credentials",
+    });
+
+    await expect(
+      client.refreshAccessToken("refresh-token")
+    ).rejects.toMatchObject({
+      kind: "timeout",
+      upstreamStatus: null,
+    });
+  });
+
+  it("preserves rate-limit information returned by Spotify", async () => {
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            error: "temporarily_unavailable",
+            error_description: "Try again later",
+          },
+          {
+            status: 429,
+            headers: { "Retry-After": "30" },
+          }
+        )
+      ),
+      basicAuthHeader: "Basic credentials",
+    });
+
+    await expect(
+      client.refreshAccessToken("refresh-token")
+    ).rejects.toMatchObject({
+      kind: "oauth",
+      upstreamStatus: 429,
+      oauthCode: "temporarily_unavailable",
+      retryAfterSeconds: 30,
+    });
+  });
+
+  it("rejects a non-JSON response", async () => {
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockResolvedValue(
+        new Response("temporary proxy error", {
+          status: 502,
+          headers: { "Content-Type": "text/plain" },
+        })
+      ),
+      basicAuthHeader: "Basic credentials",
+    });
+
+    await expect(
+      client.refreshAccessToken("refresh-token")
+    ).rejects.toMatchObject({
+      kind: "invalid-response",
+      upstreamStatus: 502,
+    });
+  });
+
+  it("rejects a successful response without required token fields", async () => {
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ access_token: "access-token" })),
+      basicAuthHeader: "Basic credentials",
+    });
+
+    const request = client.refreshAccessToken("refresh-token");
+
+    await expect(request).rejects.toMatchObject({
+      kind: "invalid-response",
+      upstreamStatus: 200,
+      data: {
+        receivedType: "object",
+        receivedFields: ["access_token"],
+      },
+    });
+    await expect(request).rejects.not.toHaveProperty(
+      "data.access_token",
+      "access-token"
+    );
+  });
+
+  it("requires a refresh token after exchanging an authorization code", async () => {
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockResolvedValue(jsonResponse(createTokenResponse())),
+      basicAuthHeader: "Basic credentials",
+      redirectUri: "https://app.test/auth/spotify/callback",
+    });
+
+    await expect(
+      client.exchangeAuthorizationCode("authorization-code")
+    ).rejects.toMatchObject({
+      kind: "invalid-response",
+      upstreamStatus: 200,
     });
   });
 });
 
-function createTokenResponse(overrides: Record<string, string> = {}) {
+function createTokenResponse(overrides: Partial<SpotifyTokenResponse> = {}) {
   return {
     access_token: "access-token",
     token_type: "Bearer",

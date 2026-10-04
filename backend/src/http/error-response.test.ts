@@ -56,15 +56,141 @@ describe("mapErrorToHttp", () => {
 
   it("preserves the Spotify Accounts API status", () => {
     expect(
-      mapErrorToHttp(new SpotifyAuthApiError("Invalid grant", 400))
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Invalid grant", {
+          kind: "oauth",
+          upstreamStatus: 400,
+          oauthCode: "invalid_grant",
+        })
+      )
     ).toEqual({
       status: 400,
       body: {
         error: {
           code: "SPOTIFY_AUTH_API_ERROR",
           message: "Invalid grant",
-          details: { integration: "spotify-auth", upstreamStatus: 400 },
+          details: {
+            integration: "spotify-auth",
+            upstreamStatus: 400,
+            oauthCode: "invalid_grant",
+          },
         },
+      },
+    });
+  });
+
+  it("maps invalid Spotify client credentials to a configuration error", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Invalid client secret", {
+          kind: "oauth",
+          upstreamStatus: 401,
+          oauthCode: "invalid_client",
+        })
+      )
+    ).toMatchObject({
+      status: 503,
+      body: {
+        error: { code: "SPOTIFY_CONFIGURATION_ERROR" },
+      },
+    });
+  });
+
+  it("maps malformed Spotify token requests to an internal error", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Unsupported grant", {
+          kind: "oauth",
+          upstreamStatus: 400,
+          oauthCode: "unsupported_grant_type",
+        })
+      )
+    ).toMatchObject({
+      status: 500,
+      body: {
+        error: { code: "SPOTIFY_AUTH_REQUEST_ERROR" },
+      },
+    });
+  });
+
+  it("maps Spotify connection failures to Bad Gateway", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Connection failed", { kind: "network" })
+      )
+    ).toMatchObject({
+      status: 502,
+      body: {
+        error: { code: "SPOTIFY_AUTH_UNAVAILABLE" },
+      },
+    });
+  });
+
+  it("maps Spotify timeouts to Gateway Timeout", () => {
+    expect(
+      mapErrorToHttp(new SpotifyAuthApiError("Timed out", { kind: "timeout" }))
+    ).toMatchObject({
+      status: 504,
+      body: {
+        error: { code: "SPOTIFY_AUTH_TIMEOUT" },
+      },
+    });
+  });
+
+  it("maps a Spotify service outage to Service Unavailable", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Service unavailable", {
+          kind: "oauth",
+          upstreamStatus: 503,
+        })
+      )
+    ).toMatchObject({
+      status: 503,
+      body: {
+        error: { code: "SPOTIFY_AUTH_UNAVAILABLE" },
+      },
+    });
+  });
+
+  it("preserves Spotify rate-limit retry information", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Too many requests", {
+          kind: "oauth",
+          upstreamStatus: 429,
+          retryAfterSeconds: 30,
+        })
+      )
+    ).toEqual({
+      status: 429,
+      body: {
+        error: {
+          code: "SPOTIFY_RATE_LIMITED",
+          message: "Przekroczono limit zapytań Spotify",
+          details: {
+            integration: "spotify-auth",
+            upstreamStatus: 429,
+            retryAfterSeconds: 30,
+          },
+        },
+      },
+      headers: { "Retry-After": "30" },
+    });
+  });
+
+  it("maps malformed Spotify responses to Bad Gateway", () => {
+    expect(
+      mapErrorToHttp(
+        new SpotifyAuthApiError("Invalid response", {
+          kind: "invalid-response",
+          upstreamStatus: 200,
+        })
+      )
+    ).toMatchObject({
+      status: 502,
+      body: {
+        error: { code: "SPOTIFY_AUTH_INVALID_RESPONSE" },
       },
     });
   });

@@ -90,7 +90,13 @@ describe("Spotify auth routes", () => {
       dependencies.authClient.exchangeAuthorizationCode as ReturnType<
         typeof vi.fn
       >
-    ).mockRejectedValue(new SpotifyAuthApiError("Invalid grant", 400));
+    ).mockRejectedValue(
+      new SpotifyAuthApiError("Invalid grant", {
+        kind: "oauth",
+        upstreamStatus: 400,
+        oauthCode: "invalid_grant",
+      })
+    );
     const app = createTestApp(dependencies, setSpotifyState("state"));
 
     const response = await request(app)

@@ -1,5 +1,6 @@
 import { refreshAccessToken } from "../../../utils/spotify.js";
 import { HttpError } from "@http/error-response.js";
+import { SpotifyReauthorizationRequiredError } from "../spotify-reauthorization-required.error.js";
 import type { Request, Response, NextFunction } from "express";
 
 type SpotifyAccessTokenMiddlewareDependencies = {
@@ -38,10 +39,20 @@ function createEnsureSpotifyAccessToken({
       }
 
       next();
-    } catch {
-      return next(
-        new HttpError(401, "SPOTIFY_SESSION_EXPIRED", "Sesja Spotify wygasła")
-      );
+    } catch (error) {
+      if (error instanceof SpotifyReauthorizationRequiredError) {
+        delete req.session.spotify;
+
+        return next(
+          new HttpError(
+            401,
+            "SPOTIFY_REAUTH_REQUIRED",
+            "Połącz ponownie konto Spotify"
+          )
+        );
+      }
+
+      return next(error);
     }
   };
 }

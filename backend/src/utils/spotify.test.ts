@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
+import { SpotifyReauthorizationRequiredError } from "@integrations/spotify/spotify-reauthorization-required.error.js";
 import { createRefreshAccessToken } from "./spotify.js";
 import type { Request } from "express";
 
@@ -56,7 +58,57 @@ describe("refreshAccessToken", () => {
     });
     const request = { session: {} } as Request;
 
-    await expect(refresh(request)).rejects.toThrow("Brak sesji Spotify");
+    await expect(refresh(request)).rejects.toBeInstanceOf(
+      SpotifyReauthorizationRequiredError
+    );
+  });
+
+  it("requires reauthorization when the refresh token is missing", async () => {
+    const request = createRequestWithSpotifySession();
+    request.session.spotify!.refreshToken = "";
+    const refresh = createRefreshAccessToken({
+      authClient: { refreshAccessToken: vi.fn() },
+      now: Date.now,
+    });
+
+    await expect(refresh(request)).rejects.toBeInstanceOf(
+      SpotifyReauthorizationRequiredError
+    );
+  });
+
+  it("requires reauthorization when Spotify rejects the refresh token", async () => {
+    const refresh = createRefreshAccessToken({
+      authClient: {
+        refreshAccessToken: vi.fn().mockRejectedValue(
+          new SpotifyAuthApiError("Refresh token expired", {
+            kind: "oauth",
+            upstreamStatus: 400,
+            oauthCode: "invalid_grant",
+          })
+        ),
+      },
+      now: Date.now,
+    });
+
+    await expect(
+      refresh(createRequestWithSpotifySession())
+    ).rejects.toBeInstanceOf(SpotifyReauthorizationRequiredError);
+  });
+
+  it("preserves temporary Spotify failures for the central error handler", async () => {
+    const apiError = new SpotifyAuthApiError("Spotify unavailable", {
+      kind: "network",
+    });
+    const refresh = createRefreshAccessToken({
+      authClient: {
+        refreshAccessToken: vi.fn().mockRejectedValue(apiError),
+      },
+      now: Date.now,
+    });
+
+    await expect(refresh(createRequestWithSpotifySession())).rejects.toBe(
+      apiError
+    );
   });
 });
 
