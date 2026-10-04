@@ -1,35 +1,22 @@
-import { reccoBeatsService as defaultReccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
-import type {
-  ReccoBeatsService,
-  ReccoBeatsTrackAudioFeaturesResult,
-} from "@integrations/reccobeats/reccobeats.types.js";
-import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
-import type {
-  SpotifyGateway,
-  SpotifyTrackApiResponse,
-} from "@integrations/spotify/spotify.types.js";
-import { buildMusicMapResult } from "./result.js";
+import { buildMusicMapResult } from "@domain/music-map/result.js";
 import type {
   MusicMapDataset,
   MusicMapResult,
   MusicMapRequest,
   MusicMapTrack,
   TrackAudioFeaturesLookup,
-} from "./types.js";
-
-/** Operacja odczytu najczęściej słuchanych utworów ze Spotify. */
-type SpotifyTopTracksReader = Pick<SpotifyGateway, "getCurrentUserTopTracks">;
-
-/** Operacja odczytu cech audio dla wielu identyfikatorów Spotify. */
-type TrackAudioFeaturesReader = Pick<
-  ReccoBeatsService,
-  "getManyTrackAudioFeaturesBySpotifyIds"
->;
+} from "@domain/music-map/types.js";
+import type {
+  MusicMapAudioFeaturesReader,
+  MusicMapSourceAudioFeaturesResult,
+  MusicMapSourceTrack,
+  MusicMapTracksReader,
+} from "./music-map.ports.js";
 
 /** Zależności wymagane przez przypadek użycia budowania mapy muzycznej. */
 type MusicMapDependencies = {
-  spotifyGateway: SpotifyTopTracksReader;
-  reccoBeatsService: TrackAudioFeaturesReader;
+  spotifyGateway: MusicMapTracksReader;
+  reccoBeatsService: MusicMapAudioFeaturesReader;
 };
 
 /** Operacje udostępniane przez serwis mapy muzycznej. */
@@ -100,7 +87,7 @@ function createMusicMapService({
 }
 
 /** Mapuje odpowiedź Spotify na niezależny od API model domenowy utworu. */
-function mapSpotifyTrack(track: SpotifyTrackApiResponse): MusicMapTrack {
+function mapSpotifyTrack(track: MusicMapSourceTrack): MusicMapTrack {
   return {
     id: track.id,
     name: track.name,
@@ -113,7 +100,7 @@ function mapSpotifyTrack(track: SpotifyTrackApiResponse): MusicMapTrack {
 
 /** Mapuje wynik ReccoBeats na rozłączny wynik wyszukiwania cech w domenie. */
 function mapTrackAudioFeatures(
-  result: ReccoBeatsTrackAudioFeaturesResult
+  result: MusicMapSourceAudioFeaturesResult
 ): TrackAudioFeaturesLookup {
   if ("error" in result) {
     return {
@@ -137,11 +124,5 @@ function mapTrackAudioFeatures(
   };
 }
 
-/** Serwis mapy muzycznej skonfigurowany z produkcyjnymi integracjami. */
-const defaultMusicMapService = createMusicMapService({
-  spotifyGateway: defaultSpotifyGateway,
-  reccoBeatsService: defaultReccoBeatsService,
-});
-
-export { createMusicMapService, defaultMusicMapService };
+export { createMusicMapService };
 export type { MusicMapService };

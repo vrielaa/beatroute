@@ -12,7 +12,7 @@ import type {
   SpotifyTrackApiResponse,
   SpotifyArtistApiResponse,
   SpotifyUserProfileApiResponse,
-} from "../../spotify/spotify.types.js";
+} from "@integrations/spotify/spotify.types.js";
 
 describe("me routes", () => {
   it("requires Spotify authorization before calling the gateway", async () => {

@@ -3,7 +3,7 @@ import type { MusicMapSelection } from "@domain/music-map/types.js";
 import {
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
-} from "../../spotify/spotify.validators.js";
+} from "@integrations/spotify/spotify.validators.js";
 
 /** Parametry query obsługiwane przez endpoint mapy muzycznej. */
 type MusicMapQuery = {

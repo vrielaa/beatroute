@@ -1,13 +1,16 @@
-import { lastfmArtistService } from "./artist/service.js";
-import { getLastfmUserInfo } from "./lastfm.service.js";
-import { lastfmTrackService } from "./track/service.js";
-import { parseArtistNames, parseTrackInfoQuery } from "./lastfm.validators.js";
-import { defaultSpotifyGateway } from "../spotify/spotify.gateway.js";
+import { lastfmArtistService } from "@integrations/lastfm/artist/service.js";
+import { getLastfmUserInfo } from "@integrations/lastfm/lastfm.service.js";
+import { lastfmTrackService } from "@integrations/lastfm/track/service.js";
+import {
+  parseArtistNames,
+  parseTrackInfoQuery,
+} from "@integrations/lastfm/lastfm.validators.js";
+import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import {
   mapSpotifyTrackForLastfm,
   mapSpotifyTrackResponse,
-} from "../spotify/spotify.mapper.js";
-import { createGetSpotifyTrackLastfmInfo } from "../../application/music-profile/get-spotify-track-lastfm-info.js";
+} from "@integrations/spotify/spotify.mapper.js";
+import { createGetSpotifyTrackLastfmInfo } from "@application/music-profile/get-spotify-track-lastfm-info.js";
 import { HttpError } from "@http/error-response.js";
 import type { Request, Response } from "express";
 

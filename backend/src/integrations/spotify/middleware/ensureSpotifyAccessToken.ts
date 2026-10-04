@@ -1,4 +1,4 @@
-import { refreshAccessToken } from "../../../utils/spotify.js";
+import { refreshAccessToken } from "@application/auth/refresh-spotify-session.js";
 import { HttpError } from "@http/error-response.js";
 import { SpotifyReauthorizationRequiredError } from "../spotify-reauthorization-required.error.js";
 import type { Request, Response, NextFunction } from "express";

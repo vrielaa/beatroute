@@ -4,7 +4,7 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { errorHandler } from "@http/error-response.js";
 import { createMusicMapRouter } from "./routes.js";
-import type { MusicMapService } from "@domain/music-map/service.js";
+import type { MusicMapService } from "@application/music-map/build-music-map.js";
 import type { MusicMapResult } from "@domain/music-map/types.js";
 import type { RequestHandler } from "express";
 

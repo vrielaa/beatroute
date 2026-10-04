@@ -1,12 +1,12 @@
 import { Router } from "express";
-import ensureLastfmSession from "../lastfm/middleware/ensureLastfmSession.js";
-import ensureSpotifyAccessToken from "../spotify/middleware/ensureSpotifyAccessToken.js";
+import ensureLastfmSession from "@integrations/lastfm/middleware/ensureLastfmSession.js";
+import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import {
   getArtistGenreDistribution,
   getLastfmMe,
   getLastfmTrackInfo,
   getSpotifyTrackLastfmInfo,
-} from "../lastfm/lastfm.controller.js";
+} from "@http/controllers/lastfm.controller.js";
 
 type LastfmRouterDependencies = {
   authorizeLastfm: typeof ensureLastfmSession;

@@ -1,14 +1,14 @@
 import { Router } from "express";
-import { getTrackAudioFeaturesBySpotifyId } from "../../soundcharts/service.js";
-import { calculateAudioStats } from "../../reccobeats/reccobeats.stats.js";
-import { reccoBeatsService } from "../../reccobeats/reccobeats.service.js";
+import { getTrackAudioFeaturesBySpotifyId } from "@integrations/soundcharts/service.js";
+import { calculateAudioStats } from "@integrations/reccobeats/reccobeats.stats.js";
+import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
 import {
   MAX_TRACKS_LIMIT,
   parseTrackIds,
-} from "../../spotify/spotify.validators.js";
-import ensureSpotifyAccessToken from "../../spotify/middleware/ensureSpotifyAccessToken.js";
+} from "@integrations/spotify/spotify.validators.js";
+import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import type { RequestHandler } from "express";
-import type { ReccoBeatsTrackAudioFeaturesResult } from "../../reccobeats/reccobeats.types.js";
+import type { ReccoBeatsTrackAudioFeaturesResult } from "@integrations/reccobeats/reccobeats.types.js";
 
 /** Parametry URL endpointu pobierającego cechy pojedynczego utworu. */
 type SpotifyTrackRouteParams = {

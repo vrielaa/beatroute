@@ -1,9 +1,11 @@
 import { Router } from "express";
 import {
-  defaultMusicMapService,
+  createMusicMapService,
   type MusicMapService,
-} from "@domain/music-map/service.js";
-import ensureSpotifyAccessToken from "../../spotify/middleware/ensureSpotifyAccessToken.js";
+} from "@application/music-map/build-music-map.js";
+import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
+import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
+import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import { parseMusicMapQuery } from "./validators.js";
 import type { RequestHandler } from "express";
 
@@ -17,7 +19,7 @@ type MusicMapRouterDependencies = {
 
 /**
  * Tworzy router generujący mapę najczęściej słuchanych utworów użytkownika.
- * Parametry query są walidowane przed przekazaniem ich do serwisu domenowego.
+ * Parametry query są walidowane przed przekazaniem ich do przypadku użycia.
  *
  * @param dependencies - Serwis mapy muzycznej i middleware autoryzacji.
  * @returns Router Express obsługujący endpoint mapy muzycznej.
@@ -43,6 +45,11 @@ function createMusicMapRouter({
 }
 
 /** Router mapy muzycznej skonfigurowany z produkcyjnymi zależnościami. */
+const defaultMusicMapService = createMusicMapService({
+  spotifyGateway: defaultSpotifyGateway,
+  reccoBeatsService,
+});
+
 const musicMapRouter = createMusicMapRouter({
   musicMapService: defaultMusicMapService,
   authorize: ensureSpotifyAccessToken,

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
 import { SpotifyReauthorizationRequiredError } from "@integrations/spotify/spotify-reauthorization-required.error.js";
-import { createRefreshAccessToken } from "./spotify.js";
+import { createRefreshAccessToken } from "./refresh-spotify-session.js";
 import type { Request } from "express";
 
 describe("refreshAccessToken", () => {

@@ -7,6 +7,7 @@ const resolveSourcePath = (directory: string): string =>
 const config = defineConfig({
   resolve: {
     alias: {
+      "@application": resolveSourcePath("application"),
       "@domain": resolveSourcePath("domain"),
       "@integrations": resolveSourcePath("integrations"),
       "@http": resolveSourcePath("http"),

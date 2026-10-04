@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import { regenerateSession, saveSession } from "@http/session.js";
 
 import { errorHandler } from "@http/error-response.js";
-import { SpotifyAuthApiError } from "../../spotify/spotify-auth-api.error.js";
+import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
 import { createSpotifyAuthRouter } from "./spotify-auth.routes.js";
 import type { RequestHandler } from "express";
 import type { Session } from "express-session";
-import type { SpotifyAuthClient } from "../../spotify/spotify.auth.types.js";
+import type { SpotifyAuthClient } from "@integrations/spotify/spotify.auth.types.js";
 
 describe("Spotify auth routes", () => {
   it("starts OAuth with the configured parameters and stores state", async () => {

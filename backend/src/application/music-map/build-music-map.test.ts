@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMusicMapService } from "./service.js";
-import type { ReccoBeatsService } from "@integrations/reccobeats/reccobeats.types.js";
+import { createMusicMapService } from "./build-music-map.js";
 import type {
-  SpotifyGateway,
+  MusicMapAudioFeaturesReader,
+  MusicMapTracksReader,
+} from "./music-map.ports.js";
+import type {
   SpotifyTopTracksApiResponse,
   SpotifyTrackApiResponse,
 } from "@integrations/spotify/spotify.types.js";
@@ -112,11 +114,13 @@ function createDependencies() {
   return {
     spotifyGateway: {
       getCurrentUserTopTracks:
-        vi.fn<SpotifyGateway["getCurrentUserTopTracks"]>(),
+        vi.fn<MusicMapTracksReader["getCurrentUserTopTracks"]>(),
     },
     reccoBeatsService: {
       getManyTrackAudioFeaturesBySpotifyIds:
-        vi.fn<ReccoBeatsService["getManyTrackAudioFeaturesBySpotifyIds"]>(),
+        vi.fn<
+          MusicMapAudioFeaturesReader["getManyTrackAudioFeaturesBySpotifyIds"]
+        >(),
     },
   };
 }
