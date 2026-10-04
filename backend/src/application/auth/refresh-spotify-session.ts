@@ -1,11 +1,11 @@
-import { defaultSpotifyAuthClient } from "@integrations/spotify/spotify.auth.client.js";
-import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
-import { SpotifyReauthorizationRequiredError } from "@integrations/spotify/spotify-reauthorization-required.error.js";
+import { SpotifyAuthApiError } from "@integrations/spotify/auth/api-error.js";
+import { defaultSpotifyAuthClient } from "@integrations/spotify/auth/client.js";
+import { SpotifyReauthorizationRequiredError } from "@integrations/spotify/auth/reauthorization-required.error.js";
 import type { Request } from "express";
 import type {
   SpotifyAuthClient,
   SpotifyTokenResponse,
-} from "@integrations/spotify/spotify.auth.types.js";
+} from "@integrations/spotify/auth/types.js";
 
 type RefreshSpotifyAccessTokenDependencies = {
   authClient: Pick<SpotifyAuthClient, "refreshAccessToken">;

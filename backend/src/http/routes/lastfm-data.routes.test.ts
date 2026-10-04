@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import { errorHandler } from "@http/error-response.js";
+import { errorHandler } from "@http/error-handler.js";
 import { createLastfmRouter } from "./lastfm-data.routes.js";
 import type { RequestHandler } from "express";
 

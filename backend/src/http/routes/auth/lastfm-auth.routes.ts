@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { appConfig } from "../../../config/app.config.js";
 import { assertLastfmConfig } from "../../../config/lastfm.config.js";
 import { createLastfmSession } from "@integrations/lastfm/lastfm.service.js";
-import { HttpError } from "@http/error-response.js";
+import { HttpError } from "@http/errors/http-error.js";
 import { regenerateSession, saveSession } from "@http/session.js";
 import type { Session } from "express-session";
 

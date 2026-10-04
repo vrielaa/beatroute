@@ -11,7 +11,7 @@ import {
   mapSpotifyTrackResponse,
 } from "@integrations/spotify/spotify.mapper.js";
 import { createGetSpotifyTrackLastfmInfo } from "@application/music-profile/get-spotify-track-lastfm-info.js";
-import { HttpError } from "@http/error-response.js";
+import { HttpError } from "@http/errors/http-error.js";
 import type { Request, Response } from "express";
 
 type SpotifyTrackRouteParams = {

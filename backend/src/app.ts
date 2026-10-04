@@ -13,7 +13,7 @@ import meRoutes from "@http/routes/me/routes.js";
 import tracksRoutes from "@http/routes/track/track.routes.js";
 import lastfmRoutes from "@http/routes/lastfm-data.routes.js";
 import musicMapRoutes from "@http/routes/music-map/routes.js";
-import { errorHandler, notFoundHandler } from "@http/error-response.js";
+import { errorHandler, notFoundHandler } from "@http/error-handler.js";
 
 function validateAppConfig(config: AppConfig) {
   validateEnv({

@@ -1,5 +1,5 @@
-import { IntegrationApiError } from "../integration-api.error.js";
-import type { SpotifyAuthApiErrorOptions } from "./spotify.auth.types.js";
+import { IntegrationApiError } from "../../integration-api.error.js";
+import type { SpotifyAuthApiErrorOptions } from "./types.js";
 
 /** Błąd odpowiedzi lub komunikacji ze Spotify Accounts API. */
 class SpotifyAuthApiError extends IntegrationApiError {

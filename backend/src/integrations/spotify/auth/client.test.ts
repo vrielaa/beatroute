@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createSpotifyAuthClient } from "./spotify.auth.client.js";
-import { SpotifyAuthApiError } from "./spotify-auth-api.error.js";
-import type { SpotifyTokenResponse } from "./spotify.auth.types.js";
+import { SpotifyAuthApiError } from "./api-error.js";
+import { createSpotifyAuthClient } from "./client.js";
+import type { SpotifyTokenResponse } from "./types.js";
 
 describe("Spotify auth client", () => {
   it("exchanges an authorization code for tokens", async () => {

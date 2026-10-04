@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { HttpError } from "@http/error-response.js";
-import { SpotifyAuthApiError } from "../spotify-auth-api.error.js";
-import { SpotifyReauthorizationRequiredError } from "../spotify-reauthorization-required.error.js";
+import { HttpError } from "@http/errors/http-error.js";
+import { SpotifyAuthApiError } from "../auth/api-error.js";
+import { SpotifyReauthorizationRequiredError } from "../auth/reauthorization-required.error.js";
 import { createEnsureSpotifyAccessToken } from "./ensureSpotifyAccessToken.js";
 import type { NextFunction, Request, Response } from "express";
 

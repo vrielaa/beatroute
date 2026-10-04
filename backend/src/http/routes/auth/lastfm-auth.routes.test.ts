@@ -3,7 +3,7 @@ import session from "express-session";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { regenerateSession, saveSession } from "@http/session.js";
-import { errorHandler } from "@http/error-response.js";
+import { errorHandler } from "@http/error-handler.js";
 import { LastfmApiError } from "@integrations/lastfm/lastfm-api.error.js";
 import { createLastfmAuthRouter } from "./lastfm-auth.routes.js";
 import type { RequestHandler } from "express";

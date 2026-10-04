@@ -1,4 +1,4 @@
-import { appConfig } from "../config/app.config.js";
+import { appConfig } from "../../../config/app.config.js";
 
 function getSpotifyBasicAuthHeader({
   clientId = appConfig.spotify.clientId,

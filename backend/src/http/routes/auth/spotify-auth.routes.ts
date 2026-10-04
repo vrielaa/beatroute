@@ -1,11 +1,11 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { appConfig } from "../../../config/app.config.js";
-import { defaultSpotifyAuthClient } from "@integrations/spotify/spotify.auth.client.js";
-import { HttpError } from "@http/error-response.js";
+import { defaultSpotifyAuthClient } from "@integrations/spotify/auth/client.js";
+import { HttpError } from "@http/errors/http-error.js";
 import { regenerateSession, saveSession } from "@http/session.js";
 import type { Session } from "express-session";
-import type { SpotifyAuthClient } from "@integrations/spotify/spotify.auth.types.js";
+import type { SpotifyAuthClient } from "@integrations/spotify/auth/types.js";
 
 type SpotifyAuthRouterConfig = {
   clientId: string;

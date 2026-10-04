@@ -3,7 +3,7 @@ import session from "express-session";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import { errorHandler } from "@http/error-response.js";
+import { errorHandler } from "@http/error-handler.js";
 import { createSessionRouter } from "./session.routes.js";
 import type { RequestHandler } from "express";
 import type { Session } from "express-session";

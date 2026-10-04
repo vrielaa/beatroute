@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { HttpError } from "@http/error-response.js";
+import { HttpError } from "@http/errors/http-error.js";
 import { RequestValidationError } from "@http/request-validation-error.js";
 import { createLastfmController } from "./lastfm.controller.js";
 import type { Request, Response } from "express";

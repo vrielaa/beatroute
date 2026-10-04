@@ -4,9 +4,10 @@ import { LastfmApiError } from "@integrations/lastfm/lastfm-api.error.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import { SoundchartsApiError } from "@integrations/soundcharts/soundcharts-api.error.js";
 import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
-import { SpotifyAuthApiError } from "@integrations/spotify/spotify-auth-api.error.js";
+import { SpotifyAuthApiError } from "@integrations/spotify/auth/api-error.js";
 import { RequestValidationError } from "./request-validation-error.js";
-import { HttpError, mapErrorToHttp } from "./error-response.js";
+import { mapErrorToHttp } from "./error-handler.js";
+import { HttpError } from "./errors/http-error.js";
 
 describe("mapErrorToHttp", () => {
   it("preserves an explicit HTTP error", () => {

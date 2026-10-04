@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getSpotifyBasicAuthHeader } from "./spotify-basic-auth.js";
+import { getSpotifyBasicAuthHeader } from "./basic-auth.js";
 
 describe("getSpotifyBasicAuthHeader", () => {
   it("encodes the client ID and secret using HTTP Basic authentication", () => {
