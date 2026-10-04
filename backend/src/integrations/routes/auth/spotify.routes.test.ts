@@ -2,6 +2,7 @@ import express from "express";
 import session from "express-session";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
+import { regenerateSession, saveSession } from "@http/session.js";
 
 import { errorHandler } from "@http/error-response.js";
 import { SpotifyAuthApiError } from "../../spotify/spotify-auth-api.error.js";
@@ -100,34 +101,90 @@ describe("Spotify auth routes", () => {
     expect(response.body.error.code).toBe("SPOTIFY_AUTH_API_ERROR");
     expect(dependencies.regenerate).not.toHaveBeenCalled();
   });
-});
 
-function createDependencies() {
-  const authClient = {
-    exchangeAuthorizationCode: vi.fn().mockResolvedValue({
-      access_token: "access-token",
-      refresh_token: "refresh-token",
-      expires_in: 3600,
+  it("preserves the Last.fm session when connecting Spotify", async () => {
+    const lastfmSession = {
+      sessionKey: "lastfm-session-key",
+      username: "lastfm-user",
+    };
+
+    const app = createTestApp({
+      ...createDependencies(),
+      regenerate: regenerateSession,
+      save: saveSession,
+    });
+
+    app.post("/test/lastfm-login", (req, res) => {
+      req.session.lastfm = lastfmSession;
+      res.sendStatus(204);
+    });
+
+    app.get("/test/session", (req, res) => {
+      res.json({
+        id: req.sessionID,
+        spotify: req.session.spotify,
+        lastfm: req.session.lastfm,
+        spotifyAuthState: req.session.spotifyAuthState,
+      });
+    });
+
+    const browser = request.agent(app);
+
+    await browser.post("/test/lastfm-login").expect(204);
+    const before = await browser.get("/test/session").expect(200);
+    await browser.get("/auth/spotify/login").expect(302);
+
+    await browser
+      .get("/auth/spotify/callback")
+      .query({
+        code: "authorization-code",
+        state: "generated-state",
+      })
+      .expect(302);
+
+    const after = await browser.get("/test/session").expect(200);
+
+    expect(after.body.id).not.toBe(before.body.id);
+    expect(after.body.lastfm).toEqual(lastfmSession);
+
+    expect(after.body.spotify).toEqual({
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      expiresAt: 1_700_003_600_000,
       scope: "user-top-read",
-      token_type: "Bearer",
-    }),
-    refreshAccessToken: vi.fn(),
-  } as unknown as SpotifyAuthClient;
+      tokenType: "Bearer",
+    });
 
-  return {
-    authClient,
-    config: {
-      clientId: "client-id",
-      redirectUri: "http://backend.test/auth/spotify/callback",
-      frontendUrl: "https://frontend.test",
-      scopes: ["user-top-read", "user-read-private"],
-    },
-    createState: vi.fn(() => "generated-state"),
-    save: vi.fn<(session: Session) => Promise<void>>(async () => undefined),
-    regenerate: vi.fn(async () => undefined),
-    now: vi.fn(() => 1_700_000_000_000),
-  };
-}
+    expect(after.body.spotifyAuthState).toBeUndefined();
+  });
+
+  function createDependencies() {
+    const authClient = {
+      exchangeAuthorizationCode: vi.fn().mockResolvedValue({
+        access_token: "access-token",
+        refresh_token: "refresh-token",
+        expires_in: 3600,
+        scope: "user-top-read",
+        token_type: "Bearer",
+      }),
+      refreshAccessToken: vi.fn(),
+    } as unknown as SpotifyAuthClient;
+
+    return {
+      authClient,
+      config: {
+        clientId: "client-id",
+        redirectUri: "http://backend.test/auth/spotify/callback",
+        frontendUrl: "https://frontend.test",
+        scopes: ["user-top-read", "user-read-private"],
+      },
+      createState: vi.fn(() => "generated-state"),
+      save: vi.fn<(session: Session) => Promise<void>>(async () => undefined),
+      regenerate: vi.fn(async () => undefined),
+      now: vi.fn(() => 1_700_000_000_000),
+    };
+  }
+});
 
 function setSpotifyState(state: string): RequestHandler {
   return (req, _res, next) => {

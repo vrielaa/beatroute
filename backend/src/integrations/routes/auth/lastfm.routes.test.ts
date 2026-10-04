@@ -2,7 +2,7 @@ import express from "express";
 import session from "express-session";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
-
+import { regenerateSession, saveSession } from "@http/session.js";
 import { errorHandler } from "@http/error-response.js";
 import { LastfmApiError } from "../../lastfm/lastfm-api.error.js";
 import { createLastfmAuthRouter } from "./lastfm.routes.js";
@@ -101,6 +101,62 @@ describe("Last.fm auth routes", () => {
 
     expect(response.body.error.code).toBe("LASTFM_API_ERROR");
     expect(dependencies.regenerate).not.toHaveBeenCalled();
+  });
+
+  it("preserves Spotify login when connecting Last.fm", async () => {
+    const spotifySession = {
+      accessToken: "spotify-access-token",
+      refreshToken: "spotify-refresh-token",
+      expiresAt: Date.now() + 3_600_000,
+      scope: "user-top-read",
+      tokenType: "Bearer",
+    };
+
+    const app = createTestApp({
+      ...createDependencies(),
+      regenerate: regenerateSession,
+      save: saveSession,
+    });
+
+    app.post("/test/spotify-login", (req, res) => {
+      req.session.spotify = spotifySession;
+      res.sendStatus(204);
+    });
+
+    app.get("/test/session", (req, res) => {
+      res.json({
+        id: req.sessionID,
+        spotify: req.session.spotify,
+        lastfm: req.session.lastfm,
+        lastfmAuthState: req.session.lastfmAuthState,
+      });
+    });
+
+    const browser = request.agent(app);
+
+    await browser.post("/test/spotify-login").expect(204);
+
+    const before = await browser.get("/test/session").expect(200);
+
+    await browser.get("/auth/lastfm/login").expect(302);
+
+    await browser
+      .get("/auth/lastfm/callback")
+      .query({
+        token: "one-time-token",
+        state: "generated-state",
+      })
+      .expect(302);
+
+    const after = await browser.get("/test/session").expect(200);
+
+    expect(after.body.id).not.toBe(before.body.id);
+    expect(after.body.spotify).toEqual(spotifySession);
+    expect(after.body.lastfm).toEqual({
+      sessionKey: "lastfm-session-key",
+      username: "lastfm-user",
+    });
+    expect(after.body.lastfmAuthState).toBeUndefined();
   });
 });
 

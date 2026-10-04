@@ -73,7 +73,13 @@ function createSpotifyAuthRouter({
 
     const tokenData = await authClient.exchangeAuthorizationCode(code);
 
+    const lastfmSession = req.session.lastfm;
+
     await regenerate(req.session);
+
+    if (lastfmSession) {
+      req.session.lastfm = lastfmSession;
+    }
 
     req.session.spotify = {
       accessToken: tokenData.access_token,
