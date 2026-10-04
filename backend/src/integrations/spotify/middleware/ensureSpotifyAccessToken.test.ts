@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { SpotifyReauthorizationRequiredError } from "@application/auth/spotify-reauthorization-required.error.js";
 import { HttpError } from "@http/errors/http-error.js";
 import { SpotifyAuthApiError } from "../auth/api-error.js";
-import { SpotifyReauthorizationRequiredError } from "../auth/reauthorization-required.error.js";
 import { createEnsureSpotifyAccessToken } from "./ensureSpotifyAccessToken.js";
 import type { NextFunction, Request, Response } from "express";
 
@@ -39,7 +39,7 @@ describe("ensureSpotifyAccessToken", () => {
 
   it("refreshes a token within the one-minute expiry window", async () => {
     const request = createRequest(60_000);
-    const refresh = vi.fn().mockResolvedValue(undefined);
+    const refresh = vi.fn().mockResolvedValue(request.session.spotify);
     const next = vi.fn();
     const middleware = createEnsureSpotifyAccessToken({
       refresh,
@@ -48,7 +48,7 @@ describe("ensureSpotifyAccessToken", () => {
 
     await middleware(request, {} as Response, next);
 
-    expect(refresh).toHaveBeenCalledWith(request);
+    expect(refresh).toHaveBeenCalledWith(request.session.spotify);
     expect(next).toHaveBeenCalledWith();
   });
 

@@ -1,4 +1,4 @@
-import type { LastfmTrackIdentifier } from "../lastfm/track/types.js";
+import type { MusicProfileTrackIdentifier } from "@application/music-profile/music-profile.ports.js";
 import type {
   SpotifyTrackApiResponse,
   SpotifyTrackSummary,
@@ -13,7 +13,7 @@ import type {
  */
 function mapSpotifyTrackForLastfm(
   spotifyTrack: SpotifyTrackApiResponse
-): LastfmTrackIdentifier {
+): MusicProfileTrackIdentifier {
   const artist = spotifyTrack.artists[0]?.name;
   const track = spotifyTrack.name;
 

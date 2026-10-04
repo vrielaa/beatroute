@@ -1,10 +1,12 @@
-import { refreshAccessToken } from "@application/auth/refresh-spotify-session.js";
+import { createRefreshSpotifySession } from "@application/auth/refresh-spotify-session.js";
+import { SpotifyReauthorizationRequiredError } from "@application/auth/spotify-reauthorization-required.error.js";
 import { HttpError } from "@http/errors/http-error.js";
-import { SpotifyReauthorizationRequiredError } from "../auth/reauthorization-required.error.js";
+import { spotifyTokenRefresher } from "../auth/token-refresher.js";
 import type { Request, Response, NextFunction } from "express";
+import type { SpotifySession } from "@application/auth/types.js";
 
 type SpotifyAccessTokenMiddlewareDependencies = {
-  refresh: (request: Request) => Promise<void>;
+  refresh: (session: SpotifySession | undefined) => Promise<SpotifySession>;
   now: () => number;
 };
 
@@ -35,7 +37,7 @@ function createEnsureSpotifyAccessToken({
         !spotifySession.expiresAt || now() >= spotifySession.expiresAt - 60_000;
 
       if (isExpired) {
-        await refresh(req);
+        req.session.spotify = await refresh(spotifySession);
       }
 
       next();
@@ -58,7 +60,10 @@ function createEnsureSpotifyAccessToken({
 }
 
 const ensureSpotifyAccessToken = createEnsureSpotifyAccessToken({
-  refresh: refreshAccessToken,
+  refresh: createRefreshSpotifySession({
+    refreshToken: spotifyTokenRefresher,
+    now: Date.now,
+  }),
   now: Date.now,
 });
 

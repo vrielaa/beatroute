@@ -1,30 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type {
-  LastfmTrackInfo,
-  LastfmTrackService,
-} from "@integrations/lastfm/track/types.js";
-import type {
-  SpotifyGateway,
-  SpotifyTrackApiResponse,
-  SpotifyTrackSummary,
-} from "@integrations/spotify/spotify.types.js";
+  MusicProfileSpotifyTrack,
+  MusicProfileTrackInfo,
+} from "./music-profile.ports.js";
 import { createGetSpotifyTrackLastfmInfo } from "./get-spotify-track-lastfm-info.js";
 
 describe("Spotify and Last.fm track profile", () => {
   it("combines mapped Spotify data with Last.fm track information", async () => {
     const dependencies = createDependencies();
-    const spotifyTrack = createSpotifyTrack();
     const spotifySummary = createSpotifySummary();
     const lastfmTrackInfo = createLastfmTrackInfo();
 
-    dependencies.getSpotifyTrackById.mockResolvedValue(spotifyTrack);
-    dependencies.mapSpotifyTrackForLastfm.mockReturnValue({
-      artist: "Cher",
-      track: "Believe",
+    dependencies.spotifyTracks.getTrack.mockResolvedValue({
+      track: spotifySummary,
+      metadataIdentifier: { artist: "Cher", track: "Believe" },
     });
-    dependencies.getLastfmTrackInfo.mockResolvedValue(lastfmTrackInfo);
-    dependencies.mapSpotifyTrackResponse.mockReturnValue(spotifySummary);
+    dependencies.trackMetadata.getTrackInfo.mockResolvedValue(lastfmTrackInfo);
 
     const getTrackProfile = createGetSpotifyTrackLastfmInfo(dependencies);
     const result = await getTrackProfile({
@@ -32,20 +24,14 @@ describe("Spotify and Last.fm track profile", () => {
       accessToken: "access-token",
     });
 
-    expect(dependencies.getSpotifyTrackById).toHaveBeenCalledWith(
+    expect(dependencies.spotifyTracks.getTrack).toHaveBeenCalledWith(
       "spotify-track-id",
       "access-token"
     );
-    expect(dependencies.mapSpotifyTrackForLastfm).toHaveBeenCalledWith(
-      spotifyTrack
-    );
-    expect(dependencies.getLastfmTrackInfo).toHaveBeenCalledWith({
+    expect(dependencies.trackMetadata.getTrackInfo).toHaveBeenCalledWith({
       artist: "Cher",
       track: "Believe",
     });
-    expect(dependencies.mapSpotifyTrackResponse).toHaveBeenCalledWith(
-      spotifyTrack
-    );
     expect(result).toEqual({
       spotify: spotifySummary,
       lastfm: lastfmTrackInfo,
@@ -55,7 +41,7 @@ describe("Spotify and Last.fm track profile", () => {
   it("stops processing when Spotify cannot return the track", async () => {
     const dependencies = createDependencies();
     const spotifyError = new Error("Spotify unavailable");
-    dependencies.getSpotifyTrackById.mockRejectedValue(spotifyError);
+    dependencies.spotifyTracks.getTrack.mockRejectedValue(spotifyError);
 
     const getTrackProfile = createGetSpotifyTrackLastfmInfo(dependencies);
 
@@ -65,20 +51,17 @@ describe("Spotify and Last.fm track profile", () => {
         accessToken: "access-token",
       })
     ).rejects.toBe(spotifyError);
-    expect(dependencies.mapSpotifyTrackForLastfm).not.toHaveBeenCalled();
-    expect(dependencies.getLastfmTrackInfo).not.toHaveBeenCalled();
-    expect(dependencies.mapSpotifyTrackResponse).not.toHaveBeenCalled();
+    expect(dependencies.trackMetadata.getTrackInfo).not.toHaveBeenCalled();
   });
 
   it("propagates a Last.fm error instead of returning an incomplete profile", async () => {
     const dependencies = createDependencies();
     const lastfmError = new Error("Last.fm unavailable");
-    dependencies.getSpotifyTrackById.mockResolvedValue(createSpotifyTrack());
-    dependencies.mapSpotifyTrackForLastfm.mockReturnValue({
-      artist: "Cher",
-      track: "Believe",
+    dependencies.spotifyTracks.getTrack.mockResolvedValue({
+      track: createSpotifySummary(),
+      metadataIdentifier: { artist: "Cher", track: "Believe" },
     });
-    dependencies.getLastfmTrackInfo.mockRejectedValue(lastfmError);
+    dependencies.trackMetadata.getTrackInfo.mockRejectedValue(lastfmError);
 
     const getTrackProfile = createGetSpotifyTrackLastfmInfo(dependencies);
 
@@ -88,46 +71,21 @@ describe("Spotify and Last.fm track profile", () => {
         accessToken: "access-token",
       })
     ).rejects.toBe(lastfmError);
-    expect(dependencies.mapSpotifyTrackResponse).not.toHaveBeenCalled();
   });
 });
 
 function createDependencies() {
   return {
-    getSpotifyTrackById: vi.fn<SpotifyGateway["getSpotifyTrackById"]>(),
-    getLastfmTrackInfo: vi.fn<LastfmTrackService["getTrackInfo"]>(),
-    mapSpotifyTrackForLastfm: vi.fn(
-      (_spotifyTrack: SpotifyTrackApiResponse) => ({
-        artist: "Cher",
-        track: "Believe",
-      })
-    ),
-    mapSpotifyTrackResponse: vi.fn(
-      (_spotifyTrack: SpotifyTrackApiResponse): SpotifyTrackSummary =>
-        createSpotifySummary()
-    ),
-  };
-}
-
-function createSpotifyTrack(): SpotifyTrackApiResponse {
-  return {
-    id: "spotify-track-id",
-    name: "Believe",
-    artists: [{ name: "Cher" }],
-    album: {
-      name: "Believe",
-      artists: [{ name: "Cher" }],
-      images: [],
+    spotifyTracks: {
+      getTrack: vi.fn(),
     },
-    duration_ms: 240_000,
-    track_number: 1,
-    external_urls: {
-      spotify: "https://open.spotify.com/track/spotify-track-id",
+    trackMetadata: {
+      getTrackInfo: vi.fn(),
     },
   };
 }
 
-function createSpotifySummary(): SpotifyTrackSummary {
+function createSpotifySummary(): MusicProfileSpotifyTrack {
   return {
     id: "spotify-track-id",
     name: "Believe",
@@ -138,7 +96,7 @@ function createSpotifySummary(): SpotifyTrackSummary {
   };
 }
 
-function createLastfmTrackInfo(): LastfmTrackInfo {
+function createLastfmTrackInfo(): MusicProfileTrackInfo {
   return {
     name: "Believe",
     artist: "Cher",

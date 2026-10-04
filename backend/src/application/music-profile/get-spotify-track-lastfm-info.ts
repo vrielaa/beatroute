@@ -1,14 +1,9 @@
 import type {
-  SpotifyTrackApiResponse,
-  SpotifyGateway,
-  SpotifyTrackSummary,
-} from "@integrations/spotify/spotify.types.js";
-
-import type {
-  LastfmTrackIdentifier,
-  LastfmTrackInfo,
-  LastfmTrackService,
-} from "@integrations/lastfm/track/types.js";
+  MusicProfileMetadataReader,
+  MusicProfileSpotifyReader,
+  MusicProfileSpotifyTrack,
+  MusicProfileTrackInfo,
+} from "./music-profile.ports.js";
 
 /** Dane wymagane do pobrania profilu pojedynczego utworu. */
 type SpotifyTrackProfileRequest = {
@@ -21,25 +16,17 @@ type SpotifyTrackProfileRequest = {
 /** Połączone dane utworu pochodzące ze Spotify i Last.fm. */
 type SpotifyTrackProfile = {
   /** Skrócone dane utworu Spotify przeznaczone dla klienta aplikacji. */
-  spotify: SpotifyTrackSummary;
+  spotify: MusicProfileSpotifyTrack;
   /** Metadane i klasyfikacja gatunkowa przygotowane na podstawie Last.fm. */
-  lastfm: LastfmTrackInfo;
+  lastfm: MusicProfileTrackInfo;
 };
 
 /** Operacje potrzebne do zbudowania profilu utworu bez zależności od HTTP. */
 type SpotifyTrackProfileDependencies = {
-  /** Pobiera utwór z Spotify Web API. */
-  getSpotifyTrackById: SpotifyGateway["getSpotifyTrackById"];
-  /** Pobiera i klasyfikuje informacje o utworze z Last.fm. */
-  getLastfmTrackInfo: LastfmTrackService["getTrackInfo"];
-  /** Zamienia odpowiedź Spotify na identyfikator akceptowany przez Last.fm. */
-  mapSpotifyTrackForLastfm: (
-    spotifyTrack: SpotifyTrackApiResponse
-  ) => LastfmTrackIdentifier;
-  /** Ogranicza odpowiedź Spotify do pól zwracanych przez aplikację. */
-  mapSpotifyTrackResponse: (
-    spotifyTrack: SpotifyTrackApiResponse
-  ) => SpotifyTrackSummary;
+  /** Udostępnia dane utworu Spotify w modelu aplikacji. */
+  spotifyTracks: MusicProfileSpotifyReader;
+  /** Udostępnia metadane i gatunki utworu. */
+  trackMetadata: MusicProfileMetadataReader;
 };
 
 /**
@@ -50,21 +37,23 @@ type SpotifyTrackProfileDependencies = {
  * @returns Funkcja pobierająca połączony profil utworu.
  */
 function createGetSpotifyTrackLastfmInfo({
-  getSpotifyTrackById,
-  getLastfmTrackInfo,
-  mapSpotifyTrackForLastfm,
-  mapSpotifyTrackResponse,
+  spotifyTracks,
+  trackMetadata,
 }: SpotifyTrackProfileDependencies) {
   return async function getSpotifyTrackLastfmInfo({
     spotifyTrackId,
     accessToken,
   }: SpotifyTrackProfileRequest): Promise<SpotifyTrackProfile> {
-    const spotifyTrack = await getSpotifyTrackById(spotifyTrackId, accessToken);
-    const lastfmTrackQuery = mapSpotifyTrackForLastfm(spotifyTrack);
-    const lastfmTrackInfo = await getLastfmTrackInfo(lastfmTrackQuery);
+    const spotifyLookup = await spotifyTracks.getTrack(
+      spotifyTrackId,
+      accessToken
+    );
+    const lastfmTrackInfo = await trackMetadata.getTrackInfo(
+      spotifyLookup.metadataIdentifier
+    );
 
     return {
-      spotify: mapSpotifyTrackResponse(spotifyTrack),
+      spotify: spotifyLookup.track,
       lastfm: lastfmTrackInfo,
     };
   };

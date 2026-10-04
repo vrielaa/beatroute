@@ -19,10 +19,20 @@ type SpotifyTrackRouteParams = {
 };
 
 const defaultGetSpotifyTrackLastfmInfo = createGetSpotifyTrackLastfmInfo({
-  getSpotifyTrackById: defaultSpotifyGateway.getSpotifyTrackById,
-  getLastfmTrackInfo: lastfmTrackService.getTrackInfo,
-  mapSpotifyTrackForLastfm,
-  mapSpotifyTrackResponse,
+  spotifyTracks: {
+    async getTrack(spotifyTrackId, accessToken) {
+      const spotifyTrack = await defaultSpotifyGateway.getSpotifyTrackById(
+        spotifyTrackId,
+        accessToken
+      );
+
+      return {
+        track: mapSpotifyTrackResponse(spotifyTrack),
+        metadataIdentifier: mapSpotifyTrackForLastfm(spotifyTrack),
+      };
+    },
+  },
+  trackMetadata: lastfmTrackService,
 });
 
 type LastfmControllerDependencies = {
