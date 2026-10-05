@@ -1,4 +1,7 @@
-import { ReccoBeatsAudioFeatures } from "./reccobeats.types.js";
+import type { ReccoBeatsAudioFeatures } from "./reccobeats.types.js";
+import type { TrackAudioFeatures } from "@domain/tracks/types.js";
+
+type NormalizedAudioFeatures = Omit<TrackAudioFeatures, "id" | "spotifyId">;
 
 /**
  * Normalizuje cechy audio ReccoBeats do kompletnego obiektu aplikacji.
@@ -7,7 +10,9 @@ import { ReccoBeatsAudioFeatures } from "./reccobeats.types.js";
  * @param audio - Surowe cechy audio zwrócone przez ReccoBeats.
  * @returns Cechy audio z jawną wartością dla każdego obsługiwanego pola.
  */
-function mapReccoBeatsAudioFeatures(audio: ReccoBeatsAudioFeatures) {
+function mapReccoBeatsAudioFeatures(
+  audio: ReccoBeatsAudioFeatures
+): NormalizedAudioFeatures {
   return {
     acousticness: audio?.acousticness ?? null,
     danceability: audio?.danceability ?? null,

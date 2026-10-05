@@ -9,7 +9,7 @@ import type { RequestHandler } from "express";
 import type {
   TrackAudioFeatures,
   TrackAudioFeaturesResult,
-} from "@application/tracks/track-analysis.types.js";
+} from "@domain/tracks/types.js";
 
 describe("track routes", () => {
   it("requires authorization before calling route dependencies", async () => {

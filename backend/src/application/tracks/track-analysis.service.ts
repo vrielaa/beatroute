@@ -1,8 +1,8 @@
 import type {
   TrackAudioFeaturesResult,
   TrackAudioStats,
-  TrackAudioStatsSummary,
-} from "./track-analysis.types.js";
+} from "@domain/tracks/types.js";
+import type { TrackAudioStatsSummary } from "./track-analysis.types.js";
 
 /** Port zbiorczego odczytu cech audio. */
 type TrackAudioFeaturesReader = {

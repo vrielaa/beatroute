@@ -5,7 +5,7 @@ import type {
   TrackAudioFeatures,
   TrackAudioFeaturesResult,
   TrackAudioStats,
-} from "./track-analysis.types.js";
+} from "@domain/tracks/types.js";
 
 describe("track analysis service", () => {
   it("returns audio features supplied by the reader", async () => {

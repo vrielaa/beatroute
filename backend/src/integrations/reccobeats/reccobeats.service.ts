@@ -1,7 +1,10 @@
 import { defaultReccoBeatsGateway } from "./reccobeats.gateway.js";
 import { mapReccoBeatsAudioFeatures } from "./reccobeats.mapper.js";
-import type { ReccoBeatsTrackAudioFeaturesResult } from "./reccobeats.types.js";
 import type { ReccoBeatsGateway } from "./reccobeats.gateway.js";
+import type {
+  TrackAudioFeatures,
+  TrackAudioFeaturesResult,
+} from "@domain/tracks/types.js";
 
 /** Zależności wymagane przez serwis cech audio ReccoBeats. */
 type ReccoBeatsServiceDependencies = {
@@ -39,7 +42,9 @@ function createReccoBeatsService({
    * @returns Cechy audio wraz z identyfikatorami Spotify i ReccoBeats.
    * @throws {Error} Gdy ReccoBeats nie zwróci odpowiadającego utworu.
    */
-  async function getTrackAudioFeaturesBySpotifyId(spotifyTrackId: string) {
+  async function getTrackAudioFeaturesBySpotifyId(
+    spotifyTrackId: string
+  ): Promise<TrackAudioFeatures> {
     const tracks = await reccoBeatsGateway.findTracksBySpotifyIds([
       spotifyTrackId,
     ]);
@@ -73,7 +78,7 @@ function createReccoBeatsService({
    */
   async function getManyTrackAudioFeaturesBySpotifyIds(
     spotifyTrackIds: string[]
-  ): Promise<ReccoBeatsTrackAudioFeaturesResult[]> {
+  ): Promise<TrackAudioFeaturesResult[]> {
     const tracks =
       await reccoBeatsGateway.findTracksBySpotifyIds(spotifyTrackIds);
 

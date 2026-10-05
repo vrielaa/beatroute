@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateAudioStats } from "./reccobeats.stats.js";
-import type {
-  ReccoBeatsTrackAudioFeatures,
-  ReccoBeatsTrackAudioFeaturesResult,
-} from "./reccobeats.types.js";
+import { calculateAudioStats } from "./audio-statistics.js";
+import type { TrackAudioFeatures, TrackAudioFeaturesResult } from "./types.js";
 
-describe("ReccoBeats audio statistics", () => {
+describe("track audio statistics", () => {
   it("calculates averages, dominant values and threshold percentages", () => {
-    const tracks: ReccoBeatsTrackAudioFeaturesResult[] = [
+    const tracks: TrackAudioFeaturesResult[] = [
       createAudioFeatures("spotify1", {
         tempo: 120,
         energy: 0.8,
@@ -105,10 +102,10 @@ describe("ReccoBeats audio statistics", () => {
 
 function createAudioFeatures(
   spotifyId: string,
-  overrides: Partial<ReccoBeatsTrackAudioFeatures> = {}
-): ReccoBeatsTrackAudioFeatures {
+  overrides: Partial<TrackAudioFeatures> = {}
+): TrackAudioFeatures {
   return {
-    id: `recco-${spotifyId}`,
+    id: `source-${spotifyId}`,
     spotifyId,
     acousticness: 0.2,
     danceability: 0.7,
