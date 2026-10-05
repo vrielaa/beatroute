@@ -13,7 +13,11 @@ function createLastfmUserReader(request: LastfmRequest) {
     const data = await request("user.getInfo", { user: username });
 
     if (!data?.user) {
-      throw new LastfmApiError("Last.fm nie zwrócił profilu użytkownika");
+      throw new LastfmApiError(
+        "Last.fm nie zwrócił profilu użytkownika",
+        null,
+        "invalid-response"
+      );
     }
 
     return data.user;

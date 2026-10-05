@@ -32,19 +32,30 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
 
     if (!songData || typeof songData !== "object") {
       throw new SoundchartsApiError(
-        "Soundcharts zwrócił niepoprawne dane utworu"
+        "Soundcharts zwrócił niepoprawne dane utworu",
+        null,
+        null,
+        "invalid-response"
       );
     }
 
     const { uuid, audio } = songData;
 
     if (!uuid) {
-      throw new SoundchartsApiError("Soundcharts nie zwrócił UUID utworu");
+      throw new SoundchartsApiError(
+        "Soundcharts nie zwrócił UUID utworu",
+        null,
+        null,
+        "invalid-response"
+      );
     }
 
     if (!audio) {
       throw new SoundchartsApiError(
-        "Soundcharts nie zwrócił cech audio utworu"
+        "Soundcharts nie zwrócił cech audio utworu",
+        null,
+        null,
+        "invalid-response"
       );
     }
 
@@ -61,7 +72,10 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
 
     if (!response || typeof response !== "object") {
       throw new SoundchartsApiError(
-        "Soundcharts zwrócił niepoprawną odpowiedź"
+        "Soundcharts zwrócił niepoprawną odpowiedź",
+        null,
+        null,
+        "invalid-response"
       );
     }
 

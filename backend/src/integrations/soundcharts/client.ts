@@ -36,7 +36,8 @@ function createSoundchartsClient({
       throw new SoundchartsApiError(
         "Nie udało się połączyć z Soundcharts",
         null,
-        cause
+        cause,
+        "network"
       );
     }
 
@@ -48,7 +49,8 @@ function createSoundchartsClient({
       throw new SoundchartsApiError(
         "Soundcharts zwrócił odpowiedź inną niż JSON",
         response.status,
-        cause
+        cause,
+        "invalid-response"
       );
     }
 

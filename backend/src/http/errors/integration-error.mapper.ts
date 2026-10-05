@@ -4,8 +4,7 @@ import type { MappedHttpError } from "./types.js";
 
 /** Mapuje wspólny błąd integracji na publiczną odpowiedź HTTP. */
 function mapIntegrationError(error: IntegrationApiError): MappedHttpError {
-  const lastfmCode = getLastfmErrorCode(error);
-  const status = getIntegrationHttpStatus(error, lastfmCode);
+  const status = getIntegrationHttpStatus(error);
   const code = `${error.integration.replace("-", "_").toUpperCase()}_API_ERROR`;
 
   return {
@@ -13,44 +12,38 @@ function mapIntegrationError(error: IntegrationApiError): MappedHttpError {
     body: createErrorResponse(code, error.message, {
       integration: error.integration,
       upstreamStatus: error.upstreamStatus,
-      ...(lastfmCode === null ? {} : { upstreamCode: lastfmCode }),
+      ...(error.upstreamCode === null
+        ? {}
+        : { upstreamCode: error.upstreamCode }),
     }),
   };
 }
 
 /** Wyznacza status zwracany klientowi dla błędu zewnętrznej usługi. */
-function getIntegrationHttpStatus(
-  error: IntegrationApiError,
-  lastfmCode: number | null
-): number {
-  if (error.integration === "lastfm") {
-    return lastfmCode === 9 ? 401 : 502;
+function getIntegrationHttpStatus(error: IntegrationApiError): number {
+  switch (error.category) {
+    case "authentication":
+      return 401;
+    case "authorization":
+      return 403;
+    case "configuration":
+    case "unavailable":
+      return 503;
+    case "rate-limited":
+      return 429;
+    case "timeout":
+      return 504;
+    case "request-rejected":
+      return error.upstreamStatus !== null &&
+        error.upstreamStatus >= 400 &&
+        error.upstreamStatus < 500
+        ? error.upstreamStatus
+        : 502;
+    case "network":
+    case "invalid-response":
+    case "upstream-error":
+      return 502;
   }
-
-  if (
-    (error.integration === "spotify" || error.integration === "spotify-auth") &&
-    error.upstreamStatus !== null
-  ) {
-    return error.upstreamStatus;
-  }
-
-  return 502;
-}
-
-/** Odczytuje liczbowy kod błędu Last.fm ze szczegółów integracji. */
-function getLastfmErrorCode(error: IntegrationApiError): number | null {
-  if (
-    error.integration !== "lastfm" ||
-    typeof error.details !== "object" ||
-    error.details === null ||
-    !("lastfmCode" in error.details)
-  ) {
-    return null;
-  }
-
-  const code = error.details.lastfmCode;
-
-  return typeof code === "number" ? code : null;
 }
 
 export { mapIntegrationError };

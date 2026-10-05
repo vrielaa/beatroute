@@ -47,7 +47,8 @@ function createSpotifyGateway({
       throw new SpotifyApiError(
         "Nie udało się połączyć ze Spotify",
         502,
-        cause
+        cause,
+        "network"
       );
     }
 
@@ -59,7 +60,8 @@ function createSpotifyGateway({
       throw new SpotifyApiError(
         "Spotify zwrócił odpowiedź inną niż JSON",
         502,
-        cause
+        cause,
+        "invalid-response"
       );
     }
 

@@ -94,7 +94,11 @@ async function parseAndValidateResponse(response: Response): Promise<any> {
   try {
     data = rawText ? JSON.parse(rawText) : null;
   } catch {
-    throw new LastfmApiError("Last.fm zwrócił odpowiedź inną niż JSON");
+    throw new LastfmApiError(
+      "Last.fm zwrócił odpowiedź inną niż JSON",
+      null,
+      "invalid-response"
+    );
   }
 
   if (!response.ok || data?.error) {
@@ -132,7 +136,11 @@ function createLastfmClient({
     try {
       response = await fetchImpl(url, options as RequestInit);
     } catch {
-      throw new LastfmApiError("Nie udało się połączyć z Last.fm");
+      throw new LastfmApiError(
+        "Nie udało się połączyć z Last.fm",
+        null,
+        "network"
+      );
     }
 
     return parseAndValidateResponse(response);

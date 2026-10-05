@@ -213,10 +213,27 @@ describe("mapErrorToHttp", () => {
     });
   });
 
-  it("maps other Last.fm errors to Bad Gateway", () => {
+  it("maps an invalid Last.fm API key to a configuration error", () => {
     expect(
       mapErrorToHttp(new LastfmApiError("Invalid API key", 10)).status
-    ).toBe(502);
+    ).toBe(503);
+  });
+
+  it("maps a Last.fm rate limit without provider-specific HTTP logic", () => {
+    expect(mapErrorToHttp(new LastfmApiError("Rate limit", 29))).toEqual({
+      status: 429,
+      body: {
+        error: {
+          code: "LASTFM_API_ERROR",
+          message: "Rate limit",
+          details: {
+            integration: "lastfm",
+            upstreamStatus: null,
+            upstreamCode: 29,
+          },
+        },
+      },
+    });
   });
 
   it("maps a ReccoBeats API failure to Bad Gateway", () => {
@@ -236,10 +253,10 @@ describe("mapErrorToHttp", () => {
     });
   });
 
-  it("maps Soundcharts failures to Bad Gateway", () => {
+  it("maps a Soundcharts outage to Service Unavailable", () => {
     expect(mapErrorToHttp(new SoundchartsApiError("Unavailable", 503))).toEqual(
       {
-        status: 502,
+        status: 503,
         body: {
           error: {
             code: "SOUNDCHARTS_API_ERROR",

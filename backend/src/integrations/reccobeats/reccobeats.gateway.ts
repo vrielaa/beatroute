@@ -136,7 +136,8 @@ function createReccoBeatsGateway({
       throw new ReccoBeatsApiError(
         "Nie udało się połączyć z ReccoBeats",
         502,
-        cause
+        cause,
+        "network"
       );
     }
 
@@ -148,7 +149,8 @@ function createReccoBeatsGateway({
       throw new ReccoBeatsApiError(
         "ReccoBeats zwróciło odpowiedź inną niż JSON",
         response.status,
-        cause
+        cause,
+        "invalid-response"
       );
     }
 
