@@ -5,11 +5,44 @@ import { createErrorResponse } from "./errors/error-response.js";
 import { HttpError } from "./errors/http-error.js";
 import { mapIntegrationError } from "./errors/integration-error.mapper.js";
 import { mapSpotifyAuthError } from "./errors/spotify-auth-error.mapper.js";
+import { mapRequestBodyError } from "./errors/request-body-error.mapper.js";
 import type { MappedHttpError } from "./errors/types.js";
 import type { NextFunction, Request, Response } from "express";
 
-/** Przekształca błędy aplikacji na bezpieczny format odpowiedzi HTTP. */
+/**
+ * Zamienia błąd przechwycony przez końcowy middleware Express na ujednoliconą
+ * i bezpieczną odpowiedź HTTP.
+ *
+ * Rozpoznaje między innymi:
+ *
+ * - błędy walidacji żądania (`RequestValidationError`) – niepoprawne parametry
+ *   query, parametry ścieżki albo dane przesłane w body;
+ * - błędy parsera body Express (`entity.parse.failed`, `entity.too.large`) –
+ *   niepoprawny JSON albo przekroczenie dozwolonego rozmiaru body;
+ * - jawne błędy HTTP (`HttpError`) – celowo zgłoszone przypadki zawierające
+ *   określony status, publiczny kod błędu i bezpieczny komunikat;
+ * - błędy Spotify Accounts (`SpotifyAuthApiError`) – problemy z wymianą kodu,
+ *   odświeżaniem tokenu, limitem zapytań albo dostępnością Spotify;
+ * - błędy zewnętrznych integracji (`IntegrationApiError`) – problemy podczas
+ *   komunikacji ze Spotify Web API, Last.fm, ReccoBeats lub Soundcharts;
+ * - nieoczekiwane wyjątki – błędy nierozpoznane przez wcześniejsze warunki,
+ *   zwracane klientowi jako ogólny błąd serwera.
+ *
+ * Dla rozpoznanego przypadku wybiera status HTTP, publiczny kod błędu,
+ * bezpieczny komunikat oraz opcjonalne szczegóły i nagłówki odpowiedzi.
+ * Nie ujawnia klientowi stack trace, poufnych danych ani technicznych
+ * szczegółów nierozpoznanych błędów.
+ *
+ * @param error - Nieznany błąd przekazany do middleware obsługi błędów.
+ * @returns Status, treść odpowiedzi i opcjonalne nagłówki HTTP.
+ */
 function mapErrorToHttp(error: unknown): MappedHttpError {
+  const requestBodyError = mapRequestBodyError(error);
+
+  if (requestBodyError !== null) {
+    return requestBodyError;
+  }
+
   if (error instanceof HttpError) {
     return {
       status: error.status,

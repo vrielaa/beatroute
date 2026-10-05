@@ -46,6 +46,43 @@ describe("createApp", () => {
       "NODE_ENV=production wymaga zewnętrznego store"
     );
   });
+
+  it("returns 400 for invalid JSON request body", async () => {
+    const malformedJson = '{"invalid": "json"';
+
+    const app = createApp(createValidConfig());
+
+    await request(app)
+      .post("/api/tracks/audio-features")
+      .set("Content-Type", "application/json")
+      .send(malformedJson)
+      .expect(400, {
+        error: {
+          code: "INVALID_JSON",
+          message: "Treść żądania nie jest poprawnym JSON-em",
+        },
+      });
+  });
+
+  it("returns 413 when JSON body exceeds the limit", async () => {
+    const app = createApp(createValidConfig());
+    const size = 101 * 1024; // 101 KB, exceeding the 100 KB limit
+
+    const oversizedPayload = JSON.stringify({
+      data: "x".repeat(size),
+    });
+
+    await request(app)
+      .post("/api/tracks/audio-features")
+      .set("Content-Type", "application/json")
+      .send(oversizedPayload)
+      .expect(413, {
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Treść żądania przekracza dozwolony rozmiar",
+        },
+      });
+  });
 });
 
 function createValidConfig() {
