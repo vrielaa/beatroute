@@ -3,7 +3,7 @@ import type { TimeRange, TopTracksResponse } from '@core/api/spotify/spotify.mod
 import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
 import type { AudioFeatures, AudioStats } from '@core/api/tracks/audio-features.models';
 import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
-import { forkJoin, map, of, Subscription, switchMap, tap } from 'rxjs';
+import { map, of, Subscription, switchMap, tap } from 'rxjs';
 
 interface TracksFoundRatio {
   requestedTracksCount: number;
@@ -54,15 +54,7 @@ class ListeningTracksStore {
               .pipe(map((stats) => ({ stats, audioFeatures: [] })));
           }
 
-          return forkJoin({
-            stats: this.trackAnalysisApi.getAudioStats(trackIds),
-            audioFeaturesResponse: this.trackAnalysisApi.getAudioFeatures(trackIds),
-          }).pipe(
-            map(({ stats, audioFeaturesResponse }) => ({
-              stats,
-              audioFeatures: audioFeaturesResponse.audio_features,
-            }))
-          );
+          return this.trackAnalysisApi.getTracksAnalysis(trackIds);
         })
       )
       .subscribe({

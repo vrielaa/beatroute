@@ -38,4 +38,14 @@ describe('TrackAnalysisApiService', () => {
     expect(request.request.withCredentials).toBe(true);
     request.flush({ trackCount: 1 });
   });
+
+  it('posts track IDs when requesting combined analysis', () => {
+    service.getTracksAnalysis(['track-1', 'track-2']).subscribe();
+
+    const request = http.expectOne('/api/tracks/analysis');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ trackIds: ['track-1', 'track-2'] });
+    expect(request.request.withCredentials).toBe(true);
+    request.flush({ stats: { trackCount: 2 }, audioFeatures: [] });
+  });
 });

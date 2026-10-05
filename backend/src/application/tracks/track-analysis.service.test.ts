@@ -45,6 +45,40 @@ describe("track analysis service", () => {
       foundTracksCount: 1,
     });
   });
+
+  it("returns both statistics and audio features", async () => {
+    const dependencies = createDependencies();
+    const results: TrackAudioFeaturesResult[] = [
+      createAudioFeatures("spotify-1"),
+      { spotifyId: "spotify-2", error: "Track not found" },
+    ];
+    dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
+      results
+    );
+    dependencies.calculateStats.mockReturnValue(createAudioStats(1));
+    const service = createTrackAnalysisService(dependencies);
+
+    const analysis = await service.getTracksAnalysis([
+      "spotify-1",
+      "spotify-2",
+    ]);
+
+    expect(
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledOnce();
+    expect(
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledWith(["spotify-1", "spotify-2"]);
+    expect(dependencies.calculateStats).toHaveBeenCalledWith(results);
+    expect(analysis).toMatchObject({
+      stats: {
+        trackCount: 1,
+        totalTracksCount: 2,
+        foundTracksCount: 1,
+      },
+      audioFeatures: results,
+    });
+  });
 });
 
 function createDependencies() {

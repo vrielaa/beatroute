@@ -18,7 +18,7 @@ type SpotifyTrackRouteParams = {
 /** Zależności zewnętrzne wymagane przez router danych utworów. */
 type TrackRouterDependencies = {
   /** Przypadki użycia pobierania i analizowania cech audio. */
-  trackAnalysis: TrackAnalysisService;
+  trackAnalysisService: TrackAnalysisService;
 
   /** Pobiera z Soundcharts cechy audio pojedynczego utworu Spotify. */
   getSoundchartsAudioFeatures(spotifyTrackId: string): Promise<unknown>;
@@ -36,7 +36,7 @@ type TrackRouterDependencies = {
  * @returns Router Express obsługujący endpointy danych utworów.
  */
 function createTrackRouter({
-  trackAnalysis,
+  trackAnalysisService,
   getSoundchartsAudioFeatures,
   authorize,
 }: TrackRouterDependencies) {
@@ -60,7 +60,7 @@ function createTrackRouter({
   router.post("/audio-features", authorize, async (req, res) => {
     const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-    const results = await trackAnalysis.getAudioFeatures(trackIds);
+    const results = await trackAnalysisService.getAudioFeatures(trackIds);
 
     res.json({ audio_features: results });
   });
@@ -72,9 +72,18 @@ function createTrackRouter({
   router.post("/audio-stats", authorize, async (req, res) => {
     const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 
-    const stats = await trackAnalysis.getAudioStats(trackIds);
+    const stats = await trackAnalysisService.getAudioStats(trackIds);
 
     res.json(stats);
+  });
+
+  router.post("/analysis", authorize, async (req, res) => {
+    const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
+
+    const { stats, audioFeatures } =
+      await trackAnalysisService.getTracksAnalysis(trackIds);
+
+    res.json({ stats, audioFeatures });
   });
 
   return router;
@@ -82,7 +91,7 @@ function createTrackRouter({
 
 /** Router utworów skonfigurowany z produkcyjnymi zależnościami aplikacji. */
 const trackRouter = createTrackRouter({
-  trackAnalysis: trackAnalysisService,
+  trackAnalysisService: trackAnalysisService,
   getSoundchartsAudioFeatures: getTrackAudioFeaturesBySpotifyId,
   authorize: ensureSpotifyAccessToken,
 });

@@ -1,7 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { AudioStats, MultipleAudioFeaturesResponse } from './audio-features.models';
+import type {
+  AudioStats,
+  MultipleAudioFeaturesResponse,
+  TrackAnalysisResponse,
+} from './audio-features.models';
 
 @Injectable({ providedIn: 'root' })
 class TrackAnalysisApiService {
@@ -18,6 +22,14 @@ class TrackAnalysisApiService {
   public getAudioStats(trackIds: string[]): Observable<AudioStats> {
     return this.http.post<AudioStats>(
       '/api/tracks/audio-stats',
+      { trackIds },
+      { withCredentials: true }
+    );
+  }
+
+  public getTracksAnalysis(trackIds: string[]): Observable<TrackAnalysisResponse> {
+    return this.http.post<TrackAnalysisResponse>(
+      '/api/tracks/analysis',
       { trackIds },
       { withCredentials: true }
     );

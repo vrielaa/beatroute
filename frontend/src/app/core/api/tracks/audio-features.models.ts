@@ -44,4 +44,9 @@ type AudioStats = {
   totalTracksCount: number;
 };
 
-export type { AudioFeatures, MultipleAudioFeaturesResponse, AudioStats };
+type TrackAnalysisResponse = {
+  stats: AudioStats;
+  audioFeatures: AudioFeatures[];
+};
+
+export type { AudioFeatures, MultipleAudioFeaturesResponse, AudioStats, TrackAnalysisResponse };

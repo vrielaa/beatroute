@@ -438,6 +438,47 @@
         }
       }
     },
+    "/api/tracks/analysis": {
+      "post": {
+        "tags": ["Tracks"],
+        "summary": "Get audio features and aggregate statistics for Spotify tracks",
+        "description": "Fetches audio features once and calculates aggregate statistics from the same results.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackIdsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio features and statistics calculated from the same ReccoBeats results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackAnalysisResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid trackIds request body or malformed JSON"
+          },
+          "401": {
+            "description": "User not logged in through Spotify"
+          },
+          "413": {
+            "description": "JSON request body exceeds the 100 KB limit"
+          },
+          "502": {
+            "description": "ReccoBeats request failed"
+          }
+        }
+      }
+    },
     "/api/lastfm/me": {
       "get": {
         "tags": ["Last.fm"],
@@ -1022,6 +1063,21 @@
           "foundTracksCount",
           "totalTracksCount"
         ]
+      },
+      "TrackAnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "stats": {
+            "$ref": "#/components/schemas/AudioStats"
+          },
+          "audioFeatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioFeatures"
+            }
+          }
+        },
+        "required": ["stats", "audioFeatures"]
       },
       "LastfmUserProfile": {
         "type": "object",

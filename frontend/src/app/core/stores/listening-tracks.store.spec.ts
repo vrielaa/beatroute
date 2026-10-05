@@ -13,6 +13,7 @@ describe('ListeningTracksStore', () => {
   const trackAnalysisApi = {
     getAudioStats: vi.fn(),
     getAudioFeatures: vi.fn(),
+    getTracksAnalysis: vi.fn(),
   };
   let store: ListeningTracksStore;
 
@@ -30,9 +31,11 @@ describe('ListeningTracksStore', () => {
 
   it('loads tracks, statistics and individual audio features', () => {
     spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1'])));
-    trackAnalysisApi.getAudioStats.mockReturnValue(of(createAudioStats()));
-    trackAnalysisApi.getAudioFeatures.mockReturnValue(
-      of({ audio_features: [{ spotifyId: 'track-1', tempo: 120 }] })
+    trackAnalysisApi.getTracksAnalysis.mockReturnValue(
+      of({
+        stats: createAudioStats(),
+        audioFeatures: [{ spotifyId: 'track-1', tempo: 120 }],
+      })
     );
 
     store.load('short_term', 10);
@@ -41,6 +44,10 @@ describe('ListeningTracksStore', () => {
     expect(store.audioStats()?.averageBpm).toBe(120);
     expect(store.audioFeatures()).toEqual([{ spotifyId: 'track-1', tempo: 120 }]);
     expect(store.isAudioStatsLoading()).toBe(false);
+    expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledOnce();
+    expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledWith(['track-1']);
+    expect(trackAnalysisApi.getAudioStats).not.toHaveBeenCalled();
+    expect(trackAnalysisApi.getAudioFeatures).not.toHaveBeenCalled();
   });
 
   it('does not call analysis endpoints for an empty Spotify result', () => {
@@ -50,6 +57,7 @@ describe('ListeningTracksStore', () => {
 
     expect(trackAnalysisApi.getAudioStats).not.toHaveBeenCalled();
     expect(trackAnalysisApi.getAudioFeatures).not.toHaveBeenCalled();
+    expect(trackAnalysisApi.getTracksAnalysis).not.toHaveBeenCalled();
     expect(store.audioStats()).toBeNull();
     expect(store.isAudioStatsLoading()).toBe(false);
   });

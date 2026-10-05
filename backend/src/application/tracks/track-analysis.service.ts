@@ -21,6 +21,10 @@ type TrackAnalysisDependencies = {
 type TrackAnalysisService = {
   getAudioFeatures(spotifyIds: string[]): Promise<TrackAudioFeaturesResult[]>;
   getAudioStats(spotifyIds: string[]): Promise<TrackAudioStatsSummary>;
+  getTracksAnalysis(spotifyIds: string[]): Promise<{
+    stats: TrackAudioStatsSummary;
+    audioFeatures: TrackAudioFeaturesResult[];
+  }>;
 };
 
 /**
@@ -51,7 +55,28 @@ function createTrackAnalysisService({
     };
   }
 
-  return { getAudioFeatures, getAudioStats };
+  async function getTracksAnalysis(spotifyIds: string[]): Promise<{
+    stats: TrackAudioStatsSummary;
+    audioFeatures: TrackAudioFeaturesResult[];
+  }> {
+    const audioFeatures =
+      await audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds(
+        spotifyIds
+      );
+
+    const calculatedStats = calculateStats(audioFeatures);
+
+    return {
+      audioFeatures,
+      stats: {
+        ...calculatedStats,
+        totalTracksCount: spotifyIds.length,
+        foundTracksCount: calculatedStats.trackCount,
+      },
+    };
+  }
+
+  return { getAudioFeatures, getAudioStats, getTracksAnalysis };
 }
 
 export { createTrackAnalysisService };
