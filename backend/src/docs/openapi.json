@@ -390,7 +390,10 @@
             }
           },
           "400": {
-            "description": "Invalid trackIds request body"
+            "description": "Invalid trackIds request body or malformed JSON"
+          },
+          "413": {
+            "description": "JSON request body exceeds the 100 KB limit"
           },
           "500": {
             "description": "ReccoBeats request failed"
@@ -424,7 +427,10 @@
             }
           },
           "400": {
-            "description": "Invalid trackIds request body"
+            "description": "Invalid trackIds request body or malformed JSON"
+          },
+          "413": {
+            "description": "JSON request body exceeds the 100 KB limit"
           },
           "500": {
             "description": "ReccoBeats request failed"
@@ -543,7 +549,10 @@
             }
           },
           "400": {
-            "description": "Invalid artist list"
+            "description": "Invalid artist list or malformed JSON"
+          },
+          "413": {
+            "description": "JSON request body exceeds the 100 KB limit"
           },
           "401": {
             "description": "Spotify session is missing or expired"
