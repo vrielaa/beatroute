@@ -8,8 +8,6 @@ class SpotifyAuthApiError extends IntegrationApiError {
   public readonly kind;
   /** Kod z pola `error` odpowiedzi OAuth, jeśli Spotify go przesłało. */
   public readonly oauthCode;
-  /** Zalecany czas oczekiwania przed ponowieniem żądania. */
-  public readonly retryAfterSeconds;
   /** Oryginalna odpowiedź Spotify używana wyłącznie do diagnostyki backendu. */
   public readonly data;
   /** Pierwotny wyjątek połączenia, który nie jest ujawniany klientowi API. */
@@ -29,12 +27,12 @@ class SpotifyAuthApiError extends IntegrationApiError {
       category: classifySpotifyAuthError(kind, upstreamStatus, oauthCode),
       upstreamStatus,
       upstreamCode: oauthCode,
+      retryAfterSeconds,
       details: data,
     });
     this.name = "SpotifyAuthApiError";
     this.kind = kind;
     this.oauthCode = oauthCode;
-    this.retryAfterSeconds = retryAfterSeconds;
     this.data = data;
     this.originalCause = cause;
   }

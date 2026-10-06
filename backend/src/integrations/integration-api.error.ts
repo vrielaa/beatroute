@@ -23,19 +23,23 @@ type IntegrationApiErrorOptions = {
   upstreamStatus?: number | null;
   /** Kod błędu charakterystyczny dla usługi, na przykład kod Last.fm. */
   upstreamCode?: string | number | null;
+  /** Zalecany czas oczekiwania przed kolejnym żądaniem, wyrażony w sekundach. */
+  retryAfterSeconds?: number | null;
   /** Dane przeznaczone wyłącznie do diagnostyki po stronie backendu. */
   details?: unknown;
 };
 
 /**
  * Wspólna baza błędów pochodzących z zewnętrznych API.
- * Przechowuje neutralną kategorię, dane odpowiedzi źródłowej i szczegóły
- * diagnostyczne, nie uzależniając integracji od Expressa.
+ * Przechowuje neutralną kategorię, dane odpowiedzi źródłowej, zalecany czas
+ * oczekiwania przed ponowieniem i szczegóły diagnostyczne, nie uzależniając
+ * integracji od Expressa.
  */
 class IntegrationApiError extends Error {
   public readonly category: IntegrationErrorCategory;
   public readonly upstreamStatus: number | null;
   public readonly upstreamCode: string | number | null;
+  public readonly retryAfterSeconds: number | null;
   public readonly details: unknown;
 
   constructor(
@@ -48,6 +52,7 @@ class IntegrationApiError extends Error {
     this.category = options.category ?? "upstream-error";
     this.upstreamStatus = options.upstreamStatus ?? null;
     this.upstreamCode = options.upstreamCode ?? null;
+    this.retryAfterSeconds = options.retryAfterSeconds ?? null;
     this.details = options.details ?? null;
   }
 }
