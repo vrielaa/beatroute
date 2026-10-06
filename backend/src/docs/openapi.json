@@ -28,6 +28,10 @@
       "description": "Track audio features and aggregate audio statistics"
     },
     {
+      "name": "Music map",
+      "description": "Reusable music-map datasets and clustering analysis"
+    },
+    {
       "name": "Last.fm",
       "description": "Last.fm account connection and user data"
     }
@@ -475,6 +479,94 @@
           },
           "502": {
             "description": "ReccoBeats request failed"
+          }
+        }
+      }
+    },
+    "/api/music-map/dataset": {
+      "get": {
+        "tags": ["Music map"],
+        "summary": "Load tracks and audio features for music-map analysis",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 40,
+              "default": 40
+            }
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["short_term", "medium_term", "long_term"],
+              "default": "long_term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reusable tracks, audio features and source metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicMapDataset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid limit or time range"
+          },
+          "401": {
+            "description": "User not logged in through Spotify"
+          },
+          "502": {
+            "description": "Spotify or ReccoBeats request failed"
+          }
+        }
+      }
+    },
+    "/api/music-map/analysis": {
+      "post": {
+        "tags": ["Music map"],
+        "summary": "Analyze a previously loaded music-map dataset",
+        "description": "Runs clustering and PCA without calling Spotify or ReccoBeats again.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicMapAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Clustering and PCA result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicMapResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dataset, cluster count or malformed JSON"
+          },
+          "401": {
+            "description": "User not logged in through Spotify"
+          },
+          "413": {
+            "description": "JSON request body exceeds the 100 KB limit"
           }
         }
       }
@@ -1078,6 +1170,175 @@
           }
         },
         "required": ["stats", "audioFeatures"]
+      },
+      "MusicMapTrack": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "artists": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "album": { "type": ["string", "null"] },
+          "imageUrl": { "type": ["string", "null"] },
+          "spotifyUrl": { "type": ["string", "null"] }
+        },
+        "required": ["id", "name", "artists", "album", "imageUrl", "spotifyUrl"]
+      },
+      "MusicMapAudioFeaturesLookup": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "const": "found" },
+              "trackId": { "type": "string" },
+              "features": {
+                "type": "object",
+                "additionalProperties": { "type": ["number", "null"] }
+              }
+            },
+            "required": ["status", "trackId", "features"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "const": "failed" },
+              "trackId": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": ["status", "trackId", "reason"]
+          }
+        ]
+      },
+      "MusicMapMetadata": {
+        "type": "object",
+        "properties": {
+          "timeRange": {
+            "type": "string",
+            "enum": ["short_term", "medium_term", "long_term"]
+          },
+          "requestedLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 40
+          },
+          "spotifyReturnedTracksCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "spotifyTotalTracksCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "timeRange",
+          "requestedLimit",
+          "spotifyReturnedTracksCount",
+          "spotifyTotalTracksCount"
+        ]
+      },
+      "MusicMapDataset": {
+        "type": "object",
+        "properties": {
+          "tracks": {
+            "type": "array",
+            "maxItems": 40,
+            "items": { "$ref": "#/components/schemas/MusicMapTrack" }
+          },
+          "audioFeatures": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "$ref": "#/components/schemas/MusicMapAudioFeaturesLookup"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MusicMapMetadata"
+          }
+        },
+        "required": ["tracks", "audioFeatures", "metadata"]
+      },
+      "MusicMapAnalysisRequest": {
+        "type": "object",
+        "properties": {
+          "dataset": { "$ref": "#/components/schemas/MusicMapDataset" },
+          "clusterCount": {
+            "type": ["integer", "null"],
+            "minimum": 2,
+            "maximum": 8
+          }
+        },
+        "required": ["dataset", "clusterCount"]
+      },
+      "MusicMapResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MusicMapMetadata" },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "const": "spotify-top-tracks-reccobeats-audio-features"
+              },
+              "requestedClusterCount": { "type": ["integer", "null"] },
+              "selectedClusterCount": { "type": "integer" },
+              "selectedClusterCountSource": {
+                "type": "string",
+                "enum": ["silhouette-score", "manual", "fallback"]
+              },
+              "appliedClusterCount": { "type": "integer" },
+              "candidateClusterResults": {
+                "type": "array",
+                "items": { "type": "object" }
+              },
+              "featureKeys": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "activeFeatureKeys": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "explainedVariance": {
+                "type": "array",
+                "items": { "type": "number" }
+              },
+              "tracksWithAudioFeaturesCount": { "type": "integer" },
+              "skippedTracksCount": { "type": "integer" },
+              "clusters": {
+                "type": "array",
+                "items": { "type": "object" }
+              },
+              "points": {
+                "type": "array",
+                "items": { "type": "object" }
+              },
+              "skippedTracks": {
+                "type": "array",
+                "items": { "type": "object" }
+              }
+            },
+            "required": [
+              "source",
+              "requestedClusterCount",
+              "selectedClusterCount",
+              "selectedClusterCountSource",
+              "appliedClusterCount",
+              "candidateClusterResults",
+              "featureKeys",
+              "activeFeatureKeys",
+              "explainedVariance",
+              "tracksWithAudioFeaturesCount",
+              "skippedTracksCount",
+              "clusters",
+              "points",
+              "skippedTracks"
+            ]
+          }
+        ]
       },
       "LastfmUserProfile": {
         "type": "object",

@@ -21,12 +21,12 @@ describe("music map service", () => {
     );
     const service = createMusicMapService(dependencies);
 
-    const result = await service.buildMusicMap({
+    const dataset = await service.getMusicMapDataset({
       accessToken: "spotify-token",
       limit: 10,
       timeRange: "medium_term",
-      clusterCount: null,
     });
+    const result = service.analyzeMusicMap(dataset, null);
 
     expect(
       dependencies.spotifyGateway.getCurrentUserTopTracks
@@ -72,12 +72,12 @@ describe("music map service", () => {
     );
     const service = createMusicMapService(dependencies);
 
-    const result = await service.buildMusicMap({
+    const dataset = await service.getMusicMapDataset({
       accessToken: "spotify-token",
       limit: 10,
       timeRange: "medium_term",
-      clusterCount: null,
     });
+    const result = service.analyzeMusicMap(dataset, null);
 
     expect(result.points).toEqual([]);
     expect(result.skippedTracks).toEqual([
@@ -95,12 +95,12 @@ describe("music map service", () => {
     );
     const service = createMusicMapService(dependencies);
 
-    const result = await service.buildMusicMap({
+    const dataset = await service.getMusicMapDataset({
       accessToken: "spotify-token",
       limit: 40,
       timeRange: "long_term",
-      clusterCount: null,
     });
+    const result = service.analyzeMusicMap(dataset, null);
 
     expect(
       dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds

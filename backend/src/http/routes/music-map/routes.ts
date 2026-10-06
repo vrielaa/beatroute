@@ -6,13 +6,19 @@ import {
 import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
-import { parseMusicMapQuery } from "./validators.js";
+import {
+  parseMusicMapAnalysisBody,
+  parseMusicMapDatasetQuery,
+} from "./validators.js";
 import type { RequestHandler } from "express";
 
 /** Zależności routera udostępniającego mapę muzyczną użytkownika. */
 type MusicMapRouterDependencies = {
   /** Serwis pobierający dane i wykonujący analizę mapy muzycznej. */
-  musicMapService: Pick<MusicMapService, "buildMusicMap">;
+  musicMapService: Pick<
+    MusicMapService,
+    "analyzeMusicMap" | "getMusicMapDataset"
+  >;
   /** Middleware dopuszczający wyłącznie żądania z aktywną sesją Spotify. */
   authorize: RequestHandler;
 };
@@ -30,15 +36,23 @@ function createMusicMapRouter({
 }: MusicMapRouterDependencies): Router {
   const router = Router();
 
-  /** Buduje mapę muzyczną dla danych wybranych parametrami query. */
-  router.get("/playground", authorize, async (req, res) => {
-    const selection = parseMusicMapQuery(req.query);
-    const musicMap = await musicMapService.buildMusicMap({
+  /** Pobiera utwory i cechy audio, które frontend zachowuje do kolejnych analiz. */
+  router.get("/dataset", authorize, async (req, res) => {
+    const selection = parseMusicMapDatasetQuery(req.query);
+    const dataset = await musicMapService.getMusicMapDataset({
       accessToken: req.session.spotify!.accessToken,
       ...selection,
     });
 
-    res.json(musicMap);
+    res.json(dataset);
+  });
+
+  /** Ponownie analizuje przesłany zbiór bez wywoływania Spotify ani ReccoBeats. */
+  router.post("/analysis", authorize, (req, res) => {
+    const { dataset, clusterCount } = parseMusicMapAnalysisBody(req.body);
+    const result = musicMapService.analyzeMusicMap(dataset, clusterCount);
+
+    res.json(result);
   });
 
   return router;

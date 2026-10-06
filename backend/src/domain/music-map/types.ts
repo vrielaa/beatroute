@@ -179,20 +179,14 @@ type MusicMapResult = MusicMapMetadata & {
   skippedTracks: SkippedMusicMapTrack[];
 };
 
-/**
- * Parametry analizy wybierane przez użytkownika.
- *
- * @example
- * { limit: 40, timeRange: "long_term", clusterCount: 4 }
- */
-type MusicMapSelection = {
+/** Parametry określające zbiór utworów pobierany do mapy muzycznej. */
+type MusicMapDataSelection = {
   limit: number;
   timeRange: MusicMapTimeRange;
-  clusterCount: number | null;
 };
 
-/** Dane wymagane do zbudowania mapy dla zalogowanego użytkownika. */
-type MusicMapRequest = MusicMapSelection & {
+/** Dane wymagane do pobrania zbioru mapy dla zalogowanego użytkownika. */
+type MusicMapDataRequest = MusicMapDataSelection & {
   accessToken: string;
 };
 
@@ -202,6 +196,7 @@ export type {
   AudioFeatureValues,
   MusicMapTrack,
   TrackAudioFeaturesLookup,
+  MusicMapMetadata,
   AnalyzableMusicMapTrack,
   SkippedMusicMapTrack,
   PcaCoordinate,
@@ -211,6 +206,6 @@ export type {
   MusicMapPoint,
   MusicMapDataset,
   MusicMapResult,
-  MusicMapSelection,
-  MusicMapRequest,
+  MusicMapDataSelection,
+  MusicMapDataRequest,
 };

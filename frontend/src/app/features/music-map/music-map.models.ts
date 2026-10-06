@@ -1,5 +1,61 @@
 import type { TimeRange } from '@core/api/spotify/spotify.models';
 
+/** Nazwa cechy audio wykorzystywanej do budowania mapy muzycznej. */
+type MusicMapFeatureKey =
+  | 'acousticness'
+  | 'danceability'
+  | 'energy'
+  | 'instrumentalness'
+  | 'liveness'
+  | 'speechiness'
+  | 'valence'
+  | 'loudness'
+  | 'tempo'
+  | 'key'
+  | 'mode';
+
+/** Dane utworu niezależne od formatu odpowiedzi Spotify. */
+interface MusicMapTrack {
+  id: string;
+  name: string;
+  artists: string[];
+  album: string | null;
+  imageUrl: string | null;
+  spotifyUrl: string | null;
+}
+
+/** Cechy audio znalezione dla wskazanego utworu. */
+interface FoundMusicMapAudioFeatures {
+  status: 'found';
+  trackId: string;
+  features: Partial<Record<MusicMapFeatureKey, number | null>>;
+}
+
+/** Informacja o nieudanym pobraniu cech audio utworu. */
+interface FailedMusicMapAudioFeatures {
+  status: 'failed';
+  trackId: string;
+  reason: string;
+}
+
+/** Wynik wyszukania cech audio jednego utworu. */
+type MusicMapAudioFeaturesLookup = FoundMusicMapAudioFeatures | FailedMusicMapAudioFeatures;
+
+/** Metadane opisujące zakres danych pobranych do analizy. */
+interface MusicMapMetadata {
+  timeRange: TimeRange;
+  requestedLimit: number;
+  spotifyReturnedTracksCount: number;
+  spotifyTotalTracksCount: number;
+}
+
+/** Utwory i cechy audio, które mogą być wielokrotnie analizowane bez ponownego wywołania API. */
+interface MusicMapDataset {
+  tracks: MusicMapTrack[];
+  audioFeatures: MusicMapAudioFeaturesLookup[];
+  metadata: MusicMapMetadata;
+}
+
 type MusicMapClusterSelectionSource = 'silhouette-score' | 'manual' | 'fallback';
 
 interface MusicMapCandidateClusterResult {
@@ -95,6 +151,13 @@ const MUSIC_MAP_CLUSTER_COLORS = [
 
 export { MUSIC_MAP_CLUSTER_COLORS };
 export type {
+  MusicMapFeatureKey,
+  MusicMapTrack,
+  FoundMusicMapAudioFeatures,
+  FailedMusicMapAudioFeatures,
+  MusicMapAudioFeaturesLookup,
+  MusicMapMetadata,
+  MusicMapDataset,
   MusicMapClusterSelectionSource,
   MusicMapCandidateClusterResult,
   MusicMapCluster,

@@ -1,6 +1,6 @@
 import type {
+  MusicMapDataSelection,
   MusicMapFeatureKey,
-  MusicMapRequest,
 } from "@domain/music-map/types.js";
 
 /** Minimalne dane utworu wymagane od źródła katalogu muzycznego. */
@@ -25,7 +25,7 @@ type MusicMapTracksPage = {
 type MusicMapTracksReader = {
   getCurrentUserTopTracks(
     accessToken: string,
-    selection: Pick<MusicMapRequest, "limit" | "timeRange">
+    selection: MusicMapDataSelection
   ): Promise<MusicMapTracksPage>;
 };
 

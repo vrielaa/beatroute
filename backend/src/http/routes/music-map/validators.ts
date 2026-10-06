@@ -1,15 +1,24 @@
 import { RequestValidationError } from "@http/request-validation-error.js";
-import type { MusicMapSelection } from "@domain/music-map/types.js";
 import {
   MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
 } from "@integrations/spotify/spotify.validators.js";
+import { parseMusicMapDataset } from "./dataset.validator.js";
+import type {
+  MusicMapDataSelection,
+  MusicMapDataset,
+} from "@domain/music-map/types.js";
 
-/** Parametry query obsługiwane przez endpoint mapy muzycznej. */
-type MusicMapQuery = {
+/** Parametry query endpointu pobierającego zbiór mapy muzycznej. */
+type MusicMapDatasetQuery = {
   limit?: unknown;
   time_range?: unknown;
-  clusters?: unknown;
+};
+
+/** Dane wejściowe endpointu wykonującego analizę zapisanego zbioru. */
+type MusicMapAnalysisInput = {
+  dataset: MusicMapDataset;
+  clusterCount: number | null;
 };
 
 const DEFAULT_MUSIC_MAP_LIMIT = 40;
@@ -18,13 +27,12 @@ const MIN_MUSIC_MAP_CLUSTER_COUNT = 2;
 const MAX_MUSIC_MAP_CLUSTER_COUNT = 8;
 
 /**
- * Waliduje parametry wyboru danych oraz liczby klastrów mapy muzycznej.
- * Brak limitu i okresu zastępuje wartościami odpowiednimi dla pełniejszej mapy.
- *
- * @param query - Parametry odczytane bezpośrednio z query żądania HTTP.
- * @returns Poprawny limit, okres historii i opcjonalna liczba klastrów.
+ * Waliduje wybór danych pobieranych ze Spotify i ReccoBeats.
+ * Brak wartości zastępuje ustawieniami odpowiednimi dla pełnej mapy.
  */
-function parseMusicMapQuery(query: MusicMapQuery = {}): MusicMapSelection {
+function parseMusicMapDatasetQuery(
+  query: MusicMapDatasetQuery = {}
+): MusicMapDataSelection {
   const { limit, timeRange } = parseSpotifyTopItemsQuery(
     {
       limit: withDefaultValue(query.limit, String(DEFAULT_MUSIC_MAP_LIMIT)),
@@ -36,10 +44,16 @@ function parseMusicMapQuery(query: MusicMapQuery = {}): MusicMapSelection {
     { maxLimit: MAX_TRACKS_LIMIT }
   );
 
+  return { limit, timeRange };
+}
+
+/** Waliduje zbiór danych i liczbę klastrów przesłane do ponownej analizy. */
+function parseMusicMapAnalysisBody(body: unknown): MusicMapAnalysisInput {
+  const record = requireRecord(body, "Body analizy mapy musi być obiektem");
+
   return {
-    limit,
-    timeRange,
-    clusterCount: parseClusterCount(query.clusters),
+    dataset: parseMusicMapDataset(record.dataset),
+    clusterCount: parseClusterCount(record.clusterCount),
   };
 }
 
@@ -56,51 +70,36 @@ function withDefaultValue(value: unknown, defaultValue: string): unknown {
   return value;
 }
 
-/**
- * Waliduje opcjonalną, ręcznie wybraną liczbę klastrów.
- *
- * @param value - Wartość parametru `clusters` odczytana z query.
- * @returns Liczba od 2 do 8 albo `null`, gdy użytkownik nie podał wartości.
- */
+/** Waliduje ręcznie wybraną liczbę klastrów albo wybór automatyczny `null`. */
 function parseClusterCount(value: unknown): number | null {
-  if (Array.isArray(value)) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < MIN_MUSIC_MAP_CLUSTER_COUNT ||
+    value > MAX_MUSIC_MAP_CLUSTER_COUNT
+  ) {
     throw new RequestValidationError(
-      'Parametr "clusters" może wystąpić tylko raz'
+      `Pole "clusterCount" musi być liczbą całkowitą od ${MIN_MUSIC_MAP_CLUSTER_COUNT} do ${MAX_MUSIC_MAP_CLUSTER_COUNT} albo wartością null`
     );
   }
 
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  if (typeof value !== "string") {
-    throw invalidClusterCountError();
-  }
-
-  const normalizedValue = value.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  const clusterCount = Number(normalizedValue);
-
-  if (
-    !Number.isInteger(clusterCount) ||
-    clusterCount < MIN_MUSIC_MAP_CLUSTER_COUNT ||
-    clusterCount > MAX_MUSIC_MAP_CLUSTER_COUNT
-  ) {
-    throw invalidClusterCountError();
-  }
-
-  return clusterCount;
+  return value;
 }
 
-/** Tworzy spójny błąd walidacji liczby klastrów. */
-function invalidClusterCountError(): RequestValidationError {
-  return new RequestValidationError(
-    `Parametr "clusters" musi być liczbą całkowitą od ${MIN_MUSIC_MAP_CLUSTER_COUNT} do ${MAX_MUSIC_MAP_CLUSTER_COUNT}`
-  );
+/** Wymaga obiektu innego niż tablica. */
+function requireRecord(
+  value: unknown,
+  message: string
+): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new RequestValidationError(message);
+  }
+
+  return value as Record<string, unknown>;
 }
 
-export { parseMusicMapQuery };
+export { parseMusicMapAnalysisBody, parseMusicMapDatasetQuery };
