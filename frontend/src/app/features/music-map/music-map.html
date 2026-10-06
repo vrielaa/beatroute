@@ -13,7 +13,7 @@
 } @else if (errorMessage()) {
 <section class="music-map-state-card card">
   <p>{{ errorMessage() }}</p>
-  <button class="music-map-state-button" type="button" (click)="loadDataset()">
+  <button class="music-map-state-button" type="button" (click)="retryLoading()">
     Spróbuj ponownie
   </button>
 </section>
