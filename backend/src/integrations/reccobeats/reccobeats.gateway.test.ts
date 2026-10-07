@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 import { createReccoBeatsGateway } from "./reccobeats.gateway.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 describe("ReccoBeats gateway", () => {
   it("searches for every Spotify ID using repeated query parameters", async () => {
@@ -64,6 +65,20 @@ describe("ReccoBeats gateway", () => {
       "https://reccobeats.test/v1/track/recco%2Fid/audio-features",
       expect.any(Object)
     );
+  });
+
+  it("routes requests through an injected scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const gateway = createReccoBeatsGateway({
+      fetchImpl: vi.fn().mockResolvedValue(jsonResponse([createTrack()])),
+      baseUrl: "https://reccobeats.test",
+      scheduler,
+    });
+
+    await gateway.findTracksBySpotifyIds(["spotify1"]);
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
   });
 
   it("throws ReccoBeatsApiError containing status and response data", async () => {

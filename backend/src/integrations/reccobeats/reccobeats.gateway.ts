@@ -3,6 +3,7 @@ import {
   parseRetryAfterSeconds,
   HttpRequestExecutionError,
 } from "@integrations/request-policy.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 import { appConfig } from "../../config/app.config.js";
 import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 
@@ -12,14 +13,26 @@ import type {
 } from "./reccobeats.types.js";
 
 import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+import type { RequestScheduler } from "@integrations/request-scheduler.js";
 
-/** Konfiguracja połączenia z API ReccoBeats. */
+/** Wspólny scheduler wszystkich produkcyjnych zapytań do ReccoBeats. */
+const reccoBeatsRequestScheduler = createRequestScheduler({
+  maxConcurrentRequests: 5,
+});
+
+/**
+ * Określa zależności i ustawienia gatewaya ReccoBeats.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić w testach.
+ * @property baseUrl - Bazowy adres API ReccoBeats.
+ * @property requestPolicy - Nadpisania timeoutu oraz zasad retry.
+ * @property scheduler - Opcjonalny scheduler współdzielący limity zapytań.
+ */
 type ReccoBeatsGatewayConfiguration = {
-  /** Implementacja `fetch`, którą można zastąpić podczas testów. */
   fetchImpl?: typeof fetch;
-  /** Bazowy adres API ReccoBeats. */
   baseUrl?: string;
   requestPolicy?: Partial<HttpRequestPolicy>;
+  scheduler?: RequestScheduler;
 };
 
 /** Surowe cechy audio zwracane przez endpoint pojedynczego utworu. */
@@ -122,10 +135,12 @@ function createReccoBeatsGateway({
   fetchImpl = globalThis.fetch,
   baseUrl = appConfig.reccoBeats.baseUrl,
   requestPolicy,
+  scheduler,
 }: ReccoBeatsGatewayConfiguration): ReccoBeatsGateway {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
     policy: requestPolicy,
+    scheduler,
   });
   /**
    * Wykonuje zapytanie GET i sprawdza status odpowiedzi ReccoBeats.
@@ -226,7 +241,9 @@ function createReccoBeatsGateway({
 }
 
 /** Gateway korzystający z produkcyjnej konfiguracji ReccoBeats. */
-const defaultReccoBeatsGateway = createReccoBeatsGateway({});
+const defaultReccoBeatsGateway = createReccoBeatsGateway({
+  scheduler: reccoBeatsRequestScheduler,
+});
 
 export { createReccoBeatsGateway, defaultReccoBeatsGateway };
 export type { ReccoBeatsGateway };
