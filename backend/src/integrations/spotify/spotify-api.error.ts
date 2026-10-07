@@ -1,17 +1,32 @@
 import { IntegrationApiError } from "../integration-api.error.js";
 import type { IntegrationErrorCategory } from "../integration-api.error.js";
 
+/** Dodatkowe informacje opisujące błąd Spotify Web API. */
+type SpotifyApiErrorOptions = {
+  /** Znaczenie błędu niezależne od konkretnego API. */
+  category?: IntegrationErrorCategory;
+  /** Czas oczekiwania przekazany w nagłówku `Retry-After`. */
+  retryAfterSeconds?: number | null;
+};
+
 /** Błąd odpowiedzi otrzymanej ze Spotify Web API. */
 class SpotifyApiError extends IntegrationApiError {
+  /**
+   * @param message - Czytelny opis niepowodzenia.
+   * @param status - Status odpowiedzi Spotify albo status zastępczy transportu.
+   * @param data - Dane odpowiedzi lub pierwotna przyczyna błędu transportu.
+   * @param options - Kategoria błędu i opcjonalny czas ponowienia.
+   */
   constructor(
     message: string,
     public readonly status: number,
     public readonly data: unknown = null,
-    category: IntegrationErrorCategory = classifySpotifyError(status)
+    options: SpotifyApiErrorOptions = {}
   ) {
     super("spotify", message, {
-      category,
+      category: options.category ?? classifySpotifyError(status),
       upstreamStatus: status,
+      retryAfterSeconds: options.retryAfterSeconds,
       details: data,
     });
     this.name = "SpotifyApiError";

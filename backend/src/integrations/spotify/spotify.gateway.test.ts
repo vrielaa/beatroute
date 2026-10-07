@@ -17,11 +17,12 @@ describe("Spotify gateway", () => {
     ).resolves.toEqual(track);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://spotify.test/v1/tracks/track%2Fid",
-      {
+      expect.objectContaining({
         headers: {
           Authorization: "Bearer access-token",
         },
-      }
+        signal: expect.any(AbortSignal),
+      })
     );
   });
 
@@ -81,6 +82,49 @@ describe("Spotify gateway", () => {
       message: "The access token expired",
       status: 401,
       data: errorData,
+    });
+  });
+
+  it("preserves Retry-After from the final rate-limit response", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        { error: { message: "Too many requests" } },
+        {
+          status: 429,
+          headers: { "Retry-After": "30" },
+        }
+      )
+    );
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 1 },
+    });
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      category: "rate-limited",
+      upstreamStatus: 429,
+      retryAfterSeconds: 30,
+    });
+  });
+
+  it("classifies an exhausted request timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const gateway = createSpotifyGateway({
+      fetchImpl: vi.fn().mockRejectedValue(timeoutError),
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 1 },
+    });
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      category: "timeout",
+      upstreamStatus: 504,
+      data: timeoutError,
     });
   });
 });

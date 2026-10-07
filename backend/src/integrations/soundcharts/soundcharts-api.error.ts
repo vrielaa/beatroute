@@ -1,20 +1,24 @@
 import { IntegrationApiError } from "../integration-api.error.js";
 import type { IntegrationErrorCategory } from "../integration-api.error.js";
 
+type SoundchartsApiErrorOptions = {
+  category?: IntegrationErrorCategory;
+  retryAfterSeconds?: number | null;
+};
+
 /** Błąd komunikacji lub niepoprawnej odpowiedzi API Soundcharts. */
 class SoundchartsApiError extends IntegrationApiError {
   constructor(
     message: string,
-    upstreamStatus: number | null = null,
-    details: unknown = null,
-    category: IntegrationErrorCategory = classifySoundchartsError(
-      upstreamStatus
-    )
+    status: number | null = null,
+    data: unknown = null,
+    options: SoundchartsApiErrorOptions = {}
   ) {
     super("soundcharts", message, {
-      category,
-      upstreamStatus,
-      details,
+      category: options.category ?? classifySoundchartsError(status),
+      upstreamStatus: status,
+      details: data,
+      retryAfterSeconds: options.retryAfterSeconds,
     });
     this.name = "SoundchartsApiError";
   }

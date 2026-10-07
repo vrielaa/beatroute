@@ -12,22 +12,32 @@ type ReccoBeatsApiErrorData = {
   };
 };
 
+/** Dodatkowe informacje opisujące błąd ReccoBeats. */
+type ReccoBeatsApiErrorOptions = {
+  /** Znaczenie błędu niezależne od konkretnego API. */
+  category?: IntegrationErrorCategory;
+
+  /** Czas oczekiwania przekazany w nagłówku Retry-After. */
+  retryAfterSeconds?: number | null;
+};
+
 /** Błąd nieudanego zapytania do API ReccoBeats. */
 class ReccoBeatsApiError extends IntegrationApiError {
   /**
    * @param message - Czytelny opis niepowodzenia.
    * @param status - Status HTTP odpowiedzi ReccoBeats.
    * @param data - Oryginalne dane odpowiedzi błędu.
-   * @param category - Neutralne znaczenie błędu dla pozostałych warstw.
+   * @param options - Dodatkowe opcje błędu.
    */
   constructor(
     message: string,
     public readonly status: number,
     public readonly data: unknown,
-    category: IntegrationErrorCategory = classifyReccoBeatsError(status)
+    options: ReccoBeatsApiErrorOptions = {}
   ) {
     super("reccobeats", message, {
-      category,
+      category: options.category ?? classifyReccoBeatsError(status),
+      retryAfterSeconds: options.retryAfterSeconds ?? null,
       upstreamStatus: status,
       details: data,
     });

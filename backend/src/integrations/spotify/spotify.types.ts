@@ -1,3 +1,5 @@
+import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+
 /** Okres statystyk obsługiwany przez endpointy Spotify top items. */
 type SpotifyTimeRange = "short_term" | "medium_term" | "long_term";
 
@@ -133,6 +135,8 @@ type SpotifyApiConfiguration = {
   fetchImpl?: typeof globalThis.fetch;
   /** Bazowy adres Spotify Web API. */
   apiRoot?: string;
+  /** Ustawienia timeoutu i ponawiania bezpiecznych odczytów. */
+  requestPolicy?: Partial<HttpRequestPolicy>;
 };
 
 /** Operacje odczytu danych udostępniane przez gateway Spotify. */

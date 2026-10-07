@@ -1,3 +1,8 @@
+import {
+  createHttpRequestExecutor,
+  parseRetryAfterSeconds,
+  HttpRequestExecutionError,
+} from "@integrations/request-policy.js";
 import { appConfig } from "../../config/app.config.js";
 import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 
@@ -6,12 +11,15 @@ import type {
   ReccoBeatsTrackApiResponse,
 } from "./reccobeats.types.js";
 
+import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+
 /** Konfiguracja połączenia z API ReccoBeats. */
 type ReccoBeatsGatewayConfiguration = {
   /** Implementacja `fetch`, którą można zastąpić podczas testów. */
   fetchImpl?: typeof fetch;
   /** Bazowy adres API ReccoBeats. */
   baseUrl?: string;
+  requestPolicy?: Partial<HttpRequestPolicy>;
 };
 
 /** Surowe cechy audio zwracane przez endpoint pojedynczego utworu. */
@@ -113,7 +121,12 @@ function normalizeTracksResponse(
 function createReccoBeatsGateway({
   fetchImpl = globalThis.fetch,
   baseUrl = appConfig.reccoBeats.baseUrl,
+  requestPolicy,
 }: ReccoBeatsGatewayConfiguration): ReccoBeatsGateway {
+  const executeRequest = createHttpRequestExecutor({
+    fetchImpl,
+    policy: requestPolicy,
+  });
   /**
    * Wykonuje zapytanie GET i sprawdza status odpowiedzi ReccoBeats.
    *
@@ -127,19 +140,33 @@ function createReccoBeatsGateway({
     let response: Response;
 
     try {
-      response = await fetchImpl(`${baseUrl}${endpointPath}`, {
+      response = await executeRequest(`${baseUrl}${endpointPath}`, {
         headers: {
           Accept: "application/json",
         },
       });
     } catch (cause) {
-      throw new ReccoBeatsApiError(
-        "Nie udało się połączyć z ReccoBeats",
-        502,
-        cause,
-        "network"
-      );
+      if (cause instanceof HttpRequestExecutionError) {
+        const timedOut = cause.kind === "timeout";
+
+        throw new ReccoBeatsApiError(
+          timedOut
+            ? "ReccoBeats nie odpowiedziało w wymaganym czasie"
+            : "Nie udało się połączyć z ReccoBeats",
+          timedOut ? 504 : 502,
+          cause.originalCause,
+          {
+            category: timedOut ? "timeout" : "network",
+          }
+        );
+      }
+
+      throw cause;
     }
+
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers.get("retry-after")
+    );
 
     let data: unknown;
 
@@ -150,7 +177,7 @@ function createReccoBeatsGateway({
         "ReccoBeats zwróciło odpowiedź inną niż JSON",
         response.status,
         cause,
-        "invalid-response"
+        { category: "invalid-response", retryAfterSeconds }
       );
     }
 
@@ -158,7 +185,8 @@ function createReccoBeatsGateway({
       throw new ReccoBeatsApiError(
         "Nie udało się pobrać danych z ReccoBeats",
         response.status,
-        data
+        data,
+        { retryAfterSeconds }
       );
     }
 

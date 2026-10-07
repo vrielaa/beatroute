@@ -35,7 +35,7 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
         "Soundcharts zwrócił niepoprawne dane utworu",
         null,
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 
@@ -46,7 +46,7 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
         "Soundcharts nie zwrócił UUID utworu",
         null,
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 
@@ -55,7 +55,7 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
         "Soundcharts nie zwrócił cech audio utworu",
         null,
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 
@@ -75,7 +75,7 @@ function createSoundchartsService({ request }: SoundchartsServiceDependencies) {
         "Soundcharts zwrócił niepoprawną odpowiedź",
         null,
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 

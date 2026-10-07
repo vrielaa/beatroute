@@ -20,11 +20,12 @@ describe("ReccoBeats gateway", () => {
     ).resolves.toEqual(responseBody);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://reccobeats.test/v1/track?ids=spotify%2Fid&ids=second+id",
-      {
+      expect.objectContaining({
         headers: {
           Accept: "application/json",
         },
-      }
+        signal: expect.any(AbortSignal),
+      })
     );
   });
 

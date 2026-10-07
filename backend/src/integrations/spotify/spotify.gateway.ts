@@ -7,7 +7,13 @@ import type {
   SpotifyTopTracksApiResponse,
   SpotifyTrackApiResponse,
   SpotifyUserProfileApiResponse,
-} from "./spotify.types.js";
+} from "@integrations/spotify/spotify.types.js";
+
+import {
+  HttpRequestExecutionError,
+  createHttpRequestExecutor,
+  parseRetryAfterSeconds,
+} from "@integrations/request-policy.js";
 
 const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
 
@@ -20,7 +26,12 @@ const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
 function createSpotifyGateway({
   fetchImpl = globalThis.fetch,
   apiRoot = DEFAULT_SPOTIFY_API_ROOT,
+  requestPolicy,
 }: SpotifyApiConfiguration = {}): SpotifyGateway {
+  const executeRequest = createHttpRequestExecutor({
+    fetchImpl,
+    policy: requestPolicy,
+  });
   /**
    * Wykonuje pojedyncze zapytanie GET i mapuje nieudaną odpowiedź na
    * `SpotifyApiError`.
@@ -38,19 +49,31 @@ function createSpotifyGateway({
     let response: Response;
 
     try {
-      response = await fetchImpl(`${apiRoot}${endpoint}`, {
+      response = await executeRequest(`${apiRoot}${endpoint}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
     } catch (cause) {
-      throw new SpotifyApiError(
-        "Nie udało się połączyć ze Spotify",
-        502,
-        cause,
-        "network"
-      );
+      if (cause instanceof HttpRequestExecutionError) {
+        throw new SpotifyApiError(
+          cause.kind === "timeout"
+            ? "Spotify nie odpowiedziało w wymaganym czasie"
+            : "Nie udało się połączyć ze Spotify",
+          cause.kind === "timeout" ? 504 : 502,
+          cause.originalCause,
+          {
+            category: cause.kind === "timeout" ? "timeout" : "network",
+          }
+        );
+      }
+
+      throw cause;
     }
+
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers.get("retry-after")
+    );
 
     let data: unknown;
 
@@ -59,9 +82,9 @@ function createSpotifyGateway({
     } catch (cause) {
       throw new SpotifyApiError(
         "Spotify zwrócił odpowiedź inną niż JSON",
-        502,
+        response.status,
         cause,
-        "invalid-response"
+        { category: "invalid-response", retryAfterSeconds }
       );
     }
 
@@ -69,7 +92,8 @@ function createSpotifyGateway({
       throw new SpotifyApiError(
         getSpotifyErrorMessage(data) ?? fallbackErrorMessage,
         response.status,
-        data
+        data,
+        { retryAfterSeconds }
       );
     }
 

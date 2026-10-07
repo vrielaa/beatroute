@@ -169,7 +169,10 @@ function getRetryDelayMs(
   policy: HttpRequestPolicy,
   currentTimeMs: number
 ): number | null {
-  const retryAfterMs = parseRetryAfterMs(retryAfter, currentTimeMs);
+  const retryAfterSeconds = parseRetryAfterSeconds(retryAfter, currentTimeMs);
+
+  const retryAfterMs =
+    retryAfterSeconds !== null ? retryAfterSeconds * 1_000 : null;
 
   if (retryAfterMs !== null) {
     return retryAfterMs <= policy.maxRetryDelayMs ? retryAfterMs : null;
@@ -179,9 +182,9 @@ function getRetryDelayMs(
 }
 
 /** Odczytuje `Retry-After` podane jako sekundy albo datę HTTP. */
-function parseRetryAfterMs(
+function parseRetryAfterSeconds(
   value: string | null,
-  currentTimeMs: number
+  currentTimeMs = Date.now()
 ): number | null {
   if (value === null) {
     return null;
@@ -192,7 +195,7 @@ function parseRetryAfterMs(
   if (/^\d+$/.test(normalizedValue)) {
     const seconds = Number(normalizedValue);
 
-    return Number.isSafeInteger(seconds) ? seconds * 1_000 : null;
+    return Number.isSafeInteger(seconds) ? seconds : null;
   }
 
   const retryDateMs = Date.parse(normalizedValue);
@@ -201,7 +204,7 @@ function parseRetryAfterMs(
     return null;
   }
 
-  return Math.max(0, retryDateMs - currentTimeMs);
+  return Math.max(0, Math.ceil((retryDateMs - currentTimeMs) / 1_000));
 }
 
 /** Oblicza wykładnicze opóźnienie i ogranicza je do skonfigurowanego maksimum. */
@@ -256,6 +259,7 @@ export {
   DEFAULT_HTTP_REQUEST_POLICY,
   HttpRequestExecutionError,
   createHttpRequestExecutor,
+  parseRetryAfterSeconds,
 };
 export type {
   HttpRequestPolicy,
