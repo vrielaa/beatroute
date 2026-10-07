@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SpotifyApiError } from "./spotify-api.error.js";
 import { createSpotifyGateway } from "./spotify.gateway.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 describe("Spotify gateway", () => {
   it("fetches a track using an encoded ID and bearer token", async () => {
@@ -63,6 +64,24 @@ describe("Spotify gateway", () => {
       "https://spotify.test/v1/me",
       expect.any(Object)
     );
+  });
+
+  it("routes requests through an injected scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const gateway = createSpotifyGateway({
+      fetchImpl: vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ id: "user-id", display_name: "Gabriela" })
+        ),
+      apiRoot: "https://spotify.test/v1",
+      scheduler,
+    });
+
+    await gateway.getCurrentUserProfile("access-token");
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
   });
 
   it("throws SpotifyApiError containing the API response", async () => {

@@ -1,4 +1,5 @@
 import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+import type { RequestScheduler } from "@integrations/request-scheduler.js";
 
 /** Okres statystyk obsługiwany przez endpointy Spotify top items. */
 type SpotifyTimeRange = "short_term" | "medium_term" | "long_term";
@@ -129,14 +130,19 @@ type SpotifyTopItemsSelection = {
   timeRange: SpotifyTimeRange;
 };
 
-/** Konfiguracja połączenia ze Spotify Web API. */
+/**
+ * Określa zależności i ustawienia gatewaya Spotify Web API.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić w testach.
+ * @property apiRoot - Bazowy adres Spotify Web API.
+ * @property requestPolicy - Nadpisania timeoutu oraz zasad retry.
+ * @property scheduler - Opcjonalny scheduler współdzielący limity zapytań.
+ */
 type SpotifyApiConfiguration = {
-  /** Implementacja `fetch`, którą można zastąpić w testach. */
   fetchImpl?: typeof globalThis.fetch;
-  /** Bazowy adres Spotify Web API. */
   apiRoot?: string;
-  /** Ustawienia timeoutu i ponawiania bezpiecznych odczytów. */
   requestPolicy?: Partial<HttpRequestPolicy>;
+  scheduler?: RequestScheduler;
 };
 
 /** Operacje odczytu danych udostępniane przez gateway Spotify. */

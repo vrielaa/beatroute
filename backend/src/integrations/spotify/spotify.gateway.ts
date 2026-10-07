@@ -14,8 +14,14 @@ import {
   createHttpRequestExecutor,
   parseRetryAfterSeconds,
 } from "@integrations/request-policy.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
+
+/** Wspólny scheduler wszystkich produkcyjnych zapytań do Spotify Web API. */
+const spotifyRequestScheduler = createRequestScheduler({
+  maxConcurrentRequests: 5,
+});
 
 /**
  * Tworzy gateway wykonujący autoryzowane zapytania do Spotify Web API.
@@ -27,10 +33,12 @@ function createSpotifyGateway({
   fetchImpl = globalThis.fetch,
   apiRoot = DEFAULT_SPOTIFY_API_ROOT,
   requestPolicy,
+  scheduler,
 }: SpotifyApiConfiguration = {}): SpotifyGateway {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
     policy: requestPolicy,
+    scheduler,
   });
   /**
    * Wykonuje pojedyncze zapytanie GET i mapuje nieudaną odpowiedź na
@@ -192,6 +200,8 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /** Gateway korzystający z produkcyjnej konfiguracji Spotify Web API. */
-const defaultSpotifyGateway = createSpotifyGateway();
+const defaultSpotifyGateway = createSpotifyGateway({
+  scheduler: spotifyRequestScheduler,
+});
 
 export { createSpotifyGateway, defaultSpotifyGateway };
