@@ -4,18 +4,6 @@ import { createLastfmArtistGateway } from "./gateway.js";
 import type { LastfmArtistApiResponse } from "./types.js";
 
 describe("Last.fm artist gateway", () => {
-  it.each([0, -1, 1.5, Number.NaN])(
-    "rejects invalid batch size: %s",
-    (batchSize) => {
-      expect(() =>
-        createLastfmArtistGateway({
-          requestArtistInfo: vi.fn(),
-          batchSize,
-        })
-      ).toThrow(RangeError);
-    }
-  );
-
   it("delegates a single artist lookup to the request adapter", async () => {
     const response = artistResponse("Radiohead");
     const requestArtistInfo = vi.fn().mockResolvedValue(response);
@@ -26,7 +14,7 @@ describe("Last.fm artist gateway", () => {
     expect(requestArtistInfo).toHaveBeenCalledWith("Radiohead");
   });
 
-  it("starts the next batch only after the current batch finishes", async () => {
+  it("starts all lookups and preserves input order", async () => {
     const requests = new Map<
       string,
       DeferredPromise<LastfmArtistApiResponse>
@@ -36,24 +24,19 @@ describe("Last.fm artist gateway", () => {
       requests.set(artistName, request);
       return request.promise;
     });
-    const gateway = createLastfmArtistGateway({
-      requestArtistInfo,
-      batchSize: 2,
-    });
+    const gateway = createLastfmArtistGateway({ requestArtistInfo });
 
     const lookupPromise = gateway.lookupMany(["Radiohead", "Muse", "Björk"]);
 
-    expect(requestArtistInfo.mock.calls).toEqual([["Radiohead"], ["Muse"]]);
+    expect(requestArtistInfo.mock.calls).toEqual([
+      ["Radiohead"],
+      ["Muse"],
+      ["Björk"],
+    ]);
 
     requests.get("Muse")?.resolve(artistResponse("Muse"));
-    requests.get("Radiohead")?.resolve(artistResponse("Radiohead"));
-
-    await vi.waitFor(() => {
-      expect(requestArtistInfo).toHaveBeenCalledTimes(3);
-    });
-    expect(requestArtistInfo).toHaveBeenLastCalledWith("Björk");
-
     requests.get("Björk")?.resolve(artistResponse("Björk"));
+    requests.get("Radiohead")?.resolve(artistResponse("Radiohead"));
 
     await expect(lookupPromise).resolves.toMatchObject([
       { status: "fulfilled", requestedName: "Radiohead" },
@@ -74,7 +57,6 @@ describe("Last.fm artist gateway", () => {
     const logger = { error: vi.fn() };
     const gateway = createLastfmArtistGateway({
       requestArtistInfo,
-      batchSize: 2,
       logger,
     });
 
@@ -94,6 +76,12 @@ describe("Last.fm artist gateway", () => {
   });
 });
 
+/**
+ * Reprezentuje ręcznie sterowany Promise używany do zmiany kolejności zakończeń.
+ *
+ * @property promise - Promise oczekujący na ręczne zakończenie.
+ * @property resolve - Kończy Promise przekazaną wartością.
+ */
 type DeferredPromise<T> = {
   promise: Promise<T>;
   resolve: (value: T) => void;
