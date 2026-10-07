@@ -253,6 +253,28 @@ describe("mapErrorToHttp", () => {
     });
   });
 
+  it("preserves retry information from an external integration", () => {
+    const error = new ReccoBeatsApiError("Too many requests", 429, null, {
+      retryAfterSeconds: 45,
+    });
+
+    expect(mapErrorToHttp(error)).toEqual({
+      status: 429,
+      body: {
+        error: {
+          code: "RECCOBEATS_API_ERROR",
+          message: "Too many requests",
+          details: {
+            integration: "reccobeats",
+            upstreamStatus: 429,
+            retryAfterSeconds: 45,
+          },
+        },
+      },
+      headers: { "Retry-After": "45" },
+    });
+  });
+
   it("maps a Soundcharts outage to Service Unavailable", () => {
     expect(mapErrorToHttp(new SoundchartsApiError("Unavailable", 503))).toEqual(
       {

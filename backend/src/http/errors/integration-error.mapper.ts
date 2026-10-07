@@ -6,6 +6,10 @@ import type { MappedHttpError } from "./types.js";
 function mapIntegrationError(error: IntegrationApiError): MappedHttpError {
   const status = getIntegrationHttpStatus(error);
   const code = `${error.integration.replace("-", "_").toUpperCase()}_API_ERROR`;
+  const retryAfterDetails =
+    error.retryAfterSeconds === null
+      ? {}
+      : { retryAfterSeconds: error.retryAfterSeconds };
 
   return {
     status,
@@ -15,7 +19,11 @@ function mapIntegrationError(error: IntegrationApiError): MappedHttpError {
       ...(error.upstreamCode === null
         ? {}
         : { upstreamCode: error.upstreamCode }),
+      ...retryAfterDetails,
     }),
+    ...(error.retryAfterSeconds === null
+      ? {}
+      : { headers: { "Retry-After": String(error.retryAfterSeconds) } }),
   };
 }
 
