@@ -4,7 +4,6 @@ import { createTrackAnalysisService } from "./track-analysis.service.js";
 import type {
   TrackAudioFeatures,
   TrackAudioFeaturesResult,
-  TrackAudioStats,
 } from "@domain/tracks/types.js";
 
 describe("track analysis service", () => {
@@ -27,22 +26,28 @@ describe("track analysis service", () => {
   it("calculates statistics and adds requested and found track counts", async () => {
     const dependencies = createDependencies();
     const results: TrackAudioFeaturesResult[] = [
-      createAudioFeatures("spotify-1"),
-      { spotifyId: "spotify-2", error: "Track not found" },
+      createAudioFeatures("spotify-1", { tempo: 100, energy: 0.4 }),
+      createAudioFeatures("spotify-2", { tempo: 140, energy: 0.8 }),
+      { spotifyId: "spotify-3", error: "Track not found" },
     ];
     dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
       results
     );
-    dependencies.calculateStats.mockReturnValue(createAudioStats(1));
     const service = createTrackAnalysisService(dependencies);
 
-    const stats = await service.getAudioStats(["spotify-1", "spotify-2"]);
+    const stats = await service.getAudioStats([
+      "spotify-1",
+      "spotify-2",
+      "spotify-3",
+    ]);
 
-    expect(dependencies.calculateStats).toHaveBeenCalledWith(results);
     expect(stats).toMatchObject({
-      trackCount: 1,
-      totalTracksCount: 2,
-      foundTracksCount: 1,
+      trackCount: 2,
+      totalTracksCount: 3,
+      foundTracksCount: 2,
+      averageBpm: 120,
+      averageEnergy: 0.6,
+      averageDanceability: 0.7,
     });
   });
 
@@ -55,7 +60,6 @@ describe("track analysis service", () => {
     dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
       results
     );
-    dependencies.calculateStats.mockReturnValue(createAudioStats(1));
     const service = createTrackAnalysisService(dependencies);
 
     const analysis = await service.getTracksAnalysis([
@@ -69,16 +73,53 @@ describe("track analysis service", () => {
     expect(
       dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
     ).toHaveBeenCalledWith(["spotify-1", "spotify-2"]);
-    expect(dependencies.calculateStats).toHaveBeenCalledWith(results);
     expect(analysis).toMatchObject({
       stats: {
         trackCount: 1,
         totalTracksCount: 2,
         foundTracksCount: 1,
+        averageBpm: 125,
+        averageEnergy: 0.8,
       },
       audioFeatures: results,
     });
   });
+
+  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
+    "%s reports missing statistics when no track has audio features",
+    async (method) => {
+      const dependencies = createDependencies();
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
+        [{ spotifyId: "spotify-1", error: "Track not found" }]
+      );
+      const service = createTrackAnalysisService(dependencies);
+
+      const result = await service[method](["spotify-1"]);
+      const stats = "stats" in result ? result.stats : result;
+
+      expect(stats).toMatchObject({
+        trackCount: 0,
+        totalTracksCount: 1,
+        foundTracksCount: 0,
+        averageBpm: null,
+        averageEnergy: null,
+      });
+    }
+  );
+
+  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
+    "%s propagates errors from the audio features reader",
+    async (method) => {
+      const dependencies = createDependencies();
+      const error = new Error("Audio features unavailable");
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockRejectedValue(
+        error
+      );
+      const service = createTrackAnalysisService(dependencies);
+
+      await expect(service[method](["spotify-1"])).rejects.toBe(error);
+    }
+  );
 });
 
 function createDependencies() {
@@ -87,12 +128,13 @@ function createDependencies() {
       getManyTrackAudioFeaturesBySpotifyIds:
         vi.fn<(spotifyIds: string[]) => Promise<TrackAudioFeaturesResult[]>>(),
     },
-    calculateStats:
-      vi.fn<(features: TrackAudioFeaturesResult[]) => TrackAudioStats>(),
   };
 }
 
-function createAudioFeatures(spotifyId: string): TrackAudioFeatures {
+function createAudioFeatures(
+  spotifyId: string,
+  overrides: Partial<TrackAudioFeatures> = {}
+): TrackAudioFeatures {
   return {
     id: `source-${spotifyId}`,
     spotifyId,
@@ -108,28 +150,6 @@ function createAudioFeatures(spotifyId: string): TrackAudioFeatures {
     tempo: 125,
     timeSignature: 4,
     valence: 0.65,
-  };
-}
-
-function createAudioStats(trackCount: number): TrackAudioStats {
-  return {
-    trackCount,
-    averageBpm: 125,
-    averageEnergy: 0.8,
-    averageDanceability: 0.7,
-    averageValence: 0.65,
-    averageAcousticness: 0.2,
-    averageInstrumentalness: 0.1,
-    averageLiveness: 0.15,
-    averageSpeechiness: 0.05,
-    averageLoudness: -5,
-    dominantKey: 2,
-    dominantMode: 1,
-    dominantTimeSignature: 4,
-    majorPercentage: 100,
-    minorPercentage: 0,
-    liveTrackPercentage: 0,
-    instrumentalTrackPercentage: 0,
-    speechHeavyTrackPercentage: 0,
+    ...overrides,
   };
 }

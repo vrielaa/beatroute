@@ -1,7 +1,5 @@
-import type {
-  TrackAudioFeaturesResult,
-  TrackAudioStats,
-} from "@domain/tracks/types.js";
+import { calculateAudioStats } from "@domain/tracks/audio-statistics.js";
+import type { TrackAudioFeaturesResult } from "@domain/tracks/types.js";
 import type { TrackAudioStatsSummary } from "./track-analysis.types.js";
 
 /** Port zbiorczego odczytu cech audio. */
@@ -11,10 +9,13 @@ type TrackAudioFeaturesReader = {
   ): Promise<TrackAudioFeaturesResult[]>;
 };
 
-/** Zależności wymagane przez analizę cech audio utworów. */
+/**
+ * Zależności wymagane przez analizę cech audio utworów.
+ *
+ * @property audioFeaturesReader - Pobiera wyniki cech audio dla wskazanych utworów.
+ */
 type TrackAnalysisDependencies = {
   audioFeaturesReader: TrackAudioFeaturesReader;
-  calculateStats: (features: TrackAudioFeaturesResult[]) => TrackAudioStats;
 };
 
 /** Operacje analizy cech audio udostępniane warstwie HTTP. */
@@ -32,7 +33,6 @@ type TrackAnalysisService = {
  */
 function createTrackAnalysisService({
   audioFeaturesReader,
-  calculateStats,
 }: TrackAnalysisDependencies): TrackAnalysisService {
   function getAudioFeatures(
     spotifyIds: string[]
@@ -46,7 +46,7 @@ function createTrackAnalysisService({
     spotifyIds: string[]
   ): Promise<TrackAudioStatsSummary> {
     const audioFeatures = await getAudioFeatures(spotifyIds);
-    const stats = calculateStats(audioFeatures);
+    const stats = calculateAudioStats(audioFeatures);
 
     return {
       ...stats,
@@ -64,7 +64,7 @@ function createTrackAnalysisService({
         spotifyIds
       );
 
-    const calculatedStats = calculateStats(audioFeatures);
+    const calculatedStats = calculateAudioStats(audioFeatures);
 
     return {
       audioFeatures,
