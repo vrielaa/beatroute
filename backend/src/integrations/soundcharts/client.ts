@@ -9,16 +9,33 @@ import {
   HttpRequestExecutionError,
   parseRetryAfterSeconds,
 } from "@integrations/request-policy.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+import type { RequestScheduler } from "@integrations/request-scheduler.js";
 
-/** Zależności klienta Soundcharts możliwe do zastąpienia w testach. */
+/** Wspólny scheduler wszystkich produkcyjnych zapytań do Soundcharts. */
+const soundchartsRequestScheduler = createRequestScheduler({
+  maxConcurrentRequests: 5,
+});
+
+/**
+ * Określa zależności i ustawienia klienta Soundcharts.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić w testach.
+ * @property baseUrl - Bazowy adres API Soundcharts.
+ * @property appId - Identyfikator aplikacji przekazywany do Soundcharts.
+ * @property apiKey - Klucz API przekazywany do Soundcharts.
+ * @property requestPolicy - Nadpisania timeoutu oraz zasad retry.
+ * @property scheduler - Opcjonalny scheduler współdzielący limity zapytań.
+ */
 type SoundchartsClientConfiguration = {
   fetchImpl?: typeof fetch;
   baseUrl?: string;
   appId?: string;
   apiKey?: string;
   requestPolicy?: Partial<HttpRequestPolicy>;
+  scheduler?: RequestScheduler;
 };
 
 function createSoundchartsClient({
@@ -27,10 +44,12 @@ function createSoundchartsClient({
   appId = appConfig.soundcharts.appId,
   apiKey = appConfig.soundcharts.apiKey,
   requestPolicy,
+  scheduler,
 }: SoundchartsClientConfiguration = {}) {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
     policy: requestPolicy,
+    scheduler,
   });
   return async function fetchFromSoundcharts(
     endpointPath: string
@@ -95,7 +114,9 @@ function createSoundchartsClient({
   };
 }
 
-const fetchFromSoundcharts = createSoundchartsClient();
+const fetchFromSoundcharts = createSoundchartsClient({
+  scheduler: soundchartsRequestScheduler,
+});
 
 export { createSoundchartsClient, fetchFromSoundcharts };
 export type { SoundchartsClientConfiguration };

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createSoundchartsClient } from "./client.js";
 import { SoundchartsApiError } from "./soundcharts-api.error.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 describe("Soundcharts client", () => {
   it("sends credentials and returns a successful response", async () => {
@@ -45,6 +46,23 @@ describe("Soundcharts client", () => {
       message: "Invalid key",
       upstreamStatus: 401,
     });
+  });
+
+  it("routes requests through an injected scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const request = createSoundchartsClient({
+      fetchImpl: vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ type: "song", object: { uuid: "uuid" } })
+        ),
+      scheduler,
+    });
+
+    await request("/song/1");
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
   });
 
   it("maps invalid JSON and network failures consistently", async () => {
