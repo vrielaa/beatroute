@@ -14,7 +14,7 @@ function createLastfmSessionExchange(request: LastfmRequest) {
       throw new LastfmApiError(
         "Last.fm nie zwrócił poprawnej sesji użytkownika",
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 

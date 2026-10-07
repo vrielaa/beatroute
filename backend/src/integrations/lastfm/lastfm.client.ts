@@ -2,11 +2,24 @@ import crypto from "crypto";
 import { appConfig } from "../../config/app.config.js";
 import { assertLastfmConfig } from "../../config/lastfm.config.js";
 import { LastfmApiError } from "./lastfm-api.error.js";
+import {
+  createHttpRequestExecutor,
+  HttpRequestExecutionError,
+  parseRetryAfterSeconds,
+} from "@integrations/request-policy.js";
+
+import type { HttpRequestPolicy } from "@integrations/request-policy.js";
 
 type RequestOptions = {
   headers: Record<string, string>;
   method: string;
   body?: URLSearchParams;
+};
+
+type LastfmClientConfiguration = {
+  fetchImpl?: typeof fetch;
+  config?: typeof appConfig.lastfm;
+  requestPolicy?: Partial<HttpRequestPolicy>;
 };
 
 function createLastfmApiSignature(
@@ -88,33 +101,73 @@ function prepareFetchArgs(
 }
 
 async function parseAndValidateResponse(response: Response): Promise<any> {
+  const retryAfterSeconds = parseRetryAfterSeconds(
+    response.headers.get("retry-after")
+  );
   const rawText = await response.text();
-  let data;
+  let data: unknown;
 
   try {
     data = rawText ? JSON.parse(rawText) : null;
-  } catch {
-    throw new LastfmApiError(
-      "Last.fm zwrócił odpowiedź inną niż JSON",
-      null,
-      "invalid-response"
-    );
+  } catch (cause) {
+    throw new LastfmApiError("Last.fm zwrócił odpowiedź inną niż JSON", null, {
+      category: "invalid-response",
+      upstreamStatus: response.status,
+      retryAfterSeconds,
+      details: cause,
+    });
   }
 
-  if (!response.ok || data?.error) {
+  const errorCode = getLastfmErrorCode(data);
+
+  if (!response.ok || errorCode !== null) {
     throw new LastfmApiError(
-      data?.message || `Last.fm request failed with status ${response.status}`,
-      data?.error ?? null
+      getLastfmErrorMessage(data) ??
+        `Last.fm request failed with status ${response.status}`,
+      errorCode,
+      {
+        upstreamStatus: response.status,
+        retryAfterSeconds,
+        details: data,
+      }
     );
   }
 
   return data;
 }
 
+/** Odczytuje liczbowy kod błędu z odpowiedzi Last.fm. */
+function getLastfmErrorCode(data: unknown): number | null {
+  if (!isRecord(data) || typeof data.error !== "number") {
+    return null;
+  }
+
+  return data.error;
+}
+
+/** Odczytuje komunikat błędu z odpowiedzi Last.fm. */
+function getLastfmErrorMessage(data: unknown): string | null {
+  if (!isRecord(data) || typeof data.message !== "string") {
+    return null;
+  }
+
+  return data.message;
+}
+
+/** Sprawdza, czy nieznana wartość jest obiektem możliwym do odczytu. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function createLastfmClient({
   fetchImpl = globalThis.fetch,
   config = appConfig.lastfm,
-} = {}) {
+  requestPolicy,
+}: LastfmClientConfiguration = {}) {
+  const executeRequest = createHttpRequestExecutor({
+    fetchImpl,
+    policy: requestPolicy,
+  });
   return async function fetchFromLastfm(
     method: string,
     params: Record<string, unknown> = {},
@@ -134,13 +187,24 @@ function createLastfmClient({
     let response: Response;
 
     try {
-      response = await fetchImpl(url, options as RequestInit);
-    } catch {
-      throw new LastfmApiError(
-        "Nie udało się połączyć z Last.fm",
-        null,
-        "network"
-      );
+      response = await executeRequest(url, options);
+    } catch (cause) {
+      if (cause instanceof HttpRequestExecutionError) {
+        const timedOut = cause.kind === "timeout";
+
+        throw new LastfmApiError(
+          timedOut
+            ? "Last.fm nie odpowiedziało w wymaganym czasie"
+            : "Nie udało się połączyć z Last.fm",
+          null,
+          {
+            category: timedOut ? "timeout" : "network",
+            details: cause.originalCause,
+          }
+        );
+      }
+
+      throw cause;
     }
 
     return parseAndValidateResponse(response);

@@ -16,7 +16,7 @@ function createLastfmUserReader(request: LastfmRequest) {
       throw new LastfmApiError(
         "Last.fm nie zwrócił profilu użytkownika",
         null,
-        "invalid-response"
+        { category: "invalid-response" }
       );
     }
 

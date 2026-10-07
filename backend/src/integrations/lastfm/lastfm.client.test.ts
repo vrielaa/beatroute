@@ -87,7 +87,10 @@ describe("Last.fm client", () => {
       fetchImpl: vi
         .fn()
         .mockResolvedValue(
-          jsonResponse({ error: 10, message: "Invalid API key" }, 400)
+          jsonResponse(
+            { error: 10, message: "Invalid API key" },
+            { status: 400 }
+          )
         ),
       config,
     });
@@ -96,6 +99,7 @@ describe("Last.fm client", () => {
       name: "LastfmApiError",
       code: 10,
       message: "Invalid API key",
+      upstreamStatus: 400,
     });
   });
 
@@ -107,21 +111,69 @@ describe("Last.fm client", () => {
     const networkClient = createLastfmClient({
       fetchImpl: vi.fn().mockRejectedValue(new Error("offline")),
       config,
+      requestPolicy: { maxAttempts: 1 },
     });
 
-    await expect(invalidJsonClient("user.getInfo")).rejects.toBeInstanceOf(
-      LastfmApiError
-    );
+    await expect(invalidJsonClient("user.getInfo")).rejects.toMatchObject({
+      name: "LastfmApiError",
+      category: "invalid-response",
+      upstreamStatus: 200,
+    });
     await expect(networkClient("user.getInfo")).rejects.toMatchObject({
       name: "LastfmApiError",
       message: "Nie udało się połączyć z Last.fm",
+      category: "network",
+    });
+  });
+
+  it("preserves Retry-After from the final rate-limit response", async () => {
+    const client = createLastfmClient({
+      fetchImpl: vi.fn().mockResolvedValue(
+        jsonResponse(
+          { error: 29, message: "Rate limit exceeded" },
+          {
+            status: 429,
+            headers: { "Retry-After": "25" },
+          }
+        )
+      ),
+      config,
+      requestPolicy: { maxAttempts: 1 },
+    });
+
+    await expect(client("artist.getInfo")).rejects.toMatchObject({
+      name: "LastfmApiError",
+      category: "rate-limited",
+      code: 29,
+      upstreamStatus: 429,
+      retryAfterSeconds: 25,
+    });
+  });
+
+  it("classifies an exhausted request timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const client = createLastfmClient({
+      fetchImpl: vi.fn().mockRejectedValue(timeoutError),
+      config,
+      requestPolicy: { maxAttempts: 1 },
+    });
+
+    await expect(client("artist.getInfo")).rejects.toMatchObject({
+      name: "LastfmApiError",
+      category: "timeout",
+      upstreamStatus: null,
+      details: timeoutError,
     });
   });
 });
 
-function jsonResponse(data: unknown, status = 200): Response {
+function jsonResponse(data: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+
   return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
+    ...init,
+    headers,
   });
 }
