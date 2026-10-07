@@ -4,10 +4,10 @@ import { getSpotifyBasicAuthHeader } from "./basic-auth.js";
 import {
   describeResponseShape,
   isTimeoutError,
-  parseRetryAfter,
   parseSpotifyOAuthError,
   parseSpotifyTokenResponse,
 } from "./response-parser.js";
+import { parseRetryAfterSeconds } from "@integrations/request-policy.js";
 import type {
   SpotifyAuthClient,
   SpotifyAuthConfiguration,
@@ -77,7 +77,7 @@ function createSpotifyAuthClient({
         {
           kind: "invalid-response",
           upstreamStatus: response.status,
-          retryAfterSeconds: parseRetryAfter(
+          retryAfterSeconds: parseRetryAfterSeconds(
             response.headers.get("retry-after")
           ),
           cause,
@@ -95,7 +95,7 @@ function createSpotifyAuthClient({
           kind: oauthError ? "oauth" : "invalid-response",
           upstreamStatus: response.status,
           oauthCode: oauthError?.code ?? null,
-          retryAfterSeconds: parseRetryAfter(
+          retryAfterSeconds: parseRetryAfterSeconds(
             response.headers.get("retry-after")
           ),
           data,

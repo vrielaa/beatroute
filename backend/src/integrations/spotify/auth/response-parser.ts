@@ -55,17 +55,6 @@ function parseSpotifyTokenResponse(data: unknown): SpotifyTokenResponse {
   };
 }
 
-/** Odczytuje liczbę sekund z nagłówka `Retry-After`. */
-function parseRetryAfter(value: string | null): number | null {
-  if (value === null || !/^\d+$/.test(value)) {
-    return null;
-  }
-
-  const seconds = Number(value);
-
-  return Number.isSafeInteger(seconds) ? seconds : null;
-}
-
 /** Rozpoznaje błąd przerwania żądania spowodowany timeoutem. */
 function isTimeoutError(error: unknown): boolean {
   return (
@@ -100,7 +89,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export {
   parseSpotifyOAuthError,
   parseSpotifyTokenResponse,
-  parseRetryAfter,
   isTimeoutError,
   describeResponseShape,
 };
