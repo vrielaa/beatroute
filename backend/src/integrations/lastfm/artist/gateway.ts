@@ -2,17 +2,17 @@ import type {
   ErrorLogger,
   LastfmArtistApiResponse,
   LastfmArtistGateway,
-  LastfmArtistLookup,
+  LastfmArtistInfoResult,
 } from "./types.js";
 
 /**
  * Określa zależności gatewaya artystów Last.fm.
  *
- * @property requestArtistInfo - Adapter wykonujący pojedyncze zapytanie `artist.getInfo`.
+ * @property fetchArtistInfo - Adapter wykonujący pojedyncze zapytanie `artist.getInfo`.
  * @property logger - Logger rejestrujący nieudane zapytania zbiorcze.
  */
 type LastfmArtistGatewayDependencies = {
-  requestArtistInfo: (artistName: string) => Promise<LastfmArtistApiResponse>;
+  fetchArtistInfo: (artistName: string) => Promise<LastfmArtistApiResponse>;
   logger?: ErrorLogger;
 };
 
@@ -25,7 +25,7 @@ type LastfmArtistGatewayDependencies = {
  * @returns Gateway obsługujący zapytania o jednego lub wielu artystów.
  */
 function createLastfmArtistGateway({
-  requestArtistInfo,
+  fetchArtistInfo,
   logger = console,
 }: LastfmArtistGatewayDependencies): LastfmArtistGateway {
   /**
@@ -36,8 +36,10 @@ function createLastfmArtistGateway({
    * @param artistNames - Nazwy artystów do pobrania.
    * @returns Wynik dla każdej przekazanej nazwy, w tej samej kolejności.
    */
-  function lookupMany(artistNames: string[]): Promise<LastfmArtistLookup[]> {
-    return Promise.all(artistNames.map(resolveLookup));
+  function getManyArtistInfoResults(
+    artistNames: string[]
+  ): Promise<LastfmArtistInfoResult[]> {
+    return Promise.all(artistNames.map(getArtistInfoResult));
   }
 
   /**
@@ -46,11 +48,11 @@ function createLastfmArtistGateway({
    * @param artistName - Nazwa artysty wysyłana do Last.fm.
    * @returns Wynik `fulfilled` z odpowiedzią albo `rejected` z błędem.
    */
-  async function resolveLookup(
+  async function getArtistInfoResult(
     artistName: string
-  ): Promise<LastfmArtistLookup> {
+  ): Promise<LastfmArtistInfoResult> {
     try {
-      const response = await requestArtistInfo(artistName);
+      const response = await fetchArtistInfo(artistName);
 
       return {
         status: "fulfilled",
@@ -69,8 +71,8 @@ function createLastfmArtistGateway({
   }
 
   return {
-    lookupArtist: requestArtistInfo,
-    lookupMany,
+    getArtistInfo: fetchArtistInfo,
+    getManyArtistInfoResults,
   };
 }
 

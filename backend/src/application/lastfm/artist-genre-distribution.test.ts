@@ -2,13 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createArtistGenreDistribution } from "./artist-genre-distribution.js";
 import type {
-  ArtistGenreLookup,
+  ArtistGenreResult,
   ArtistGenreReader,
 } from "./artist-genre-distribution.js";
 
 describe("artist genre distribution use case", () => {
   it("deduplicates artist names before reading their genres", async () => {
-    const reader = createReader([fulfilledLookup("Radiohead", "alternative")]);
+    const reader = createReader([
+      fulfilledGenreResult("Radiohead", "alternative"),
+    ]);
     const getDistribution = createArtistGenreDistribution({
       artistReader: reader,
     });
@@ -19,7 +21,9 @@ describe("artist genre distribution use case", () => {
       "RADIOHEAD",
     ]);
 
-    expect(reader.lookupMany).toHaveBeenCalledWith(["Radiohead"]);
+    expect(reader.getManyArtistGenreResults).toHaveBeenCalledWith([
+      "Radiohead",
+    ]);
     expect(result).toMatchObject({
       source: "lastfm-artist-info-tags",
       totalArtists: 1,
@@ -29,8 +33,8 @@ describe("artist genre distribution use case", () => {
 
   it("keeps a partial failure as an unmatched artist", async () => {
     const reader = createReader([
-      fulfilledLookup("Radiohead", "alternative"),
-      rejectedLookup("Unknown Artist", new Error("Not found")),
+      fulfilledGenreResult("Radiohead", "alternative"),
+      rejectedGenreResult("Unknown Artist", new Error("Not found")),
     ]);
     const getDistribution = createArtistGenreDistribution({
       artistReader: reader,
@@ -45,8 +49,8 @@ describe("artist genre distribution use case", () => {
   it("propagates an invalid credentials failure", async () => {
     const error = new Error("Invalid API key");
     const reader = createReader([
-      fulfilledLookup("Radiohead", "rock"),
-      rejectedLookup("Muse", error, true),
+      fulfilledGenreResult("Radiohead", "rock"),
+      rejectedGenreResult("Muse", error, true),
     ]);
     const getDistribution = createArtistGenreDistribution({
       artistReader: reader,
@@ -55,11 +59,11 @@ describe("artist genre distribution use case", () => {
     await expect(getDistribution(["Radiohead", "Muse"])).rejects.toBe(error);
   });
 
-  it("propagates the first error when every lookup fails", async () => {
+  it("propagates the first error when every artist request fails", async () => {
     const firstError = new Error("Last.fm unavailable");
     const reader = createReader([
-      rejectedLookup("Radiohead", firstError),
-      rejectedLookup("Muse", new Error("Timeout")),
+      rejectedGenreResult("Radiohead", firstError),
+      rejectedGenreResult("Muse", new Error("Timeout")),
     ]);
     const getDistribution = createArtistGenreDistribution({
       artistReader: reader,
@@ -71,14 +75,14 @@ describe("artist genre distribution use case", () => {
   });
 });
 
-function createReader(lookups: ArtistGenreLookup[]): ArtistGenreReader {
-  return { lookupMany: vi.fn().mockResolvedValue(lookups) };
+function createReader(results: ArtistGenreResult[]): ArtistGenreReader {
+  return { getManyArtistGenreResults: vi.fn().mockResolvedValue(results) };
 }
 
-function fulfilledLookup(
+function fulfilledGenreResult(
   requestedName: string,
   canonicalName: string
-): ArtistGenreLookup {
+): ArtistGenreResult {
   return {
     status: "fulfilled",
     artist: {
@@ -91,11 +95,11 @@ function fulfilledLookup(
   };
 }
 
-function rejectedLookup(
+function rejectedGenreResult(
   requestedName: string,
   error: unknown,
   invalidCredentials = false
-): ArtistGenreLookup {
+): ArtistGenreResult {
   return {
     status: "rejected",
     artist: {

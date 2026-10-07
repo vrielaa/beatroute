@@ -40,37 +40,38 @@ type LastfmArtistInfo = {
 };
 
 /**
- * Wynik pojedynczego zapytania wykonywanego w ramach wyszukiwania wielu
- * artystów. Status pozwala obsłużyć częściową awarię bez przerywania całej
- * operacji.
+ * Wynik pobrania informacji o jednym artyście z Last.fm. Status pozwala
+ * obsłużyć częściową awarię bez przerywania pobierania pozostałych artystów.
+ *
+ * @property status - Informuje, czy pobranie danych zakończyło się powodzeniem.
+ * @property requestedName - Nazwa artysty wysłana do Last.fm.
+ * @property response - Surowa odpowiedź dostępna dla wyniku `fulfilled`.
+ * @property error - Oryginalny błąd dostępny dla wyniku `rejected`.
  */
-type LastfmArtistLookup =
+type LastfmArtistInfoResult =
   | {
-      /** Zapytanie zakończyło się powodzeniem. */
       status: "fulfilled";
-      /** Nazwa, której dotyczyło zapytanie. */
       requestedName: string;
-      /** Surowa odpowiedź Last.fm. */
       response: LastfmArtistApiResponse;
     }
   | {
-      /** Zapytanie zakończyło się błędem. */
       status: "rejected";
-      /** Nazwa, której dotyczyło zapytanie. */
       requestedName: string;
-      /** Oryginalny błąd klienta Last.fm. */
       error: unknown;
     };
 
 /**
  * Port dostępu do danych artystów Last.fm używany przez warstwę serwisową.
  * Dzięki temu serwis można testować bez wykonywania prawdziwych zapytań HTTP.
+ *
+ * @property getArtistInfo - Pobiera surowe dane jednego artysty.
+ * @property getManyArtistInfoResults - Pobiera dane wielu artystów i zachowuje błędy jako wyniki.
  */
 type LastfmArtistGateway = {
-  /** Pobiera surowe dane jednego artysty i przekazuje błąd wywołującemu. */
-  lookupArtist: (artistName: string) => Promise<LastfmArtistApiResponse>;
-  /** Pobiera wielu artystów, zachowując powodzenia i błędy jako wyniki. */
-  lookupMany: (artistNames: string[]) => Promise<LastfmArtistLookup[]>;
+  getArtistInfo: (artistName: string) => Promise<LastfmArtistApiResponse>;
+  getManyArtistInfoResults: (
+    artistNames: string[]
+  ) => Promise<LastfmArtistInfoResult[]>;
 };
 
 /** Minimalny interfejs loggera wymagany przez gateway. */
@@ -82,7 +83,7 @@ type ErrorLogger = {
 export type {
   LastfmArtistApiResponse,
   LastfmArtistInfo,
-  LastfmArtistLookup,
+  LastfmArtistInfoResult,
   LastfmArtistGateway,
   ErrorLogger,
 };

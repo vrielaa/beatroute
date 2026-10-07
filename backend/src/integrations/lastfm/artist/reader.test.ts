@@ -4,9 +4,9 @@ import { createLastfmArtistReader } from "./reader.js";
 import type { LastfmArtistGateway } from "./types.js";
 
 describe("Last.fm artist reader", () => {
-  it("maps successful lookups to domain artist input", async () => {
+  it("maps successful results to domain artist input", async () => {
     const gateway = createGateway();
-    vi.mocked(gateway.lookupMany).mockResolvedValue([
+    vi.mocked(gateway.getManyArtistInfoResults).mockResolvedValue([
       {
         status: "fulfilled",
         requestedName: "radiohead",
@@ -20,7 +20,7 @@ describe("Last.fm artist reader", () => {
     ]);
     const reader = createLastfmArtistReader(gateway);
 
-    const result = await reader.lookupMany(["radiohead"]);
+    const result = await reader.getManyArtistGenreResults(["radiohead"]);
 
     expect(result[0]).toMatchObject({
       status: "fulfilled",
@@ -34,12 +34,12 @@ describe("Last.fm artist reader", () => {
   it("marks Last.fm error code 10 as invalid credentials", async () => {
     const gateway = createGateway();
     const error = Object.assign(new Error("Invalid API key"), { code: 10 });
-    vi.mocked(gateway.lookupMany).mockResolvedValue([
+    vi.mocked(gateway.getManyArtistInfoResults).mockResolvedValue([
       { status: "rejected", requestedName: "Radiohead", error },
     ]);
     const reader = createLastfmArtistReader(gateway);
 
-    const result = await reader.lookupMany(["Radiohead"]);
+    const result = await reader.getManyArtistGenreResults(["Radiohead"]);
 
     expect(result[0]).toMatchObject({
       status: "rejected",
@@ -50,7 +50,7 @@ describe("Last.fm artist reader", () => {
 
   it("returns normalized tags for a single artist", async () => {
     const gateway = createGateway();
-    vi.mocked(gateway.lookupArtist).mockResolvedValue({
+    vi.mocked(gateway.getArtistInfo).mockResolvedValue({
       artist: { tags: { tag: [{ name: " rock " }, { name: "seen live" }] } },
     });
     const reader = createLastfmArtistReader(gateway);
@@ -64,7 +64,7 @@ describe("Last.fm artist reader", () => {
 
 function createGateway(): LastfmArtistGateway {
   return {
-    lookupArtist: vi.fn(),
-    lookupMany: vi.fn(),
+    getArtistInfo: vi.fn(),
+    getManyArtistInfoResults: vi.fn(),
   };
 }

@@ -8,7 +8,7 @@ import {
 import type {
   LastfmArtistApiResponse,
   LastfmArtistInfo,
-  LastfmArtistLookup,
+  LastfmArtistInfoResult,
 } from "./types.js";
 
 /**
@@ -39,23 +39,25 @@ function mapLastfmArtistInfo(
 }
 
 /**
- * Mapuje wynik wyszukiwania Last.fm na wejście klasyfikacji domenowej.
- * Nieudane wyszukiwanie reprezentuje artystę bez kandydatów na gatunek,
+ * Mapuje wynik pobrania danych z Last.fm na wejście klasyfikacji domenowej.
+ * Nieudane pobranie reprezentuje artystę bez kandydatów na gatunek,
  * dzięki czemu domena może uwzględnić go na liście niedopasowanych artystów.
  *
- * @param lookup - Udany lub nieudany wynik pobrania danych artysty.
+ * @param result - Udany lub nieudany wynik pobrania danych artysty.
  * @returns Artysta przygotowany do budowania rozkładu gatunków.
  */
-function mapArtistLookupToGenreInput(lookup: LastfmArtistLookup): Artist {
-  if (lookup.status === "rejected") {
+function mapArtistInfoResultToGenreInput(
+  result: LastfmArtistInfoResult
+): Artist {
+  if (result.status === "rejected") {
     return {
-      resolvedName: lookup.requestedName,
-      requestedName: lookup.requestedName,
+      resolvedName: result.requestedName,
+      requestedName: result.requestedName,
       genreCandidates: [],
     };
   }
 
-  const artistInfo = mapLastfmArtistInfo(lookup.response, lookup.requestedName);
+  const artistInfo = mapLastfmArtistInfo(result.response, result.requestedName);
 
   return {
     resolvedName: artistInfo.name,
@@ -68,4 +70,4 @@ function mapArtistLookupToGenreInput(lookup: LastfmArtistLookup): Artist {
   };
 }
 
-export { mapLastfmArtistInfo, mapArtistLookupToGenreInput };
+export { mapLastfmArtistInfo, mapArtistInfoResultToGenreInput };

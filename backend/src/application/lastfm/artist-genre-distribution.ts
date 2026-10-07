@@ -3,8 +3,15 @@ import type { Artist } from "@domain/music-genres/artist-genre-distribution.type
 
 const GENRE_SOURCE = "lastfm-artist-info-tags";
 
-/** Wynik pobrania artysty przygotowany do klasyfikacji domenowej. */
-type ArtistGenreLookup =
+/**
+ * Wynik przygotowania artysty do klasyfikacji gatunków.
+ *
+ * @property status - Informuje, czy dane artysty pobrano poprawnie.
+ * @property artist - Artysta przygotowany dla logiki domenowej.
+ * @property error - Oryginalny błąd dostępny dla wyniku `rejected`.
+ * @property invalidCredentials - Informuje, czy przyczyną błędu są dane dostępowe Last.fm.
+ */
+type ArtistGenreResult =
   | { status: "fulfilled"; artist: Artist }
   | {
       status: "rejected";
@@ -13,9 +20,15 @@ type ArtistGenreLookup =
       invalidCredentials: boolean;
     };
 
-/** Port udostępniający dane wielu artystów. */
+/**
+ * Port udostępniający artystów przygotowanych do klasyfikacji gatunków.
+ *
+ * @property getManyArtistGenreResults - Pobiera wyniki przygotowania wskazanych artystów.
+ */
 type ArtistGenreReader = {
-  lookupMany(artistNames: string[]): Promise<ArtistGenreLookup[]>;
+  getManyArtistGenreResults(
+    artistNames: string[]
+  ): Promise<ArtistGenreResult[]>;
 };
 
 /** Tworzy przypadek użycia budowania rozkładu gatunków artystów. */
@@ -26,12 +39,13 @@ function createArtistGenreDistribution({
 }) {
   return async function getArtistGenreDistribution(artistNames: string[]) {
     const uniqueArtistNames = deduplicateArtistNames(artistNames);
-    const lookups = await artistReader.lookupMany(uniqueArtistNames);
+    const results =
+      await artistReader.getManyArtistGenreResults(uniqueArtistNames);
 
-    assertNoCriticalLookupFailure(lookups);
+    assertNoCriticalArtistGenreFailure(results);
 
     return {
-      ...buildArtistGenreDistribution(lookups.map((lookup) => lookup.artist)),
+      ...buildArtistGenreDistribution(results.map((result) => result.artist)),
       source: GENRE_SOURCE,
     };
   };
@@ -55,26 +69,28 @@ function deduplicateArtistNames(artistNames: string[]): string[] {
 }
 
 /** Przerywa operację dla błędnych danych dostępowych lub awarii wszystkich zapytań. */
-function assertNoCriticalLookupFailure(lookups: ArtistGenreLookup[]): void {
-  const failures = lookups.filter(isRejectedLookup);
+function assertNoCriticalArtistGenreFailure(
+  results: ArtistGenreResult[]
+): void {
+  const failures = results.filter(isRejectedArtistGenreResult);
   const invalidCredentialsFailure = failures.find(
-    (lookup) => lookup.invalidCredentials
+    (result) => result.invalidCredentials
   );
 
   if (invalidCredentialsFailure) {
     throw invalidCredentialsFailure.error;
   }
 
-  if (lookups.length > 0 && failures.length === lookups.length) {
+  if (results.length > 0 && failures.length === results.length) {
     throw failures[0].error;
   }
 }
 
-function isRejectedLookup(
-  lookup: ArtistGenreLookup
-): lookup is Extract<ArtistGenreLookup, { status: "rejected" }> {
-  return lookup.status === "rejected";
+function isRejectedArtistGenreResult(
+  result: ArtistGenreResult
+): result is Extract<ArtistGenreResult, { status: "rejected" }> {
+  return result.status === "rejected";
 }
 
 export { createArtistGenreDistribution };
-export type { ArtistGenreLookup, ArtistGenreReader };
+export type { ArtistGenreResult, ArtistGenreReader };

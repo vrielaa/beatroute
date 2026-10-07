@@ -1,8 +1,11 @@
 import { createLastfmArtistGateway } from "./gateway.js";
-import { mapArtistLookupToGenreInput, mapLastfmArtistInfo } from "./mapper.js";
+import {
+  mapArtistInfoResultToGenreInput,
+  mapLastfmArtistInfo,
+} from "./mapper.js";
 import { fetchFromLastfm } from "../lastfm.client.js";
 import type {
-  ArtistGenreLookup,
+  ArtistGenreResult,
   ArtistGenreReader,
 } from "@application/lastfm/artist-genre-distribution.js";
 import type { LastfmTag } from "@application/lastfm/types.js";
@@ -19,24 +22,25 @@ type LastfmArtistReader = ArtistGenreReader & {
 function createLastfmArtistReader(
   artistGateway: LastfmArtistGateway
 ): LastfmArtistReader {
-  async function lookupMany(
+  async function getManyArtistGenreResults(
     artistNames: string[]
-  ): Promise<ArtistGenreLookup[]> {
-    const lookups = await artistGateway.lookupMany(artistNames);
+  ): Promise<ArtistGenreResult[]> {
+    const artistInfoResults =
+      await artistGateway.getManyArtistInfoResults(artistNames);
 
-    return lookups.map((lookup) => {
-      const artist = mapArtistLookupToGenreInput(lookup);
+    return artistInfoResults.map((result) => {
+      const artist = mapArtistInfoResultToGenreInput(result);
 
-      if (lookup.status === "fulfilled") {
+      if (result.status === "fulfilled") {
         return { status: "fulfilled", artist };
       }
 
       return {
         status: "rejected",
         artist,
-        error: lookup.error,
+        error: result.error,
         invalidCredentials: hasErrorCode(
-          lookup.error,
+          result.error,
           INVALID_API_KEY_ERROR_CODE
         ),
       };
@@ -44,11 +48,11 @@ function createLastfmArtistReader(
   }
 
   async function getArtistTags(artistName: string): Promise<LastfmTag[]> {
-    const response = await artistGateway.lookupArtist(artistName);
+    const response = await artistGateway.getArtistInfo(artistName);
     return mapLastfmArtistInfo(response, artistName).tags;
   }
 
-  return { lookupMany, getArtistTags };
+  return { getManyArtistGenreResults, getArtistTags };
 }
 
 function hasErrorCode(error: unknown, expectedCode: number): boolean {
@@ -61,7 +65,7 @@ function hasErrorCode(error: unknown, expectedCode: number): boolean {
 }
 
 const defaultLastfmArtistGateway = createLastfmArtistGateway({
-  requestArtistInfo: (artistName) =>
+  fetchArtistInfo: (artistName) =>
     fetchFromLastfm("artist.getInfo", {
       artist: artistName,
       autocorrect: 1,

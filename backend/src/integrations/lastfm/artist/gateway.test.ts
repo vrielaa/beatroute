@@ -4,31 +4,35 @@ import { createLastfmArtistGateway } from "./gateway.js";
 import type { LastfmArtistApiResponse } from "./types.js";
 
 describe("Last.fm artist gateway", () => {
-  it("delegates a single artist lookup to the request adapter", async () => {
+  it("delegates a single artist request to the fetch adapter", async () => {
     const response = artistResponse("Radiohead");
-    const requestArtistInfo = vi.fn().mockResolvedValue(response);
-    const gateway = createLastfmArtistGateway({ requestArtistInfo });
+    const fetchArtistInfo = vi.fn().mockResolvedValue(response);
+    const gateway = createLastfmArtistGateway({ fetchArtistInfo });
 
-    await expect(gateway.lookupArtist("Radiohead")).resolves.toBe(response);
-    expect(requestArtistInfo).toHaveBeenCalledOnce();
-    expect(requestArtistInfo).toHaveBeenCalledWith("Radiohead");
+    await expect(gateway.getArtistInfo("Radiohead")).resolves.toBe(response);
+    expect(fetchArtistInfo).toHaveBeenCalledOnce();
+    expect(fetchArtistInfo).toHaveBeenCalledWith("Radiohead");
   });
 
-  it("starts all lookups and preserves input order", async () => {
+  it("starts all artist requests and preserves input order", async () => {
     const requests = new Map<
       string,
       DeferredPromise<LastfmArtistApiResponse>
     >();
-    const requestArtistInfo = vi.fn((artistName: string) => {
+    const fetchArtistInfo = vi.fn((artistName: string) => {
       const request = createDeferredPromise<LastfmArtistApiResponse>();
       requests.set(artistName, request);
       return request.promise;
     });
-    const gateway = createLastfmArtistGateway({ requestArtistInfo });
+    const gateway = createLastfmArtistGateway({ fetchArtistInfo });
 
-    const lookupPromise = gateway.lookupMany(["Radiohead", "Muse", "Björk"]);
+    const resultsPromise = gateway.getManyArtistInfoResults([
+      "Radiohead",
+      "Muse",
+      "Björk",
+    ]);
 
-    expect(requestArtistInfo.mock.calls).toEqual([
+    expect(fetchArtistInfo.mock.calls).toEqual([
       ["Radiohead"],
       ["Muse"],
       ["Björk"],
@@ -38,40 +42,44 @@ describe("Last.fm artist gateway", () => {
     requests.get("Björk")?.resolve(artistResponse("Björk"));
     requests.get("Radiohead")?.resolve(artistResponse("Radiohead"));
 
-    await expect(lookupPromise).resolves.toMatchObject([
+    await expect(resultsPromise).resolves.toMatchObject([
       { status: "fulfilled", requestedName: "Radiohead" },
       { status: "fulfilled", requestedName: "Muse" },
       { status: "fulfilled", requestedName: "Björk" },
     ]);
   });
 
-  it("returns a rejected result, logs the error and continues lookup", async () => {
-    const lookupError = new Error("Last.fm unavailable for Muse");
-    const requestArtistInfo = vi.fn(async (artistName: string) => {
+  it("returns a rejected result, logs the error and continues fetching", async () => {
+    const requestError = new Error("Last.fm unavailable for Muse");
+    const fetchArtistInfo = vi.fn(async (artistName: string) => {
       if (artistName === "Muse") {
-        throw lookupError;
+        throw requestError;
       }
 
       return artistResponse(artistName);
     });
     const logger = { error: vi.fn() };
     const gateway = createLastfmArtistGateway({
-      requestArtistInfo,
+      fetchArtistInfo,
       logger,
     });
 
-    const result = await gateway.lookupMany(["Radiohead", "Muse", "Björk"]);
+    const result = await gateway.getManyArtistInfoResults([
+      "Radiohead",
+      "Muse",
+      "Björk",
+    ]);
 
     expect(result).toMatchObject([
       { status: "fulfilled", requestedName: "Radiohead" },
-      { status: "rejected", requestedName: "Muse", error: lookupError },
+      { status: "rejected", requestedName: "Muse", error: requestError },
       { status: "fulfilled", requestedName: "Björk" },
     ]);
-    expect(requestArtistInfo).toHaveBeenCalledTimes(3);
+    expect(fetchArtistInfo).toHaveBeenCalledTimes(3);
     expect(logger.error).toHaveBeenCalledOnce();
     expect(logger.error).toHaveBeenCalledWith(
       'Last.fm artist info error for "Muse":',
-      lookupError
+      requestError
     );
   });
 });

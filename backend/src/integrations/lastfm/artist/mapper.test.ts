@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { mapArtistLookupToGenreInput, mapLastfmArtistInfo } from "./mapper.js";
+import {
+  mapArtistInfoResultToGenreInput,
+  mapLastfmArtistInfo,
+} from "./mapper.js";
 
 describe("Last.fm artist mapper", () => {
   describe("mapLastfmArtistInfo", () => {
@@ -59,9 +62,9 @@ describe("Last.fm artist mapper", () => {
     });
   });
 
-  describe("mapArtistLookupToGenreInput", () => {
+  describe("mapArtistInfoResultToGenreInput", () => {
     it("maps genre candidates to normalized and canonical names", () => {
-      const result = mapArtistLookupToGenreInput({
+      const result = mapArtistInfoResultToGenreInput({
         status: "fulfilled",
         requestedName: "radiohead",
         response: {
@@ -87,8 +90,8 @@ describe("Last.fm artist mapper", () => {
       });
     });
 
-    it("maps a rejected lookup to an artist without genre candidates", () => {
-      const result = mapArtistLookupToGenreInput({
+    it("maps a rejected result to an artist without genre candidates", () => {
+      const result = mapArtistInfoResultToGenreInput({
         status: "rejected",
         requestedName: "Unknown Artist",
         error: new Error("Not found"),
