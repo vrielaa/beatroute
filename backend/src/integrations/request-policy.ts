@@ -1,3 +1,5 @@
+import type { RequestScheduler } from "./request-scheduler.js";
+
 /** Metody HTTP, których ponowienie nie powinno zmieniać stanu zewnętrznego API. */
 const RETRYABLE_HTTP_METHODS = new Set(["GET", "HEAD"]);
 
@@ -10,29 +12,37 @@ const DEFAULT_HTTP_REQUEST_POLICY: HttpRequestPolicy = {
   maxRetryDelayMs: 30_000,
 };
 
-/** Zasady timeoutu i ponawiania odczytów HTTP. */
+/**
+ * Określa zasady timeoutu i ponawiania odczytów HTTP.
+ *
+ * @property timeoutMs - Maksymalny czas jednej próby wyrażony w milisekundach.
+ * @property maxAttempts - Łączna liczba prób razem z pierwszym żądaniem.
+ * @property retryableStatuses - Statusy odpowiedzi pozwalające ponowić bezpieczny odczyt.
+ * @property baseRetryDelayMs - Początkowe opóźnienie retry bez nagłówka `Retry-After`.
+ * @property maxRetryDelayMs - Najdłuższe akceptowane opóźnienie przed kolejną próbą.
+ */
 type HttpRequestPolicy = {
-  /** Maksymalny czas jednej próby wyrażony w milisekundach. */
   timeoutMs: number;
-  /** Łączna liczba prób, razem z pierwszym żądaniem. */
   maxAttempts: number;
-  /** Statusy odpowiedzi, dla których bezpieczny odczyt może zostać ponowiony. */
   retryableStatuses: readonly number[];
-  /** Początkowe opóźnienie retry bez nagłówka `Retry-After`. */
   baseRetryDelayMs: number;
-  /** Najdłuższe akceptowane opóźnienie przed kolejną próbą. */
   maxRetryDelayMs: number;
 };
 
-/** Konfiguracja wspólnego wykonawcy żądań do zewnętrznych API. */
+/**
+ * Określa konfigurację wspólnego wykonawcy żądań do zewnętrznych API.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić podczas testów.
+ * @property policy - Wartości nadpisujące domyślną politykę żądań.
+ * @property scheduler - Opcjonalny scheduler kontrolujący kolejność i tempo prób.
+ * @property sleep - Funkcja oczekiwania możliwa do zastąpienia zegarem testowym.
+ * @property now - Źródło aktualnego czasu używane przy datach z `Retry-After`.
+ */
 type HttpRequestExecutorConfiguration = {
-  /** Implementacja `fetch`, którą można zastąpić podczas testów. */
   fetchImpl?: typeof fetch;
-  /** Wartości nadpisujące domyślną politykę żądań. */
   policy?: Partial<HttpRequestPolicy>;
-  /** Funkcja oczekiwania możliwa do zastąpienia zegarem testowym. */
+  scheduler?: RequestScheduler;
   sleep?: (delayMs: number) => Promise<void>;
-  /** Źródło aktualnego czasu używane przy datach z `Retry-After`. */
   now?: () => number;
 };
 
@@ -63,6 +73,7 @@ class HttpRequestExecutionError extends Error {
 function createHttpRequestExecutor({
   fetchImpl = globalThis.fetch,
   policy: policyOverrides = {},
+  scheduler,
   sleep = wait,
   now = Date.now,
 }: HttpRequestExecutorConfiguration = {}) {
@@ -76,13 +87,24 @@ function createHttpRequestExecutor({
     const canRetry = RETRYABLE_HTTP_METHODS.has(method);
 
     for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
-      const timeoutSignal = AbortSignal.timeout(policy.timeoutMs);
-      const signal = init.signal
-        ? AbortSignal.any([init.signal, timeoutSignal])
-        : timeoutSignal;
+      let timeoutSignal: AbortSignal | null = null;
+
+      const performFetch = () => {
+        timeoutSignal = AbortSignal.timeout(policy.timeoutMs);
+        const signal = init.signal
+          ? AbortSignal.any([init.signal, timeoutSignal])
+          : timeoutSignal;
+
+        return fetchImpl(url, { ...init, signal });
+      };
 
       try {
-        const response = await fetchImpl(url, { ...init, signal });
+        const response = scheduler
+          ? await scheduler.schedule(
+              performFetch,
+              init.signal ? { signal: init.signal } : undefined
+            )
+          : await performFetch();
 
         if (
           !canRetry ||
@@ -222,14 +244,14 @@ function calculateBackoffDelayMs(
 function getFailureKind(
   cause: unknown,
   callerSignal: AbortSignal | null | undefined,
-  timeoutSignal: AbortSignal
+  timeoutSignal: AbortSignal | null
 ): HttpRequestFailureKind {
-  if (callerSignal?.aborted && !timeoutSignal.aborted) {
+  if (callerSignal?.aborted && !timeoutSignal?.aborted) {
     return "aborted";
   }
 
   if (
-    timeoutSignal.aborted ||
+    timeoutSignal?.aborted ||
     (cause instanceof Error && cause.name === "TimeoutError")
   ) {
     return "timeout";

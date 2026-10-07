@@ -3,6 +3,7 @@ import {
   HttpRequestExecutionError,
   createHttpRequestExecutor,
 } from "./request-policy.js";
+import { createRequestScheduler } from "./request-scheduler.js";
 
 describe("HTTP request policy", () => {
   it("returns the first successful response without waiting", async () => {
@@ -39,6 +40,85 @@ describe("HTTP request policy", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(sleep).toHaveBeenCalledWith(500);
+  });
+
+  it("passes every retry attempt through the scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+      sleep: vi.fn(async () => undefined),
+    });
+
+    await expect(request("https://api.test/resource")).resolves.toMatchObject({
+      status: 200,
+    });
+    expect(scheduleSpy).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("starts the request timeout after leaving the scheduler queue", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const blockingRequest = createDeferredPromise<void>();
+    const blockingResult = scheduler.schedule(() => blockingRequest.promise);
+    const response = new Response(null, { status: 200 });
+    const fetchMock = vi.fn(
+      async (_input: string | URL | Request, init?: RequestInit) => {
+        if (init?.signal?.aborted) {
+          throw init.signal.reason;
+        }
+
+        return response;
+      }
+    );
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+      policy: { timeoutMs: 5, maxAttempts: 1 },
+    });
+
+    const result = request("https://api.test/resource");
+
+    await waitFor(15);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    blockingRequest.resolve();
+    await blockingResult;
+
+    await expect(result).resolves.toBe(response);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not fetch a request aborted while waiting in the scheduler queue", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const blockingRequest = createDeferredPromise<void>();
+    const blockingResult = scheduler.schedule(() => blockingRequest.promise);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 200,
+      })
+    );
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+    });
+    const controller = new AbortController();
+    const result = request("https://api.test/resource", {
+      signal: controller.signal,
+    });
+
+    controller.abort();
+
+    await expect(result).rejects.toMatchObject({ kind: "aborted" });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    blockingRequest.resolve();
+    await blockingResult;
   });
 
   it("uses Retry-After expressed in seconds", async () => {
@@ -178,3 +258,32 @@ describe("HTTP request policy", () => {
     );
   });
 });
+
+/**
+ * Reprezentuje ręcznie sterowany Promise używany do blokowania schedulera.
+ *
+ * @property promise - Promise oczekujący na ręczne zakończenie.
+ * @property resolve - Kończy Promise bez wyniku.
+ */
+type DeferredPromise<T> = {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+};
+
+function createDeferredPromise<T>(): DeferredPromise<T> {
+  let resolvePromise: ((value: T) => void) | undefined;
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  return {
+    promise,
+    resolve(value) {
+      resolvePromise?.(value);
+    },
+  };
+}
+
+function waitFor(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
