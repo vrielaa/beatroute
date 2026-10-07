@@ -7,8 +7,19 @@ import {
   HttpRequestExecutionError,
   parseRetryAfterSeconds,
 } from "@integrations/request-policy.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 import type { HttpRequestPolicy } from "@integrations/request-policy.js";
+import type { RequestScheduler } from "@integrations/request-scheduler.js";
+
+/** Wspólny scheduler wszystkich produkcyjnych zapytań do Last.fm. */
+const lastfmRequestScheduler = createRequestScheduler({
+  maxConcurrentRequests: 2,
+  rateLimit: {
+    maxRequests: 2,
+    intervalMs: 1_000,
+  },
+});
 
 type RequestOptions = {
   headers: Record<string, string>;
@@ -16,10 +27,19 @@ type RequestOptions = {
   body?: URLSearchParams;
 };
 
+/**
+ * Określa zależności i ustawienia klienta Last.fm.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić w testach.
+ * @property config - Adresy i dane dostępowe API Last.fm.
+ * @property requestPolicy - Nadpisania timeoutu oraz zasad retry.
+ * @property scheduler - Opcjonalny scheduler współdzielący limity zapytań.
+ */
 type LastfmClientConfiguration = {
   fetchImpl?: typeof fetch;
   config?: typeof appConfig.lastfm;
   requestPolicy?: Partial<HttpRequestPolicy>;
+  scheduler?: RequestScheduler;
 };
 
 function createLastfmApiSignature(
@@ -163,10 +183,12 @@ function createLastfmClient({
   fetchImpl = globalThis.fetch,
   config = appConfig.lastfm,
   requestPolicy,
+  scheduler,
 }: LastfmClientConfiguration = {}) {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
     policy: requestPolicy,
+    scheduler,
   });
   return async function fetchFromLastfm(
     method: string,
@@ -211,6 +233,8 @@ function createLastfmClient({
   };
 }
 
-const fetchFromLastfm = createLastfmClient();
+const fetchFromLastfm = createLastfmClient({
+  scheduler: lastfmRequestScheduler,
+});
 
 export { createLastfmApiSignature, createLastfmClient, fetchFromLastfm };

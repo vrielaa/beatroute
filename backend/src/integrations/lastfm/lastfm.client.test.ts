@@ -5,6 +5,7 @@ import {
   createLastfmApiSignature,
   createLastfmClient,
 } from "./lastfm.client.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 const config = {
   apiRoot: "https://lastfm.test/2.0/",
@@ -80,6 +81,22 @@ describe("Last.fm client", () => {
     expect(options.body).toBeInstanceOf(URLSearchParams);
     expect(options.body.get("api_sig")).toMatch(/^[a-f0-9]{32}$/);
     expect(options.body.get("format")).toBe("json");
+  });
+
+  it("routes requests through an injected scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const client = createLastfmClient({
+      fetchImpl: vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ artist: { name: "Cher" } })),
+      config,
+      scheduler,
+    });
+
+    await client("artist.getInfo", { artist: "Cher" });
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
   });
 
   it("maps Last.fm error responses to LastfmApiError", async () => {
