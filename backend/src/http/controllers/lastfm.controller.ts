@@ -1,9 +1,9 @@
 import { createArtistGenreDistribution } from "@application/lastfm/artist-genre-distribution.js";
 import { createLastfmTrackInfo } from "@application/lastfm/track-info.js";
-import { lastfmArtistReader } from "@integrations/lastfm/artist/reader.js";
+import { lastfmArtistService } from "@integrations/lastfm/artist/service.js";
 import { getLastfmUserInfo } from "@integrations/lastfm/lastfm.user.js";
 import { isLikelyGenreTag } from "@integrations/lastfm/genre-classifier.js";
-import { lastfmTrackReader } from "@integrations/lastfm/track/reader.js";
+import { lastfmTrackService } from "@integrations/lastfm/track/service.js";
 import {
   parseArtistNames,
   parseTrackInfoQuery,
@@ -22,13 +22,13 @@ type SpotifyTrackRouteParams = {
 };
 
 const lastfmTrackInfoService = createLastfmTrackInfo({
-  trackReader: lastfmTrackReader,
-  getArtistTags: lastfmArtistReader.getArtistTags,
+  trackReader: lastfmTrackService,
+  getArtistTags: lastfmArtistService.getArtistTags,
   isGenreTag: isLikelyGenreTag,
 });
 
 const defaultGetArtistGenreDistribution = createArtistGenreDistribution({
-  artistReader: lastfmArtistReader,
+  artistReader: lastfmArtistService,
 });
 
 const defaultGetSpotifyTrackLastfmInfo = createGetSpotifyTrackLastfmInfo({

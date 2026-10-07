@@ -43,30 +43,20 @@ type LastfmTrackTopTagsApiResponse = {
   };
 };
 
-/** Adaptery zewnętrznych metod wymagane do utworzenia gatewaya. */
-type LastfmTrackGatewayDependencies = {
-  /** Wykonuje zapytanie `track.getInfo`. */
-  requestTrackInfo: (
+/**
+ * Zależności adaptera utworów Last.fm.
+ *
+ * @property fetchTrackInfo - Wykonuje zapytanie `track.getInfo`.
+ * @property fetchTrackTopTags - Wykonuje zapytanie `track.getTopTags`.
+ */
+type LastfmTrackServiceDependencies = {
+  fetchTrackInfo: (
     params: LastfmTrackRequestParams
   ) => Promise<LastfmTrackApiResponse>;
 
-  /** Wykonuje zapytanie `track.getTopTags`. */
-  requestTrackTopTags: (
+  fetchTrackTopTags: (
     params: LastfmTrackRequestParams
   ) => Promise<LastfmTrackTopTagsApiResponse>;
-};
-
-/** Port dostępu do danych jednego utworu Last.fm. */
-type LastfmTrackGateway = {
-  /** Pobiera podstawowe dane utworu i osadzone top tagi. */
-  lookupTrack(
-    identifier: LastfmTrackIdentifier
-  ): Promise<LastfmTrackApiResponse>;
-
-  /** Pobiera top tagi utworu z osobnej metody Last.fm. */
-  lookupTrackTopTags(
-    identifier: LastfmTrackIdentifier
-  ): Promise<LastfmTrackTopTagsApiResponse>;
 };
 
 /** Parametry wysyłane do Last.fm po włączeniu automatycznej korekty nazw. */
@@ -81,8 +71,7 @@ export type {
   LastfmTrackInfo,
   LastfmTrackTopTagsApiResponse,
   LastfmGenreSource,
-  LastfmTrackGatewayDependencies,
-  LastfmTrackGateway,
+  LastfmTrackServiceDependencies,
   LastfmTrackIdentifier,
   LastfmTrackRequestParams,
 };

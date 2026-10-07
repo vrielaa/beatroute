@@ -1,4 +1,5 @@
 import type { LastfmTag, LastfmTagApiResponse } from "../types.js";
+import type { ArtistGenreReader } from "@application/lastfm/artist-genre-distribution.js";
 
 /**
  * Fragment surowej odpowiedzi `artist.getInfo` używany przez aplikację.
@@ -61,22 +62,32 @@ type LastfmArtistInfoResult =
     };
 
 /**
- * Port dostępu do danych artystów Last.fm używany przez warstwę serwisową.
- * Dzięki temu serwis można testować bez wykonywania prawdziwych zapytań HTTP.
+ * Operacje adaptera artystów Last.fm udostępniane warstwie aplikacyjnej.
  *
- * @property getArtistInfo - Pobiera surowe dane jednego artysty.
- * @property getManyArtistInfoResults - Pobiera dane wielu artystów i zachowuje błędy jako wyniki.
+ * @property getManyArtistGenreResults - Pobiera dane do klasyfikacji gatunków, zachowując częściowe błędy.
+ * @property getArtistTags - Pobiera znormalizowane tagi jednego artysty.
  */
-type LastfmArtistGateway = {
-  getArtistInfo: (artistName: string) => Promise<LastfmArtistApiResponse>;
-  getManyArtistInfoResults: (
-    artistNames: string[]
-  ) => Promise<LastfmArtistInfoResult[]>;
+type LastfmArtistService = ArtistGenreReader & {
+  getArtistTags(artistName: string): Promise<LastfmTag[]>;
 };
 
-/** Minimalny interfejs loggera wymagany przez gateway. */
+/**
+ * Zależności adaptera artystów Last.fm.
+ *
+ * @property fetchArtistInfo - Wykonuje pojedyncze zapytanie `artist.getInfo`.
+ * @property logger - Rejestruje błędy podczas pobierania wielu artystów.
+ */
+type LastfmArtistServiceDependencies = {
+  fetchArtistInfo: (artistName: string) => Promise<LastfmArtistApiResponse>;
+  logger?: ErrorLogger;
+};
+
+/**
+ * Minimalny interfejs loggera wymagany przez adapter.
+ *
+ * @property error - Zapisuje komunikat błędu i dane diagnostyczne.
+ */
 type ErrorLogger = {
-  /** Zapisuje komunikat błędu oraz opcjonalne dane diagnostyczne. */
   error: (...values: unknown[]) => void;
 };
 
@@ -84,6 +95,7 @@ export type {
   LastfmArtistApiResponse,
   LastfmArtistInfo,
   LastfmArtistInfoResult,
-  LastfmArtistGateway,
+  LastfmArtistService,
+  LastfmArtistServiceDependencies,
   ErrorLogger,
 };
