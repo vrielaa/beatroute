@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HttpRequestExecutionError,
   createHttpRequestExecutor,
@@ -6,6 +6,10 @@ import {
 import { createRequestScheduler } from "./request-scheduler.js";
 
 describe("HTTP request policy", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("returns the first successful response without waiting", async () => {
     const response = new Response(null, { status: 200 });
     const fetchMock = vi.fn().mockResolvedValue(response);
@@ -161,6 +165,41 @@ describe("HTTP request policy", () => {
     await request("https://api.test/resource");
 
     expect(sleep).toHaveBeenCalledWith(5_000);
+  });
+
+  it("pauses the scheduler after a failed response with Retry-After", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 429,
+        headers: { "Retry-After": "3" },
+      })
+    );
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+      policy: { maxAttempts: 1 },
+      now: () => Date.now(),
+    });
+
+    await expect(request("https://api.test/resource")).resolves.toMatchObject({
+      status: 429,
+    });
+
+    const nextOperation = vi.fn(async () => "done");
+    const nextResult = scheduler.schedule(nextOperation);
+
+    await Promise.resolve();
+    expect(nextOperation).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(nextOperation).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(nextResult).resolves.toBe("done");
+    expect(nextOperation).toHaveBeenCalledOnce();
   });
 
   it("does not retry earlier than a Retry-After exceeding the allowed delay", async () => {

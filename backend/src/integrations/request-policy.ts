@@ -105,6 +105,14 @@ function createHttpRequestExecutor({
               init.signal ? { signal: init.signal } : undefined
             )
           : await performFetch();
+        const retryAfterSeconds = parseRetryAfterSeconds(
+          response.headers.get("retry-after"),
+          now()
+        );
+
+        if (scheduler && !response.ok && retryAfterSeconds !== null) {
+          scheduler.pauseFor(retryAfterSeconds * 1_000);
+        }
 
         if (
           !canRetry ||
@@ -115,10 +123,9 @@ function createHttpRequestExecutor({
         }
 
         const retryDelayMs = getRetryDelayMs(
-          response.headers.get("retry-after"),
+          retryAfterSeconds,
           attempt,
-          policy,
-          now()
+          policy
         );
 
         if (retryDelayMs === null) {
@@ -186,13 +193,10 @@ function resolveRequestPolicy(
 
 /** Wyznacza opóźnienie na podstawie `Retry-After` albo strategii wykładniczej. */
 function getRetryDelayMs(
-  retryAfter: string | null,
+  retryAfterSeconds: number | null,
   attempt: number,
-  policy: HttpRequestPolicy,
-  currentTimeMs: number
+  policy: HttpRequestPolicy
 ): number | null {
-  const retryAfterSeconds = parseRetryAfterSeconds(retryAfter, currentTimeMs);
-
   const retryAfterMs =
     retryAfterSeconds !== null ? retryAfterSeconds * 1_000 : null;
 
