@@ -1,15 +1,22 @@
-/** Konfiguracja połączenia ze Spotify Accounts API. */
+import type { RequestScheduler } from "@integrations/request-scheduler.js";
+
+/**
+ * Określa zależności i ustawienia klienta Spotify Accounts API.
+ *
+ * @property fetchImpl - Implementacja `fetch`, którą można zastąpić w testach.
+ * @property tokenUrl - Adres endpointu wydającego tokeny.
+ * @property basicAuthHeader - Nagłówek utworzony z Client ID i Client Secret.
+ * @property redirectUri - Adres callbacku zarejestrowany w panelu Spotify.
+ * @property requestTimeoutMs - Maksymalny czas oczekiwania na odpowiedź.
+ * @property scheduler - Opcjonalny scheduler serializujący operacje tokenowe.
+ */
 type SpotifyAuthConfiguration = {
-  /** Implementacja `fetch`, którą można zastąpić w testach. */
   fetchImpl?: typeof globalThis.fetch;
-  /** Adres endpointu wydającego tokeny. */
   tokenUrl?: string;
-  /** Nagłówek Basic Auth utworzony z Client ID i Client Secret. */
   basicAuthHeader?: string;
-  /** Adres callbacku zarejestrowany w panelu Spotify. */
   redirectUri?: string;
-  /** Maksymalny czas oczekiwania na odpowiedź Spotify Accounts. */
   requestTimeoutMs?: number;
+  scheduler?: RequestScheduler;
 };
 
 /** Rodzaj technicznej awarii podczas komunikacji ze Spotify Accounts. */

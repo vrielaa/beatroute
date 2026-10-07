@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SpotifyAuthApiError } from "./api-error.js";
 import { createSpotifyAuthClient } from "./client.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 import type { SpotifyTokenResponse } from "./types.js";
 
 describe("Spotify auth client", () => {
@@ -51,6 +52,20 @@ describe("Spotify auth client", () => {
     expect(getRequestBody(fetchMock)).toBe(
       "grant_type=refresh_token&refresh_token=refresh-token"
     );
+  });
+
+  it("routes token requests through an injected scheduler", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const client = createSpotifyAuthClient({
+      fetchImpl: vi.fn().mockResolvedValue(jsonResponse(createTokenResponse())),
+      basicAuthHeader: "Basic credentials",
+      scheduler,
+    });
+
+    await client.refreshAccessToken("refresh-token");
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
   });
 
   it("throws a typed error containing the Spotify response", async () => {
@@ -114,6 +129,8 @@ describe("Spotify auth client", () => {
   });
 
   it("preserves rate-limit information returned by Spotify", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
     const client = createSpotifyAuthClient({
       fetchImpl: vi.fn().mockResolvedValue(
         jsonResponse(
@@ -128,6 +145,7 @@ describe("Spotify auth client", () => {
         )
       ),
       basicAuthHeader: "Basic credentials",
+      scheduler,
     });
 
     await expect(
@@ -138,6 +156,7 @@ describe("Spotify auth client", () => {
       oauthCode: "temporarily_unavailable",
       retryAfterSeconds: 30,
     });
+    expect(pauseSpy).toHaveBeenCalledWith(30_000);
   });
 
   it("rejects a non-JSON response", async () => {

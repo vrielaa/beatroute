@@ -8,6 +8,7 @@ import {
   parseSpotifyTokenResponse,
 } from "./response-parser.js";
 import { parseRetryAfterSeconds } from "@integrations/request-policy.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 import type {
   SpotifyAuthClient,
   SpotifyAuthConfiguration,
@@ -15,6 +16,11 @@ import type {
   SpotifyTokenRequest,
   SpotifyTokenResponse,
 } from "./types.js";
+
+/** Wspólny scheduler produkcyjnych operacji tokenowych Spotify. */
+const spotifyAuthRequestScheduler = createRequestScheduler({
+  maxConcurrentRequests: 1,
+});
 
 /**
  * Tworzy klienta obsługującego wymianę i odświeżanie tokenów Spotify.
@@ -30,6 +36,7 @@ function createSpotifyAuthClient({
   basicAuthHeader = getSpotifyBasicAuthHeader(),
   redirectUri = appConfig.spotify.redirectUri,
   requestTimeoutMs = 10_000,
+  scheduler,
 }: SpotifyAuthConfiguration = {}): SpotifyAuthClient {
   /**
    * Wysyła formularz do endpointu tokenowego Spotify.
@@ -44,15 +51,20 @@ function createSpotifyAuthClient({
     let response: Response;
 
     try {
-      response = await fetchImpl(tokenUrl, {
-        method: "POST",
-        headers: {
-          Authorization: basicAuthHeader,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(Object.entries(params)),
-        signal: AbortSignal.timeout(requestTimeoutMs),
-      });
+      const performRequest = () =>
+        fetchImpl(tokenUrl, {
+          method: "POST",
+          headers: {
+            Authorization: basicAuthHeader,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(Object.entries(params)),
+          signal: AbortSignal.timeout(requestTimeoutMs),
+        });
+
+      response = scheduler
+        ? await scheduler.schedule(performRequest)
+        : await performRequest();
     } catch (cause) {
       const timedOut = isTimeoutError(cause);
 
@@ -67,6 +79,14 @@ function createSpotifyAuthClient({
       );
     }
 
+    const retryAfterSeconds = parseRetryAfterSeconds(
+      response.headers.get("retry-after")
+    );
+
+    if (scheduler && !response.ok && retryAfterSeconds !== null) {
+      scheduler.pauseFor(retryAfterSeconds * 1_000);
+    }
+
     let data: unknown;
 
     try {
@@ -77,9 +97,7 @@ function createSpotifyAuthClient({
         {
           kind: "invalid-response",
           upstreamStatus: response.status,
-          retryAfterSeconds: parseRetryAfterSeconds(
-            response.headers.get("retry-after")
-          ),
+          retryAfterSeconds,
           cause,
         }
       );
@@ -95,9 +113,7 @@ function createSpotifyAuthClient({
           kind: oauthError ? "oauth" : "invalid-response",
           upstreamStatus: response.status,
           oauthCode: oauthError?.code ?? null,
-          retryAfterSeconds: parseRetryAfterSeconds(
-            response.headers.get("retry-after")
-          ),
+          retryAfterSeconds,
           data,
         }
       );
@@ -157,6 +173,8 @@ function createSpotifyAuthClient({
 }
 
 /** Klient korzystający z produkcyjnej konfiguracji Spotify Accounts API. */
-const defaultSpotifyAuthClient = createSpotifyAuthClient();
+const defaultSpotifyAuthClient = createSpotifyAuthClient({
+  scheduler: spotifyAuthRequestScheduler,
+});
 
 export { createSpotifyAuthClient, defaultSpotifyAuthClient };
