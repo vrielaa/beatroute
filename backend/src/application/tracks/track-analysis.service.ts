@@ -46,37 +46,43 @@ function createTrackAnalysisService({
     spotifyIds: string[]
   ): Promise<TrackAudioStatsSummary> {
     const audioFeatures = await getAudioFeatures(spotifyIds);
-    const stats = calculateAudioStats(audioFeatures);
-
-    return {
-      ...stats,
-      totalTracksCount: spotifyIds.length,
-      foundTracksCount: stats.trackCount,
-    };
+    return buildAudioStatsSummary(audioFeatures, spotifyIds.length);
   }
 
   async function getTracksAnalysis(spotifyIds: string[]): Promise<{
     stats: TrackAudioStatsSummary;
     audioFeatures: TrackAudioFeaturesResult[];
   }> {
-    const audioFeatures =
-      await audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds(
-        spotifyIds
-      );
-
-    const calculatedStats = calculateAudioStats(audioFeatures);
+    const audioFeatures = await getAudioFeatures(spotifyIds);
 
     return {
       audioFeatures,
-      stats: {
-        ...calculatedStats,
-        totalTracksCount: spotifyIds.length,
-        foundTracksCount: calculatedStats.trackCount,
-      },
+      stats: buildAudioStatsSummary(audioFeatures, spotifyIds.length),
     };
   }
 
   return { getAudioFeatures, getAudioStats, getTracksAnalysis };
+}
+
+/**
+ * Oblicza statystyki i uzupełnia je o liczbę żądanych i odnalezionych utworów.
+ * Obie operacje analizy korzystają z tego samego sposobu budowania podsumowania.
+ *
+ * @param audioFeatures - Wyniki pobrania cech audio, w tym nieudane odczyty.
+ * @param totalTracksCount - Liczba utworów przekazanych do analizy.
+ * @returns Statystyki poprawnych odczytów wraz z informacją o kompletności danych.
+ */
+function buildAudioStatsSummary(
+  audioFeatures: TrackAudioFeaturesResult[],
+  totalTracksCount: number
+): TrackAudioStatsSummary {
+  const stats = calculateAudioStats(audioFeatures);
+
+  return {
+    ...stats,
+    totalTracksCount,
+    foundTracksCount: stats.trackCount,
+  };
 }
 
 export { createTrackAnalysisService };
