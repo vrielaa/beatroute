@@ -103,7 +103,59 @@ describe("track analysis service", () => {
         foundTracksCount: 0,
         averageBpm: null,
         averageEnergy: null,
+        liveTrackPercentage: null,
+        instrumentalTrackPercentage: null,
+        speechHeavyTrackPercentage: null,
+        measurementCounts: {
+          mode: 0,
+          liveness: 0,
+          instrumentalness: 0,
+          speechiness: 0,
+        },
       });
+    }
+  );
+
+  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
+    "%s preserves per-feature measurement counts and the number of requested tracks",
+    async (method) => {
+      const dependencies = createDependencies();
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
+        [
+          createAudioFeatures("measured", {
+            liveness: 0.9,
+            instrumentalness: null,
+            speechiness: null,
+          }),
+          createAudioFeatures("missing", {
+            liveness: null,
+            instrumentalness: null,
+            speechiness: null,
+          }),
+          { spotifyId: "failed", error: "Track not found" },
+        ]
+      );
+      const service = createTrackAnalysisService(dependencies);
+
+      const result = await service[method](["measured", "missing", "failed"]);
+      const stats = "stats" in result ? result.stats : result;
+
+      expect(stats).toMatchObject({
+        totalTracksCount: 3,
+        foundTracksCount: 2,
+        liveTrackPercentage: 100,
+        instrumentalTrackPercentage: null,
+        speechHeavyTrackPercentage: null,
+        measurementCounts: {
+          mode: 2,
+          liveness: 1,
+          instrumentalness: 0,
+          speechiness: 0,
+        },
+      });
+      expect(
+        dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+      ).toHaveBeenCalledOnce();
     }
   );
 

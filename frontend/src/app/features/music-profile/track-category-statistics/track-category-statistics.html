@@ -1,0 +1,30 @@
+<div class="track-category-heading">
+  <h3>Typy utworów</h3>
+  <p>Procenty są liczone tylko wśród utworów z dostępnym pomiarem danej cechy.</p>
+</div>
+
+@if (isLoading()) {
+<p class="track-category-state" role="status">Ładowanie statystyk utworów...</p>
+} @else if (audioStats(); as stats) {
+<dl class="track-category-list">
+  @for (statistic of statistics(); track statistic.label) {
+  <div class="track-category-item">
+    <dt>{{ statistic.label }}</dt>
+    <dd>
+      <strong
+        class="track-category-value"
+        [class.track-category-value--missing]="statistic.percentage === null"
+      >
+        @if (statistic.percentage === null) { Brak danych } @else { {{ statistic.percentage }}% }
+      </strong>
+      <span class="track-category-coverage">
+        Pomiary: {{ statistic.measurementCount }} z {{ stats.totalTracksCount }} utworów. Brak
+        pomiaru: {{ stats.totalTracksCount - statistic.measurementCount }}.
+      </span>
+    </dd>
+  </div>
+  }
+</dl>
+} @else {
+<p class="track-category-state">Brak danych o typach utworów.</p>
+}

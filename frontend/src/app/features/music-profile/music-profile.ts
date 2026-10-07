@@ -5,10 +5,17 @@ import { AudioFeaturesComparison } from './audio-features-comparison/audio-featu
 import { AudioFeaturesProfile } from './audio-features-profile/audio-features-profile';
 import { AverageAudioFeatures } from './average-audio-features/average-audio-features';
 import { AverageBpm } from './average-bpm/average-bpm';
+import { TrackCategoryStatistics } from './track-category-statistics/track-category-statistics';
 
 @Component({
   selector: 'app-music-profile',
-  imports: [AverageBpm, AverageAudioFeatures, AudioFeaturesProfile, AudioFeaturesComparison],
+  imports: [
+    AverageBpm,
+    AverageAudioFeatures,
+    TrackCategoryStatistics,
+    AudioFeaturesProfile,
+    AudioFeaturesComparison,
+  ],
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
   styleUrl: './music-profile.scss',

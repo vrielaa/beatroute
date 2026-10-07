@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { errorHandler } from "@http/error-handler.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import { createTrackRouter } from "./routes.js";
+import { createTrackAnalysisService } from "@application/tracks/track-analysis.service.js";
 import type { RequestHandler } from "express";
 import type {
   TrackAudioFeatures,
@@ -12,6 +13,56 @@ import type {
 } from "@domain/tracks/types.js";
 
 describe("track routes", () => {
+  it.each(["audio-stats", "analysis"])(
+    "returns nullable percentages and measurement counts through /%s",
+    async (endpoint) => {
+      const dependencies = createRouteDependencies();
+      const audioFeaturesReader = {
+        getManyTrackAudioFeaturesBySpotifyIds: vi.fn().mockResolvedValue([
+          createAudioFeatures("measured", {
+            liveness: 0.9,
+            instrumentalness: null,
+          }),
+          createAudioFeatures("missing", {
+            liveness: null,
+            instrumentalness: null,
+          }),
+          { spotifyId: "failed", error: "Track not found" },
+        ]),
+      };
+      const app = createTestApp({
+        ...dependencies,
+        trackAnalysisService: createTrackAnalysisService({
+          audioFeaturesReader,
+        }),
+      });
+
+      const response = await request(app)
+        .post(`/api/tracks/${endpoint}`)
+        .send({ trackIds: ["measured", "missing", "failed"] })
+        .expect(200);
+      const stats =
+        endpoint === "analysis" ? response.body.stats : response.body;
+
+      expect(stats).toMatchObject({
+        totalTracksCount: 3,
+        foundTracksCount: 2,
+        liveTrackPercentage: 100,
+        instrumentalTrackPercentage: null,
+        speechHeavyTrackPercentage: 0,
+        measurementCounts: {
+          mode: 2,
+          liveness: 1,
+          instrumentalness: 0,
+          speechiness: 2,
+        },
+      });
+      expect(
+        audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+      ).toHaveBeenCalledOnce();
+    }
+  );
+
   it("requires authorization before calling route dependencies", async () => {
     const dependencies = createRouteDependencies();
     dependencies.authorize = (_request, response) => {
@@ -129,6 +180,12 @@ describe("track routes", () => {
       liveTrackPercentage: 0,
       instrumentalTrackPercentage: 0,
       speechHeavyTrackPercentage: 0,
+      measurementCounts: {
+        mode: 1,
+        liveness: 1,
+        instrumentalness: 1,
+        speechiness: 1,
+      },
       totalTracksCount: 2,
       foundTracksCount: 1,
     });
@@ -176,6 +233,12 @@ describe("track routes", () => {
         liveTrackPercentage: 0,
         instrumentalTrackPercentage: 0,
         speechHeavyTrackPercentage: 0,
+        measurementCounts: {
+          mode: 1,
+          liveness: 1,
+          instrumentalness: 1,
+          speechiness: 1,
+        },
         totalTracksCount: 2,
         foundTracksCount: 1,
       },

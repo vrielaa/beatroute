@@ -48,13 +48,18 @@ function mode(values: number[]): number | null {
   return mostFrequentValue;
 }
 
-/** Zamienia udział elementów na zaokrągloną wartość procentową. */
-function percentage(count: number, total: number): number {
+/** Oblicza procent wśród dostępnych pomiarów; ich brak oznacza `null`. */
+function percentage(count: number, total: number): number | null {
   if (!total) {
-    return 0;
+    return null;
   }
 
   return Math.round((count / total) * 100);
+}
+
+/** Sprawdza, czy cecha zawiera skończoną liczbę pozwalającą wykonać obliczenia. */
+function hasMeasurement(value: number | null): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 /** Sprawdza, czy wynik zawiera cechy audio zamiast opisu błędu. */
@@ -67,63 +72,55 @@ function hasAudioFeatures(
 /**
  * Oblicza zbiorcze statystyki dla poprawnie pobranych cech audio.
  * Nieudane odczyty są pomijane, a brak pojedynczej wartości nie wpływa na
- * statystykę pozostałych wartości tej cechy.
+ * statystykę pozostałych wartości tej cechy. Każdy udział procentowy jest
+ * liczony wyłącznie wśród utworów z dostępnym pomiarem danej cechy.
+ * Brak wszystkich pomiarów oznacza `null`, a dostępne pomiary bez dopasowań
+ * oznaczają 0%. Liczby pomiarów pozwalają ocenić kompletność tych wyników.
  *
  * @param results - Niezależne od dostawcy wyniki odczytu cech utworów.
- * @returns Średnie, dominanty, liczności i udziały procentowe.
+ * @returns Średnie, dominanty, udziały procentowe i liczby dostępnych pomiarów.
  */
 function calculateAudioStats(
   results: TrackAudioFeaturesResult[]
 ): TrackAudioStats {
   const tracks = results.filter(hasAudioFeatures);
-  const tempos = tracks
-    .map((track) => track.tempo)
-    .filter((value): value is number => typeof value === "number");
-  const energies = tracks
-    .map((track) => track.energy)
-    .filter((value): value is number => typeof value === "number");
+  const tempos = tracks.map((track) => track.tempo).filter(hasMeasurement);
+  const energies = tracks.map((track) => track.energy).filter(hasMeasurement);
   const danceabilities = tracks
     .map((track) => track.danceability)
-    .filter((value): value is number => typeof value === "number");
-  const valences = tracks
-    .map((track) => track.valence)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
+  const valences = tracks.map((track) => track.valence).filter(hasMeasurement);
   const acousticnesses = tracks
     .map((track) => track.acousticness)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
   const instrumentalnesses = tracks
     .map((track) => track.instrumentalness)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
   const livenesses = tracks
     .map((track) => track.liveness)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
   const speechinesses = tracks
     .map((track) => track.speechiness)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
   const loudnesses = tracks
     .map((track) => track.loudness)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
   const keys = tracks
     .map((track) => track.key)
-    .filter(
-      (value): value is number => typeof value === "number" && value >= 0
-    );
+    .filter((value): value is number => hasMeasurement(value) && value >= 0);
   const modes = tracks
     .map((track) => track.mode)
     .filter((value): value is number => value === 0 || value === 1);
   const timeSignatures = tracks
     .map((track) => track.timeSignature)
-    .filter((value): value is number => typeof value === "number");
+    .filter(hasMeasurement);
 
-  const liveTracksCount = tracks.filter(
-    (track) => typeof track.liveness === "number" && track.liveness > 0.8
+  const liveTracksCount = livenesses.filter((value) => value > 0.8).length;
+  const instrumentalTracksCount = instrumentalnesses.filter(
+    (value) => value > 0.5
   ).length;
-  const instrumentalTracksCount = tracks.filter(
-    (track) =>
-      typeof track.instrumentalness === "number" && track.instrumentalness > 0.5
-  ).length;
-  const speechHeavyTracksCount = tracks.filter(
-    (track) => typeof track.speechiness === "number" && track.speechiness > 0.66
+  const speechHeavyTracksCount = speechinesses.filter(
+    (value) => value > 0.66
   ).length;
   const majorCount = modes.filter((value) => value === 1).length;
   const minorCount = modes.filter((value) => value === 0).length;
@@ -144,15 +141,21 @@ function calculateAudioStats(
     dominantTimeSignature: mode(timeSignatures),
     majorPercentage: percentage(majorCount, modes.length),
     minorPercentage: percentage(minorCount, modes.length),
-    liveTrackPercentage: percentage(liveTracksCount, tracks.length),
+    liveTrackPercentage: percentage(liveTracksCount, livenesses.length),
     instrumentalTrackPercentage: percentage(
       instrumentalTracksCount,
-      tracks.length
+      instrumentalnesses.length
     ),
     speechHeavyTrackPercentage: percentage(
       speechHeavyTracksCount,
-      tracks.length
+      speechinesses.length
     ),
+    measurementCounts: {
+      mode: modes.length,
+      liveness: livenesses.length,
+      instrumentalness: instrumentalnesses.length,
+      speechiness: speechinesses.length,
+    },
   };
 }
 

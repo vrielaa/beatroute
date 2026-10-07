@@ -1061,8 +1061,36 @@
         },
         "required": ["audio_features"]
       },
+      "AudioMeasurementCounts": {
+        "type": "object",
+        "description": "Number of available measurements used as the denominator for each percentage. Missing measurements and failed track reads are excluded.",
+        "properties": {
+          "mode": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tracks with a recognized major or minor mode."
+          },
+          "liveness": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tracks with an available liveness measurement."
+          },
+          "instrumentalness": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tracks with an available instrumentalness measurement."
+          },
+          "speechiness": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tracks with an available speechiness measurement."
+          }
+        },
+        "required": ["mode", "liveness", "instrumentalness", "speechiness"]
+      },
       "AudioStats": {
         "type": "object",
+        "description": "Audio statistics calculated from available measurements. Percentages use their own per-feature denominator: null means no measurements, while zero means measurements exist but none match the category.",
         "properties": {
           "trackCount": {
             "type": "integer",
@@ -1102,27 +1130,40 @@
             "type": ["integer", "null"]
           },
           "majorPercentage": {
-            "type": "number",
-            "minimum": 0
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of major-mode tracks among recognized modes; null when there are no mode measurements."
           },
           "minorPercentage": {
-            "type": "number",
-            "minimum": 0
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of minor-mode tracks among recognized modes; null when there are no mode measurements."
           },
           "dominantTimeSignature": {
             "type": ["integer", "null"]
           },
           "liveTrackPercentage": {
-            "type": "number",
-            "minimum": 0
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of available liveness measurements greater than 0.8; null when there are none."
           },
           "instrumentalTrackPercentage": {
-            "type": "number",
-            "minimum": 0
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of available instrumentalness measurements greater than 0.5; null when there are none."
           },
           "speechHeavyTrackPercentage": {
-            "type": "number",
-            "minimum": 0
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage of available speechiness measurements greater than 0.66; null when there are none."
+          },
+          "measurementCounts": {
+            "$ref": "#/components/schemas/AudioMeasurementCounts"
           },
           "foundTracksCount": {
             "type": "integer",
@@ -1152,6 +1193,7 @@
           "liveTrackPercentage",
           "instrumentalTrackPercentage",
           "speechHeavyTrackPercentage",
+          "measurementCounts",
           "foundTracksCount",
           "totalTracksCount"
         ]

@@ -8,6 +8,11 @@ audio-feature statistics, Last.fm artist genres, and a PCA/clustering-based
 music map. The playlist-generator screen exists in the frontend as a prepared
 view, but the end-to-end playlist workflow is not implemented yet.
 
+Track-category percentages are calculated only from available measurements
+of the relevant feature. No measurements produce `null` (shown as "Brak danych"),
+while measured tracks with no category matches produce 0%. The music profile
+shows how many requested tracks have a measurement for each percentage.
+
 ## Technology
 
 - Angular 22 and TypeScript frontend

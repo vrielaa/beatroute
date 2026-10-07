@@ -129,6 +129,7 @@ function createAudioStats(): AudioStats {
     liveTrackPercentage: 0,
     instrumentalTrackPercentage: 0,
     speechHeavyTrackPercentage: 0,
+    measurementCounts: { mode: 1, liveness: 1, instrumentalness: 1, speechiness: 1 },
     foundTracksCount: 1,
     totalTracksCount: 1,
   };

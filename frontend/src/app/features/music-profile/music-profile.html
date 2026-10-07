@@ -10,6 +10,12 @@
   [isLoading]="isAudioStatsLoading()"
 ></app-average-audio-features>
 
+<app-track-category-statistics
+  class="card"
+  [audioStats]="audioStats()"
+  [isLoading]="isAudioStatsLoading()"
+></app-track-category-statistics>
+
 <app-audio-features-profile
   class="card"
   [audioStats]="audioStats()"

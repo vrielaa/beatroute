@@ -41,44 +41,66 @@ type TrackAudioFeaturesFailure = {
 /** Wynik odczytu cech jednego utworu: dane albo opis błędu. */
 type TrackAudioFeaturesResult = TrackAudioFeatures | TrackAudioFeaturesFailure;
 
-/** Zbiorcze statystyki obliczone na podstawie cech audio utworów. */
+/**
+ * Liczby dostępnych pomiarów stanowiących podstawę udziałów procentowych.
+ * Brak pomiaru oraz nieudane pobranie cech utworu nie zwiększają liczników.
+ *
+ * @property mode - Liczba utworów z rozpoznanym trybem durowym lub molowym.
+ * @property liveness - Liczba utworów z pomiarem prawdopodobieństwa wykonania na żywo.
+ * @property instrumentalness - Liczba utworów z pomiarem udziału partii instrumentalnych.
+ * @property speechiness - Liczba utworów z pomiarem udziału mowy.
+ */
+type TrackAudioMeasurementCounts = {
+  mode: number;
+  liveness: number;
+  instrumentalness: number;
+  speechiness: number;
+};
+
+/**
+ * Zbiorcze statystyki cech audio. Brak pomiarów oznacza `null`, a nie zero.
+ * Udziały procentowe odnoszą się do dostępnych pomiarów danej cechy.
+ *
+ * @property trackCount - Liczba utworów, dla których odczytano dane cech audio.
+ * @property averageBpm - Średnie tempo w uderzeniach na minutę.
+ * @property averageEnergy - Średnia energia utworów.
+ * @property averageDanceability - Średnia przydatność utworów do tańca.
+ * @property averageValence - Średnia pozytywność brzmienia.
+ * @property averageAcousticness - Średni udział brzmienia akustycznego.
+ * @property averageInstrumentalness - Średni udział partii instrumentalnych.
+ * @property averageLiveness - Średnie prawdopodobieństwo wykonania na żywo.
+ * @property averageSpeechiness - Średni udział mowy w nagraniach.
+ * @property averageLoudness - Średnia głośność utworów w decybelach.
+ * @property dominantKey - Najczęściej występująca tonacja.
+ * @property dominantMode - Najczęściej występujący tryb harmoniczny.
+ * @property dominantTimeSignature - Najczęściej występujące metrum.
+ * @property majorPercentage - Procent utworów durowych wśród rozpoznanych trybów.
+ * @property minorPercentage - Procent utworów molowych wśród rozpoznanych trybów.
+ * @property liveTrackPercentage - Procent pomiarów liveness przekraczających 0,8.
+ * @property instrumentalTrackPercentage - Procent pomiarów instrumentalness przekraczających 0,5.
+ * @property speechHeavyTrackPercentage - Procent pomiarów speechiness przekraczających 0,66.
+ * @property measurementCounts - Liczby pomiarów użytych do obliczenia procentów.
+ */
 type TrackAudioStats = {
-  /** Liczba utworów uwzględnionych w obliczeniach. */
   trackCount: number;
-  /** Średnie tempo w uderzeniach na minutę. */
   averageBpm: number | null;
-  /** Średnia energia utworów. */
   averageEnergy: number | null;
-  /** Średnia przydatność utworów do tańca. */
   averageDanceability: number | null;
-  /** Średnia pozytywność brzmienia. */
   averageValence: number | null;
-  /** Średni udział brzmienia akustycznego. */
   averageAcousticness: number | null;
-  /** Średni udział partii instrumentalnych. */
   averageInstrumentalness: number | null;
-  /** Średnie prawdopodobieństwo wykonania na żywo. */
   averageLiveness: number | null;
-  /** Średni udział mowy w nagraniach. */
   averageSpeechiness: number | null;
-  /** Średnia głośność utworów w decybelach. */
   averageLoudness: number | null;
-  /** Najczęściej występująca tonacja. */
   dominantKey: number | null;
-  /** Najczęściej występujący tryb harmoniczny. */
   dominantMode: number | null;
-  /** Najczęściej występujące metrum. */
   dominantTimeSignature: number | null;
-  /** Procent utworów w trybie durowym. */
-  majorPercentage: number;
-  /** Procent utworów w trybie molowym. */
-  minorPercentage: number;
-  /** Procent utworów zaklasyfikowanych jako nagrania na żywo. */
-  liveTrackPercentage: number;
-  /** Procent utworów zaklasyfikowanych jako instrumentalne. */
-  instrumentalTrackPercentage: number;
-  /** Procent utworów o wysokim udziale mowy. */
-  speechHeavyTrackPercentage: number;
+  majorPercentage: number | null;
+  minorPercentage: number | null;
+  liveTrackPercentage: number | null;
+  instrumentalTrackPercentage: number | null;
+  speechHeavyTrackPercentage: number | null;
+  measurementCounts: TrackAudioMeasurementCounts;
 };
 
 export type {
@@ -86,4 +108,5 @@ export type {
   TrackAudioFeaturesFailure,
   TrackAudioFeaturesResult,
   TrackAudioStats,
+  TrackAudioMeasurementCounts,
 };
