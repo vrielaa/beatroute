@@ -26,9 +26,12 @@ The backend is divided into domain, application, integration and HTTP layers.
 Domain modules contain PCA, clustering, audio statistics and genre
 classification without depending on Express or a provider API. Application
 modules combine operations such as building a Spotify/Last.fm track profile.
-Integration modules contain provider clients, gateways and mappers. Express
-routers validate requests and receive their services and middleware through
+Integration modules contain provider clients, adapters and mappers. Last.fm
+artist and track adapters combine fetching and mapping in one service each.
+Express routers validate requests and receive their services and middleware through
 explicit dependencies, which keeps the core logic independently testable.
+Production dependencies for Last.fm and track analysis are assembled in
+`composition.ts` beside their routers.
 
 ## Local setup
 
