@@ -8,6 +8,11 @@ audio-feature statistics, Last.fm artist genres, and a PCA/clustering-based
 music map. The playlist-generator screen exists in the frontend as a prepared
 view, but the end-to-end playlist workflow is not implemented yet.
 
+The agreed scope for the generator is documented in
+[Playlist generator requirements](PLAYLIST-GENERATOR-REQUIREMENTS.md).
+The version-1 dataset types and a [synthetic sample file](examples/playlist-dataset.json)
+are available; file import, validation and generation are not implemented yet.
+
 Track-category percentages are calculated only from available measurements
 of the relevant feature. No measurements produce `null` (shown as "Brak danych"),
 while measured tracks with no category matches produce 0%. The music profile
