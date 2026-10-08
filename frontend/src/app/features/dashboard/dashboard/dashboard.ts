@@ -6,10 +6,17 @@ import { ListeningTracksStore } from '@core/stores/listening-tracks.store';
 import { DashboardArtistsStore } from './dashboard-artists.store';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
 import { ListeningStatsWarnings } from '../listening-stats-warnings/listening-stats-warnings';
+import { ListeningTracksFeedback } from '@shared/components/listening-tracks-feedback/listening-tracks-feedback';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ListeningStatsWarnings, MostListenedTracks, GenreDistribution, MostListenedArtists],
+  imports: [
+    ListeningStatsWarnings,
+    MostListenedTracks,
+    GenreDistribution,
+    MostListenedArtists,
+    ListeningTracksFeedback,
+  ],
   providers: [ListeningTracksStore, DashboardArtistsStore],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
@@ -36,12 +43,17 @@ class Dashboard {
   public readonly hasGenreDistributionError = this.artistsStore.hasGenreDistributionError;
   public readonly audioFeatures = this.tracksStore.audioFeatures;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
+  public readonly tracksLoadState = this.tracksStore.loadState;
+  public readonly tracksFeedbackMessage = this.tracksStore.feedbackMessage;
+  public readonly hasTracksError = this.tracksStore.hasError;
   public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;
   public readonly artistsFoundRatio = this.artistsStore.artistsFoundRatio;
   public readonly artistGenres = this.artistsStore.artistGenres;
 
   constructor() {
     effect((onCleanup) => {
+      this.tracksStore.reloadVersion();
+
       const subscription = this.tracksStore.load(
         this.selectedTimeRange(),
         this.selectedTracksRange()
@@ -64,6 +76,10 @@ class Dashboard {
 
   public retryTopArtists(): void {
     this.artistsStore.retry();
+  }
+
+  public retryTracks(): void {
+    this.tracksStore.retry();
   }
 }
 

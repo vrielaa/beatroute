@@ -1,8 +1,15 @@
 <app-listening-stats-warnings
   [selectedTimeRange]="selectedTimeRange()"
-  [tracksFoundRatio]="tracksFoundRatio()"
+  [tracksFoundRatio]="tracksLoadState() === 'ready' ? tracksFoundRatio() : null"
   [artistsFoundRatio]="artistsFoundRatio()"
 ></app-listening-stats-warnings>
+@if (tracksFeedbackMessage(); as message) {
+<app-listening-tracks-feedback
+  [message]="message"
+  [hasError]="hasTracksError()"
+  (retryRequested)="retryTracks()"
+></app-listening-tracks-feedback>
+}
 <app-most-listened-artists
   class="card"
   [timeRange]="selectedTimeRange()"
@@ -12,6 +19,7 @@
   [hasError]="hasTopArtistsError()"
   (retryRequested)="retryTopArtists()"
 ></app-most-listened-artists>
+@if (tracksLoadState() !== 'tracks-error' && tracksLoadState() !== 'no-tracks') {
 <app-most-listened-tracks
   class="card"
   [timeRange]="selectedTimeRange()"
@@ -19,6 +27,7 @@
   [audioFeatures]="audioFeatures()"
   [isLoading]="isAudioStatsLoading()"
 ></app-most-listened-tracks>
+}
 <app-genre-distribution
   class="card"
   [distribution]="genreDistribution()"

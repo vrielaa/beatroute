@@ -1,0 +1,6 @@
+<section class="card" [attr.role]="hasError() ? 'alert' : 'status'">
+  <p>{{ message() }}</p>
+  @if (hasError()) {
+  <button type="button" (click)="retryRequested.emit()">Spróbuj ponownie</button>
+  }
+</section>

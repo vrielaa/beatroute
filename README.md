@@ -13,6 +13,11 @@ of the relevant feature. No measurements produce `null` (shown as "Brak danych")
 while measured tracks with no category matches produce 0%. The music profile
 shows how many requested tracks have a measurement for each percentage.
 
+The dashboard and music profile distinguish an empty Spotify track list, missing
+audio measurements, and a failed request. Failures display a retry button using
+the current filters. If audio analysis fails, the dashboard keeps the track list
+already retrieved from Spotify; changing filters cancels the previous request.
+
 ## Technology
 
 - Angular 22 and TypeScript frontend

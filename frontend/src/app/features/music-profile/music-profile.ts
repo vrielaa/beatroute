@@ -6,6 +6,7 @@ import { AudioFeaturesProfile } from './audio-features-profile/audio-features-pr
 import { AverageAudioFeatures } from './average-audio-features/average-audio-features';
 import { AverageBpm } from './average-bpm/average-bpm';
 import { TrackCategoryStatistics } from './track-category-statistics/track-category-statistics';
+import { ListeningTracksFeedback } from '@shared/components/listening-tracks-feedback/listening-tracks-feedback';
 
 @Component({
   selector: 'app-music-profile',
@@ -15,6 +16,7 @@ import { TrackCategoryStatistics } from './track-category-statistics/track-categ
     TrackCategoryStatistics,
     AudioFeaturesProfile,
     AudioFeaturesComparison,
+    ListeningTracksFeedback,
   ],
   providers: [ListeningTracksStore],
   templateUrl: './music-profile.html',
@@ -36,9 +38,14 @@ class MusicProfile {
   public readonly audioStats = this.tracksStore.audioStats;
   public readonly averageBpm = this.tracksStore.averageBpm;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
+  public readonly tracksLoadState = this.tracksStore.loadState;
+  public readonly tracksFeedbackMessage = this.tracksStore.feedbackMessage;
+  public readonly hasTracksError = this.tracksStore.hasError;
 
   constructor() {
     effect((onCleanup) => {
+      this.tracksStore.reloadVersion();
+
       const subscription = this.tracksStore.load(
         this.selectedTimeRange(),
         this.selectedTracksRange()
@@ -46,6 +53,10 @@ class MusicProfile {
 
       onCleanup(() => subscription.unsubscribe());
     });
+  }
+
+  public retryTracks(): void {
+    this.tracksStore.retry();
   }
 }
 

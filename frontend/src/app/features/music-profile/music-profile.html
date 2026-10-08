@@ -1,3 +1,10 @@
+@if (tracksFeedbackMessage(); as message) {
+<app-listening-tracks-feedback
+  [message]="message"
+  [hasError]="hasTracksError()"
+  (retryRequested)="retryTracks()"
+></app-listening-tracks-feedback>
+} @if (tracksLoadState() === 'loading' || tracksLoadState() === 'ready') {
 <app-average-bpm
   class="card"
   [averageBpm]="averageBpm()"
@@ -28,3 +35,4 @@
   [audioFeatures]="audioFeatures()"
   [isLoading]="isAudioStatsLoading()"
 ></app-audio-features-comparison>
+}
