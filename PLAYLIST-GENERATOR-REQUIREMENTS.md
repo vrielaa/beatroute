@@ -46,18 +46,23 @@ Przykład nie zawiera danych pobranych z żadnego dostawcy.
 ```
 
 - `version` ma wartość 1 i opisuje wersję formatu, nie wersję aplikacji.
-- `tracks` jest tablicą utworów. `id` jest niepusty i unikalny w zbiorze.
+- `tracks` jest tablicą od 1 do 500 utworów. `id` jest niepusty i unikalny w zbiorze.
 - `name` jest niepustym tekstem, a `artists` niepustą tablicą niepustych nazw.
 - Wszystkie osiem pól `audioFeatures` musi istnieć. Wartość null oznacza brak pomiaru.
 - `tempo` jest dodatnią, skończoną liczbą BPM albo null.
 - Pozostałe siedem cech jest skończoną liczbą od 0 do 1 albo null.
 - Liczba 0 jest poprawnym pomiarem cech w skali 0–1, nie oznacza braku danych.
 - Plik nie zawiera wymagań ani preferencji; użytkownik wybiera je w formularzu.
+- Walidator przycina identyfikatory, nazwy utworów i artystów. Duplikaty
+  identyfikatorów sprawdza po przycięciu. Dodatkowe pola nie trafiają do wyniku.
 
 Typy domenowe znajdują się w `backend/src/domain/playlist-generator/types.ts`:
 `PlaylistAudioFeatures`, `PlaylistTrack` i `PlaylistDataset`. Typy TypeScript nie
-walidują odczytanego JSON-a. Walidator, limity rozmiaru/liczby utworów, import,
-filtrowanie i ranking pozostają kolejnymi etapami implementacji.
+walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDataset`
+w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
+testami w sąsiednim pliku. Limit rozmiaru żądania dla generatora, import,
+filtrowanie i ranking pozostają kolejnymi etapami implementacji; walidator nie
+jest jeszcze podłączony do endpointu ani ekranu importu.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
