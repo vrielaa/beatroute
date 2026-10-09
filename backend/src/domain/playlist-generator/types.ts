@@ -204,6 +204,20 @@ type PlaylistTrackEvaluation = {
   featureMatches: PlaylistFeatureMatch[];
 };
 
+/**
+ * Wynik domenowego generatora, bez zapisu pliku ani utworzenia playlisty w Spotify.
+ * Każdy utwór wejściowy trafia do rankingu albo do grupy odrzuconych.
+ * Każda z grup może być pusta; nie oznacza to błędu generowania.
+ *
+ * @property rankedTracks - Oceny utworów spełniających wymagania, uporządkowane według preferencji.
+ * @property rejectedTracks - Utwory niespełniające wymagań i wszystkie powody ich odrzucenia,
+ * w kolejności źródłowej.
+ */
+type GeneratedPlaylist = {
+  rankedTracks: PlaylistTrackEvaluation[];
+  rejectedTracks: RejectedPlaylistTrack[];
+};
+
 export type {
   PlaylistAudioFeatures,
   PlaylistTrack,
@@ -218,4 +232,5 @@ export type {
   PlaylistPreferenceFeature,
   PlaylistFeatureMatch,
   PlaylistTrackEvaluation,
+  GeneratedPlaylist,
 };
