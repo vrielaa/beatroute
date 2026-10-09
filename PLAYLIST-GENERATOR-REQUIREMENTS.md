@@ -60,9 +60,10 @@ Typy domenowe znajdują się w `backend/src/domain/playlist-generator/types.ts`:
 `PlaylistAudioFeatures`, `PlaylistTrack` i `PlaylistDataset`. Typy TypeScript nie
 walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDataset`
 w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
-testami w sąsiednim pliku. Limit rozmiaru żądania dla generatora, import,
-filtrowanie i ranking pozostają kolejnymi etapami implementacji; walidator nie
-jest jeszcze podłączony do endpointu ani ekranu importu.
+testami w sąsiednim pliku. Filtrowanie i ocena pojedynczego utworu są już dostępne
+jako funkcje domenowe. Limit rozmiaru żądania dla generatora, import i sortowanie
+pozostają kolejnymi etapami; walidator nie jest jeszcze podłączony do endpointu
+ani ekranu importu.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
@@ -90,8 +91,8 @@ Preferencje odpowiadają na pytanie: „Który z dopuszczonych utworów pasuje b
 - „Bez znaczenia” wyłącza wpływ danej preferencji na ranking.
 - Bez aktywnych preferencji zachowujemy kolejność źródłową.
 - Stopień dopasowania rozmytego nie jest prawdopodobieństwem polubienia utworu.
-- `null` oznacza brak pomiaru, a nie wartość zero. Zasady rankingu przy brakujących
-  pomiarach preferencji oraz parametry funkcji przynależności wymagają doprecyzowania.
+- `null` oznacza brak pomiaru, a nie wartość zero. Ocena korzysta ze średniej
+  dostępnych dopasowań i zachowuje informację o brakujących pomiarach.
 - Ścisłe minimum energii, np. 0,7, byłoby dodatkowym wymaganiem liczbowym, a nie
   znaczeniem preferencji „wysoka energia”. Nie należy utożsamiać tych ustawień.
 
@@ -156,8 +157,51 @@ Funkcja `filterPlaylistTracks` w `backend/src/domain/playlist-generator/filter-t
 wykonuje ten podział dla wcześniej zwalidowanych utworów i wymagań. Jej testy
 sprawdzają granice, brakujące pomiary, wyłączone warunki, kompletność powodów
 odrzucenia i zachowanie kolejności. Funkcja nie modyfikuje wejścia, nie wywołuje
-API i zwraca referencje do utworów źródłowych. Ranking rozmyty i podłączenie
-filtrowania do endpointu oraz formularza pozostają kolejnymi etapami.
+API i zwraca referencje do utworów źródłowych. Sortowanie według ocen i podłączenie
+generatora do endpointu oraz formularza pozostają kolejnymi etapami.
+
+### Preferencje rozmyte i ocena pojedynczego utworu
+
+`PlaylistPreferences` zawiera pięć pól: energy, danceability, valence,
+acousticness i instrumentalness. Każde ma wartość low, medium, high albo null,
+które oznacza „Bez znaczenia”. Wszystkie pola są obecne w modelu domenowym;
+walidator preferencji nie jest jeszcze zaimplementowany.
+
+Funkcja `calculatePreferenceMatch` w `preference-match.ts` wyznacza dopasowanie
+pojedynczego pomiaru do preferowanego poziomu:
+
+- low: dopasowanie 1 do pomiaru 0,25, następnie liniowy spadek do 0 przy 0,5;
+- medium: dopasowanie 0 do 0,25, liniowy wzrost do 1 przy 0,5, następnie
+  liniowy spadek do 0 przy 0,75; powyżej tej granicy dopasowanie pozostaje 0;
+- high: dopasowanie 0 do pomiaru 0,5, następnie liniowy wzrost do 1 przy 0,75
+  i dopasowanie 1 dla większych pomiarów.
+
+Progi są przyjętymi parametrami projektu, nie uniwersalnymi definicjami cech
+muzycznych. Funkcja działa dla wcześniej zwalidowanych pomiarów w zakresie 0–1.
+
+Funkcja `evaluatePlaylistTrack` w `backend/src/domain/playlist-generator/evaluate-track.ts`
+ocenia jeden zwalidowany utwór względem aktywnych preferencji. Zwraca
+`PlaylistTrackEvaluation`: utwór, overallMatch i featureMatches.
+
+- Wyłączone preferencje nie tworzą wpisów i nie wpływają na średnią.
+- Każda aktywna preferencja tworzy wpis `PlaylistFeatureMatch`: cecha, poziom,
+  pomiar i dopasowanie. Brak pomiaru oznacza null zarówno w measurement, jak i match.
+- overallMatch jest niezaokrągloną średnią dostępnych dopasowań o jednakowych wagach.
+  Dopasowanie 0 jest uwzględniane w średniej; null nie jest zastępowane zerem.
+- Bez aktywnych preferencji wynik jest null, a lista ocen pusta.
+- Przy braku wszystkich potrzebnych pomiarów wynik jest null, ale lista zachowuje
+  aktywne preferencje i informację o brakujących pomiarach.
+
+Przykład: preferowana wysoka energia i taneczność oraz średnia walencja.
+Energia 0,7 daje dopasowanie 0,8, taneczność 0,65 daje 0,6, a brak walencji
+pozostaje nieoceniony. Średnia wynosi 0,7; oceniono 2 z 3 aktywnych preferencji.
+Kompletność wynika z liczby niepustych dopasowań względem długości featureMatches.
+Średnie obliczone z różnej liczby pomiarów nie zapewniają jednakowej kompletności;
+interfejs powinien pokazywać te braki. Reguły sortowania i rozstrzygania remisów
+nie są jeszcze zaimplementowane.
+
+Obie funkcje mają testy jednostkowe. Ocena nie zmienia wejścia, nie filtruje ani
+nie sortuje utworów i nie wywołuje API. Wynik zachowuje referencję do utworu źródłowego.
 
 ## Wynik i zakres pierwszej wersji
 

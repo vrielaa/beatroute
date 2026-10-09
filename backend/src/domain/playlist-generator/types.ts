@@ -158,6 +158,52 @@ type PlaylistPreferences = {
   acousticness: PlaylistPreferenceLevel | null;
   instrumentalness: PlaylistPreferenceLevel | null;
 };
+
+/**
+ * Nazwa jednej z pięciu cech ocenianych według preferencji użytkownika.
+ * Odpowiada kluczom PlaylistPreferences; nie obejmuje obowiązkowych wymagań
+ * dotyczących tempa, speechiness i liveness.
+ */
+type PlaylistPreferenceFeature = keyof PlaylistPreferences;
+
+/**
+ * Ocena jednej aktywnej preferencji dla konkretnego utworu.
+ * Wyłączona preferencja nie tworzy wpisu. Przy braku pomiaru zarówno
+ * measurement, jak i match mają wartość null — brak danych nie oznacza zera.
+ *
+ * @property feature - Cecha audio podlegająca ocenie.
+ * @property level - Poziom wybrany przez użytkownika dla tej cechy.
+ * @property measurement - Pomiar w zakresie 0–1 albo null, jeśli jest niedostępny.
+ * @property match - Dopasowanie w zakresie 0–1 albo null, jeśli brakuje pomiaru.
+ *
+ * @example
+ * { feature: "energy", level: "high", measurement: 0.7, match: 0.8 }
+ */
+type PlaylistFeatureMatch = {
+  feature: PlaylistPreferenceFeature;
+  level: PlaylistPreferenceLevel;
+  measurement: number | null;
+  match: number | null;
+};
+
+/**
+ * Ocena utworu według preferencji, niezależna od obowiązkowego filtrowania.
+ * Wynik łączny jest średnią dostępnych dopasowań o jednakowych wagach.
+ * Nie oznacza prawdopodobieństwa polubienia utworu. Kompletność oceny można
+ * ustalić z liczby dostępnych dopasowań względem długości featureMatches.
+ *
+ * @property track - Oceniany utwór z metadanymi i pomiarami.
+ * @property overallMatch - Średnie dopasowanie w zakresie 0–1 albo null,
+ * gdy nie ma aktywnych preferencji lub żadna z nich nie ma dostępnego pomiaru.
+ * @property featureMatches - Oceny wszystkich aktywnych preferencji, także
+ * tych bez pomiaru; pusta lista oznacza, że wszystkie preferencje są wyłączone.
+ */
+type PlaylistTrackEvaluation = {
+  track: PlaylistTrack;
+  overallMatch: number | null;
+  featureMatches: PlaylistFeatureMatch[];
+};
+
 export type {
   PlaylistAudioFeatures,
   PlaylistTrack,
@@ -169,4 +215,7 @@ export type {
   PlaylistTrackSelection,
   PlaylistPreferenceLevel,
   PlaylistPreferences,
+  PlaylistPreferenceFeature,
+  PlaylistFeatureMatch,
+  PlaylistTrackEvaluation,
 };
