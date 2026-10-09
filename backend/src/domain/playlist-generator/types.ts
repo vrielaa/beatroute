@@ -83,10 +83,65 @@ type PlaylistRequirements = {
   maxLiveness: number | null;
 };
 
+/**
+ * Przyczyna niespełnienia jednego aktywnego wymagania przez utwór.
+ * Brak pomiaru może dotyczyć każdej z trzech cech. Wyjście poza zakres dotyczy
+ * tylko tempa, a przekroczenie maksimum tylko speechiness lub liveness.
+ * Kod opisuje przyczynę, nie gotowy komunikat do wyświetlenia w interfejsie.
+ *
+ * @property feature - Cecha, której dotyczy niespełnione wymaganie.
+ * @property code - missing-measurement: brak pomiaru; outside-range: tempo poza
+ * dopuszczalnym zakresem; above-maximum: pomiar większy niż dopuszczalne maksimum.
+ *
+ * @example
+ * { feature: "tempo", code: "outside-range" }
+ */
+type PlaylistTrackRejectionReason =
+  | {
+      feature: "tempo" | "speechiness" | "liveness";
+      code: "missing-measurement";
+    }
+  | {
+      feature: "tempo";
+      code: "outside-range";
+    }
+  | {
+      feature: "speechiness" | "liveness";
+      code: "above-maximum";
+    };
+
+/**
+ * Utwór niedopuszczony do playlisty i wszystkie powody jego odrzucenia.
+ * Powody dotyczą obowiązkowych wymagań, a nie preferencji wpływających na ranking.
+ *
+ * @property track - Utwór z metadanymi i pomiarami, potrzebny do pokazania odrzucenia.
+ * @property reasons - Niepusta lista przyczyn niespełnienia aktywnych wymagań.
+ */
+type RejectedPlaylistTrack = {
+  track: PlaylistTrack;
+  reasons: PlaylistTrackRejectionReason[];
+};
+
+/**
+ * Podział zbioru według obowiązkowych wymagań, przed wykonaniem rankingu.
+ * Każdy utwór wejściowy należy do jednej grupy. W obu grupach zachowywana jest
+ * kolejność źródłowa; pusta grupa jest poprawnym wynikiem, nie błędem.
+ *
+ * @property acceptedTracks - Utwory spełniające wszystkie aktywne wymagania.
+ * @property rejectedTracks - Utwory niespełniające wymagań wraz z powodami odrzucenia.
+ */
+type PlaylistTrackSelection = {
+  acceptedTracks: PlaylistTrack[];
+  rejectedTracks: RejectedPlaylistTrack[];
+};
+
 export type {
   PlaylistAudioFeatures,
   PlaylistTrack,
   PlaylistDataset,
   TempoRange,
   PlaylistRequirements,
+  PlaylistTrackRejectionReason,
+  RejectedPlaylistTrack,
+  PlaylistTrackSelection,
 };

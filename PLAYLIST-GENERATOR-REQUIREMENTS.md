@@ -124,8 +124,40 @@ Wymagania sprawdza funkcja `parsePlaylistRequirements` w
 `backend/src/http/routes/playlist-generator/requirements.validator.ts`, pokryta
 testami w sąsiednim pliku. Wymaga obecności wszystkich trzech pól, odrzuca
 niepoprawne wartości i zwraca nowy obiekt bez dodatkowych pól wejściowych.
-Filtrowanie pozostaje kolejnym krokiem implementacji; sam walidator nie ocenia
-utworów i nie jest jeszcze podłączony do endpointu ani formularza.
+Sam walidator nie ocenia utworów i nie jest jeszcze podłączony do endpointu
+ani formularza.
+
+### Model wyniku filtrowania
+
+W `backend/src/domain/playlist-generator/types.ts` dodano trzy typy opisujące
+wynik filtrowania:
+
+- `PlaylistTrackRejectionReason`: cecha (`feature`) i kod przyczyny (`code`).
+- `RejectedPlaylistTrack`: utwór (`track`) i niepusta lista przyczyn (`reasons`).
+- `PlaylistTrackSelection`: dopuszczone utwory (`acceptedTracks`) i odrzucone
+  utwory z przyczynami (`rejectedTracks`), przed wykonaniem rankingu.
+
+Kody przyczyn mają następujące znaczenie:
+
+| Kod                 | Dopuszczalne cechy           | Znaczenie                                     |
+| ------------------- | ---------------------------- | --------------------------------------------- |
+| missing-measurement | tempo, speechiness, liveness | Brak pomiaru potrzebnego do aktywnego warunku |
+| outside-range       | tempo                        | Tempo poniżej minimum lub powyżej maksimum    |
+| above-maximum       | speechiness, liveness        | Pomiar większy niż ustawione maksimum         |
+
+Przykładowa przyczyna: `{ "feature": "tempo", "code": "outside-range" }`.
+Domena zwraca kod, a interfejs przygotuje komunikat dla użytkownika. Wyłączony
+warunek nie tworzy powodu odrzucenia, również przy braku jego pomiaru.
+Każdy utwór należy do jednej grupy; obie zachowują kolejność źródłową. Każda
+grupa może być pusta. Dla odrzuconego utworu zbieramy wszystkie powody, zamiast
+przerywać sprawdzanie po pierwszym niespełnionym wymaganiu.
+
+Funkcja `filterPlaylistTracks` w `backend/src/domain/playlist-generator/filter-tracks.ts`
+wykonuje ten podział dla wcześniej zwalidowanych utworów i wymagań. Jej testy
+sprawdzają granice, brakujące pomiary, wyłączone warunki, kompletność powodów
+odrzucenia i zachowanie kolejności. Funkcja nie modyfikuje wejścia, nie wywołuje
+API i zwraca referencje do utworów źródłowych. Ranking rozmyty i podłączenie
+filtrowania do endpointu oraz formularza pozostają kolejnymi etapami.
 
 ## Wynik i zakres pierwszej wersji
 

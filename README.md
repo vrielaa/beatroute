@@ -15,6 +15,8 @@ are available. The backend dataset validator checks 1–500 tracks, metadata,
 unique identifiers and all eight measurements, and is covered by unit tests.
 The requirements validator checks optional tempo ranges and maximum speechiness
 and liveness values, with `null` disabling each condition and zero remaining active.
+Domain filtering separates accepted and rejected tracks, includes every rejection
+reason and preserves source order without calling external APIs. It is covered by unit tests.
 File import, generator endpoints and generation are not implemented yet.
 
 Track-category percentages are calculated only from available measurements
