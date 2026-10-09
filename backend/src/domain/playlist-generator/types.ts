@@ -135,6 +135,29 @@ type PlaylistTrackSelection = {
   rejectedTracks: RejectedPlaylistTrack[];
 };
 
+/**
+ * Preferowany poziom cechy audio.
+ * low oznacza niski, medium średni, a high wysoki poziom.
+ */
+type PlaylistPreferenceLevel = "low" | "medium" | "high";
+/**
+ * Preferencje wpływające na kolejność dopuszczonych utworów.
+ * null oznacza „Bez znaczenia” — cecha nie wpływa na ocenę.
+ * Preferencje nie odrzucają utworów.
+ *
+ * @property energy - Preferowany poziom energii.
+ * @property danceability - Preferowany poziom taneczności.
+ * @property valence - Preferowany poziom pozytywnego nastroju.
+ * @property acousticness - Preferowany poziom akustyczności.
+ * @property instrumentalness - Preferowany poziom instrumentalności.
+ */
+type PlaylistPreferences = {
+  energy: PlaylistPreferenceLevel | null;
+  danceability: PlaylistPreferenceLevel | null;
+  valence: PlaylistPreferenceLevel | null;
+  acousticness: PlaylistPreferenceLevel | null;
+  instrumentalness: PlaylistPreferenceLevel | null;
+};
 export type {
   PlaylistAudioFeatures,
   PlaylistTrack,
@@ -144,4 +167,6 @@ export type {
   PlaylistTrackRejectionReason,
   RejectedPlaylistTrack,
   PlaylistTrackSelection,
+  PlaylistPreferenceLevel,
+  PlaylistPreferences,
 };
