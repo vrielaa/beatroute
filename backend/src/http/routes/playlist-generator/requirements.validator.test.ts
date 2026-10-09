@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { PlaylistRequirements } from "@domain/playlist-generator/types.js";
 import { RequestValidationError } from "@http/request-validation-error.js";
-import { parsePlaylistRequirements } from "./requirements.validator.js";
+import { parsePlaylistGeneratorRequirements } from "./requirements.validator.js";
 
-describe("parsePlaylistRequirements", () => {
+describe("parsePlaylistGeneratorRequirements", () => {
   it("accepts a tempo range and both numeric maximums", () => {
     const requirements = createRequirements();
 
-    expect(parsePlaylistRequirements(requirements)).toEqual(requirements);
+    expect(parsePlaylistGeneratorRequirements(requirements)).toEqual(
+      requirements
+    );
   });
 
   it.each([
@@ -29,14 +31,16 @@ describe("parsePlaylistRequirements", () => {
       maxLiveness: 0.8,
     },
   ])("accepts independently disabled conditions: %j", (requirements) => {
-    expect(parsePlaylistRequirements(requirements)).toEqual(requirements);
+    expect(parsePlaylistGeneratorRequirements(requirements)).toEqual(
+      requirements
+    );
   });
 
   it("returns a new object and tempo range without modifying the input", () => {
     const requirements = createRequirements();
     const original = structuredClone(requirements);
 
-    const result = parsePlaylistRequirements(requirements);
+    const result = parsePlaylistGeneratorRequirements(requirements);
 
     expect(result).toEqual(original);
     expect(requirements).toEqual(original);
@@ -51,7 +55,7 @@ describe("parsePlaylistRequirements", () => {
       tempoRange: { min: 120, max: 140, unused: true },
     };
 
-    expect(parsePlaylistRequirements(requirements)).toEqual(
+    expect(parsePlaylistGeneratorRequirements(requirements)).toEqual(
       createRequirements()
     );
   });
@@ -59,7 +63,7 @@ describe("parsePlaylistRequirements", () => {
   it.each([undefined, null, [], "requirements", 1, true])(
     "rejects non-object requirements: %j",
     (value) => {
-      expect(() => parsePlaylistRequirements(value)).toThrow(
+      expect(() => parsePlaylistGeneratorRequirements(value)).toThrow(
         RequestValidationError
       );
     }
@@ -71,7 +75,7 @@ describe("parsePlaylistRequirements", () => {
       const requirements: Record<string, unknown> = { ...createRequirements() };
       delete requirements[field];
 
-      expect(() => parsePlaylistRequirements(requirements)).toThrow(
+      expect(() => parsePlaylistGeneratorRequirements(requirements)).toThrow(
         `Niepoprawne wymagania playlisty: brak pola ${field}`
       );
     }
@@ -82,7 +86,10 @@ describe("parsePlaylistRequirements", () => {
       "rejects a non-object range other than null: %j",
       (tempoRange) => {
         expect(() =>
-          parsePlaylistRequirements({ ...createRequirements(), tempoRange })
+          parsePlaylistGeneratorRequirements({
+            ...createRequirements(),
+            tempoRange,
+          })
         ).toThrow(RequestValidationError);
       }
     );
@@ -91,7 +98,10 @@ describe("parsePlaylistRequirements", () => {
       "rejects missing range boundaries: %j",
       (tempoRange) => {
         expect(() =>
-          parsePlaylistRequirements({ ...createRequirements(), tempoRange })
+          parsePlaylistGeneratorRequirements({
+            ...createRequirements(),
+            tempoRange,
+          })
         ).toThrow(
           "Niepoprawne wymagania playlisty: brak pola min lub max w tempoRange"
         );
@@ -116,14 +126,17 @@ describe("parsePlaylistRequirements", () => {
         const tempoRange = { min: 120, max: 140, [boundary]: value };
 
         expect(() =>
-          parsePlaylistRequirements({ ...createRequirements(), tempoRange })
+          parsePlaylistGeneratorRequirements({
+            ...createRequirements(),
+            tempoRange,
+          })
         ).toThrow(RequestValidationError);
       });
     });
 
     it("rejects a minimum greater than the maximum", () => {
       expect(() =>
-        parsePlaylistRequirements({
+        parsePlaylistGeneratorRequirements({
           ...createRequirements(),
           tempoRange: { min: 140, max: 120 },
         })
@@ -138,8 +151,10 @@ describe("parsePlaylistRequirements", () => {
       { min: 0.1, max: 0.2 },
     ])("accepts equal or fractional positive boundaries: %j", (tempoRange) => {
       expect(
-        parsePlaylistRequirements({ ...createRequirements(), tempoRange })
-          .tempoRange
+        parsePlaylistGeneratorRequirements({
+          ...createRequirements(),
+          tempoRange,
+        }).tempoRange
       ).toEqual(tempoRange);
     });
   });
@@ -147,7 +162,10 @@ describe("parsePlaylistRequirements", () => {
   describe.each(["maxSpeechiness", "maxLiveness"])("maximum %s", (field) => {
     it.each([null, 0, 0.33, 1])("accepts a maximum of %s", (value) => {
       expect(
-        parsePlaylistRequirements({ ...createRequirements(), [field]: value })
+        parsePlaylistGeneratorRequirements({
+          ...createRequirements(),
+          [field]: value,
+        })
       ).toHaveProperty(field, value);
     });
 
@@ -165,14 +183,17 @@ describe("parsePlaylistRequirements", () => {
       -Infinity,
     ])("rejects an invalid maximum: %s", (value) => {
       expect(() =>
-        parsePlaylistRequirements({ ...createRequirements(), [field]: value })
+        parsePlaylistGeneratorRequirements({
+          ...createRequirements(),
+          [field]: value,
+        })
       ).toThrow(RequestValidationError);
     });
   });
 
   it("preserves zero maximums as active conditions rather than converting them to null", () => {
     expect(
-      parsePlaylistRequirements({
+      parsePlaylistGeneratorRequirements({
         tempoRange: null,
         maxSpeechiness: 0,
         maxLiveness: 0,

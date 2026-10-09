@@ -13,6 +13,7 @@ import meRoutes from "@http/routes/me/routes.js";
 import tracksRoutes from "@http/routes/tracks/routes.js";
 import lastfmRoutes from "@http/routes/lastfm/routes.js";
 import musicMapRoutes from "@http/routes/music-map/routes.js";
+import playlistGeneratorRoutes from "@http/routes/playlist-generator/routes.js";
 import { errorHandler, notFoundHandler } from "@http/error-handler.js";
 
 function validateAppConfig(config: AppConfig) {
@@ -42,6 +43,8 @@ function createApp(config = appConfig) {
   validateAppConfig(config);
 
   const app = express();
+
+  app.use("/api/playlist-generator", express.json({ limit: "1mb" }));
 
   app.use(
     express.json({
@@ -81,6 +84,7 @@ function createApp(config = appConfig) {
   app.use("/api/tracks", tracksRoutes);
   app.use("/api/lastfm", lastfmRoutes);
   app.use("/api/music-map", musicMapRoutes);
+  app.use("/api/playlist-generator", playlistGeneratorRoutes);
 
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 

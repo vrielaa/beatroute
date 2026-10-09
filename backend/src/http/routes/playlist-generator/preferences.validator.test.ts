@@ -5,9 +5,9 @@ import type {
   PlaylistPreferences,
 } from "@domain/playlist-generator/types.js";
 import { RequestValidationError } from "@http/request-validation-error.js";
-import { parsePlaylistPreferences } from "./preferences.validator.js";
+import { parsePlaylistGeneratorPreferences } from "./preferences.validator.js";
 
-describe("parsePlaylistPreferences", () => {
+describe("parsePlaylistGeneratorPreferences", () => {
   const features: PlaylistPreferenceFeature[] = [
     "energy",
     "danceability",
@@ -31,30 +31,32 @@ describe("parsePlaylistPreferences", () => {
       instrumentalness: "high",
     };
 
-    expect(parsePlaylistPreferences(preferences)).toEqual(preferences);
+    expect(parsePlaylistGeneratorPreferences(preferences)).toEqual(preferences);
   });
 
   it("accepts all preferences disabled explicitly with null", () => {
     const preferences = createPreferences();
 
-    expect(parsePlaylistPreferences(preferences)).toEqual(preferences);
+    expect(parsePlaylistGeneratorPreferences(preferences)).toEqual(preferences);
   });
 
   describe.each(features)("preference %s", (feature) => {
     it.each(levels)("accepts level %s", (level) => {
       const preferences = { ...createPreferences(), [feature]: level };
 
-      expect(parsePlaylistPreferences(preferences)).toEqual(preferences);
+      expect(parsePlaylistGeneratorPreferences(preferences)).toEqual(
+        preferences
+      );
     });
 
     it("rejects a missing field instead of treating it as disabled", () => {
       const preferences: Record<string, unknown> = { ...createPreferences() };
       delete preferences[feature];
 
-      expect(() => parsePlaylistPreferences(preferences)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(preferences)).toThrow(
         RequestValidationError
       );
-      expect(() => parsePlaylistPreferences(preferences)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(preferences)).toThrow(
         `Niepoprawne preferencje playlisty: brak pola ${feature}`
       );
     });
@@ -75,10 +77,10 @@ describe("parsePlaylistPreferences", () => {
     ])("rejects an invalid level: %j", (level) => {
       const preferences = { ...createPreferences(), [feature]: level };
 
-      expect(() => parsePlaylistPreferences(preferences)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(preferences)).toThrow(
         RequestValidationError
       );
-      expect(() => parsePlaylistPreferences(preferences)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(preferences)).toThrow(
         `Niepoprawne preferencje playlisty: pole ${feature} musi mieć wartość low, medium, high albo null`
       );
     });
@@ -87,17 +89,19 @@ describe("parsePlaylistPreferences", () => {
   it.each([undefined, null, [], "preferences", "", 1, true, () => null])(
     "rejects non-object preferences: %s",
     (value) => {
-      expect(() => parsePlaylistPreferences(value)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(value)).toThrow(
         RequestValidationError
       );
-      expect(() => parsePlaylistPreferences(value)).toThrow(
+      expect(() => parsePlaylistGeneratorPreferences(value)).toThrow(
         "Niepoprawne preferencje playlisty: muszą być obiektem"
       );
     }
   );
 
   it("rejects an empty object rather than applying default preferences", () => {
-    expect(() => parsePlaylistPreferences({})).toThrow(RequestValidationError);
+    expect(() => parsePlaylistGeneratorPreferences({})).toThrow(
+      RequestValidationError
+    );
   });
 
   it("does not accept an inherited field in place of a supplied preference", () => {
@@ -105,7 +109,7 @@ describe("parsePlaylistPreferences", () => {
     delete preferences.energy;
     Object.setPrototypeOf(preferences, { energy: "high" });
 
-    expect(() => parsePlaylistPreferences(preferences)).toThrow(
+    expect(() => parsePlaylistGeneratorPreferences(preferences)).toThrow(
       "Niepoprawne preferencje playlisty: brak pola energy"
     );
   });
@@ -118,7 +122,9 @@ describe("parsePlaylistPreferences", () => {
       unused: true,
     };
 
-    expect(parsePlaylistPreferences(preferences)).toEqual(createPreferences());
+    expect(parsePlaylistGeneratorPreferences(preferences)).toEqual(
+      createPreferences()
+    );
   });
 
   it("returns a new object without modifying input", () => {
@@ -130,7 +136,7 @@ describe("parsePlaylistPreferences", () => {
     const original = structuredClone(preferences);
     Object.freeze(preferences);
 
-    const result = parsePlaylistPreferences(preferences);
+    const result = parsePlaylistGeneratorPreferences(preferences);
 
     expect(result).toEqual(original);
     expect(result).not.toBe(preferences);

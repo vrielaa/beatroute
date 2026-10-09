@@ -61,13 +61,12 @@ Typy domenowe znajdują się w `backend/src/domain/playlist-generator/types.ts`:
 walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDataset`
 w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
 testami w sąsiednim pliku. Filtrowanie, ocena i ranking są już dostępne jako funkcje
-domenowe, połączone przez generatePlaylist. Limit rozmiaru żądania dla generatora
-i import pozostają kolejnymi etapami; walidator nie jest jeszcze podłączony do
-endpointu ani ekranu importu.
+domenowe, połączone przez generatePlaylist i udostępnione przez endpoint generatora.
+Walidatory są podłączone do HTTP; import i formularz frontendu pozostają kolejnymi etapami.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
-filtry i ranking bez kontaktu z API, gdy te elementy zostaną zaimplementowane.
+filtry i ranking bez kontaktu z API przez gotowy endpoint HTTP.
 
 ## Wymagania obowiązkowe i preferencje
 
@@ -121,12 +120,12 @@ nie może przekraczać maksimum. Maksima speechiness i liveness należą do zakr
 Przy wszystkich warunkach ustawionych na null wymagania nie odrzucają utworów.
 
 To osobny model, nie część pliku z utworami ani model preferencji rozmytych.
-Wymagania sprawdza funkcja `parsePlaylistRequirements` w
+Wymagania sprawdza funkcja `parsePlaylistGeneratorRequirements` w
 `backend/src/http/routes/playlist-generator/requirements.validator.ts`, pokryta
 testami w sąsiednim pliku. Wymaga obecności wszystkich trzech pól, odrzuca
 niepoprawne wartości i zwraca nowy obiekt bez dodatkowych pól wejściowych.
-Sam walidator nie ocenia utworów i nie jest jeszcze podłączony do endpointu
-ani formularza.
+Sam walidator nie ocenia utworów. Jest podłączony do endpointu generatora,
+ale formularz frontendu nie jest jeszcze zaimplementowany.
 
 ### Model wyniku filtrowania
 
@@ -157,21 +156,21 @@ Funkcja `filterPlaylistTracks` w `backend/src/domain/playlist-generator/filter-t
 wykonuje ten podział dla wcześniej zwalidowanych utworów i wymagań. Jej testy
 sprawdzają granice, brakujące pomiary, wyłączone warunki, kompletność powodów
 odrzucenia i zachowanie kolejności. Funkcja nie modyfikuje wejścia, nie wywołuje
-API i zwraca referencje do utworów źródłowych. Podłączenie generatora do endpointu
-oraz formularza pozostaje kolejnym etapem.
+API i zwraca referencje do utworów źródłowych. Generator jest podłączony do
+endpointu; formularz pozostaje kolejnym etapem.
 
 ### Preferencje rozmyte i ocena pojedynczego utworu
 
 `PlaylistPreferences` zawiera pięć pól: energy, danceability, valence,
 acousticness i instrumentalness. Każde ma wartość low, medium, high albo null,
 które oznacza „Bez znaczenia”. Wszystkie pola są obecne w modelu domenowym.
-Sprawdza je parsePlaylistPreferences w
+Sprawdza je parsePlaylistGeneratorPreferences w
 `backend/src/http/routes/playlist-generator/preferences.validator.ts`, pokryty
 testami w sąsiednim pliku. Walidator wymaga wszystkich pięciu własnych pól
 obiektu i przyjmuje wyłącznie dokładne wartości low, medium, high albo null.
 Brak pola, undefined, wartości liczbowe, tablice i inne poziomy są odrzucane.
 Nie przycina tekstów ani nie zmienia wielkości liter. Zwraca nowy obiekt bez
-dodatkowych pól i nie modyfikuje wejścia; nie jest jeszcze podłączony do endpointu.
+dodatkowych pól i nie modyfikuje wejścia. Jest podłączony do endpointu generatora.
 
 Funkcja `calculatePreferenceMatch` w `preference-match.ts` wyznacza dopasowanie
 pojedynczego pomiaru do preferowanego poziomu:
@@ -210,6 +209,27 @@ ocenia i sortuje dopuszczone utwory; odrzucone nie mogą wrócić do rankingu.
 
 Obie funkcje mają testy jednostkowe. Ocena nie zmienia wejścia, nie filtruje ani
 nie sortuje utworów i nie wywołuje API. Wynik zachowuje referencję do utworu źródłowego.
+
+## Endpoint generatora
+
+`POST /api/playlist-generator/generate` przyjmuje JSON z trzema wymaganymi polami:
+dataset, requirements i preferences. Każde pole sprawdza osobny walidator,
+a następnie generatePlaylist filtruje zbiór i porządkuje dopuszczone utwory.
+Opis żądania, odpowiedzi i przykład są dostępne w OpenAPI pod `/api-docs`.
+
+- 200: rankedTracks z ocenami i wyjaśnieniami oraz rejectedTracks z powodami.
+  Gdy wszystkie utwory są odrzucone, rankedTracks jest pustą tablicą — nadal jest to 200.
+- 400: VALIDATION_ERROR dla brakujących lub niepoprawnych danych albo INVALID_JSON
+  dla niepoprawnej składni JSON-a.
+- 413: PAYLOAD_TOO_LARGE, gdy JSON przekracza 1 MiB (1 048 576 bajtów).
+- 500: INTERNAL_SERVER_ERROR dla nieoczekiwanych błędów, bez ujawniania szczegółów.
+
+Parser 1 MiB dla `/api/playlist-generator` działa przed globalnym parserem 100 KiB,
+więc pozostałe endpointy zachowują mniejszy limit. Endpoint nie wymaga sesji Spotify,
+nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na koncie Spotify.
+Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
+brak body, walidację i wynik generowania. Import, formularz i eksport wyniku w UI
+nie są jeszcze zaimplementowane.
 
 ## Wynik i zakres pierwszej wersji
 

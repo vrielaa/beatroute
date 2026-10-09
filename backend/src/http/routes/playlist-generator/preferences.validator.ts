@@ -17,7 +17,9 @@ import { RequestValidationError } from "@http/request-validation-error.js";
  * @throws RequestValidationError Gdy wejście nie jest obiektem, brakuje pola
  * lub jego wartość nie jest dozwolonym poziomem ani null.
  */
-function parsePlaylistPreferences(value: unknown): PlaylistPreferences {
+function parsePlaylistGeneratorPreferences(
+  value: unknown
+): PlaylistPreferences {
   const preferences = requireRecord(value);
 
   return {
@@ -67,4 +69,4 @@ function validatePreferenceLevel(
   );
 }
 
-export { parsePlaylistPreferences };
+export { parsePlaylistGeneratorPreferences };

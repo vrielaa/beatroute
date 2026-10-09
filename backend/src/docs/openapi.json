@@ -32,6 +32,10 @@
       "description": "Reusable music-map datasets and clustering analysis"
     },
     {
+      "name": "Playlist generator",
+      "description": "Filtering and fuzzy ranking of supplied tracks without provider API calls"
+    },
+    {
       "name": "Last.fm",
       "description": "Last.fm account connection and user data"
     }
@@ -567,6 +571,155 @@
           },
           "413": {
             "description": "JSON request body exceeds the 100 KB limit"
+          }
+        }
+      }
+    },
+    "/api/playlist-generator/generate": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "generatePlaylist",
+        "summary": "Generate a ranked playlist from supplied tracks and audio measurements",
+        "description": "Validates a version-1 dataset of 1–500 tracks, mandatory requirements and fuzzy preferences. Filters requirements before ranking, so rejected tracks cannot return through preference matching. Numeric scores are sorted descending, null scores last, and ties retain source order. No Spotify session or external API calls are required. Does not read a file or create a Spotify playlist. Additional input properties are ignored.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "description": "JSON body up to 1 MiB (1,048,576 bytes). All three sections are required; explicit null disables an individual requirement or preference.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistGeneratorRequest"
+              },
+              "example": {
+                "dataset": {
+                  "version": 1,
+                  "tracks": [
+                    {
+                      "id": "track-001",
+                      "name": "Example Track",
+                      "artists": ["Example Artist"],
+                      "audioFeatures": {
+                        "tempo": 128,
+                        "energy": 0.75,
+                        "danceability": 0.8,
+                        "valence": 0.6,
+                        "acousticness": 0.2,
+                        "instrumentalness": 0.05,
+                        "speechiness": 0.04,
+                        "liveness": null
+                      }
+                    }
+                  ]
+                },
+                "requirements": {
+                  "tempoRange": { "min": 120, "max": 140 },
+                  "maxSpeechiness": 0.33,
+                  "maxLiveness": null
+                },
+                "preferences": {
+                  "energy": "high",
+                  "danceability": null,
+                  "valence": null,
+                  "acousticness": null,
+                  "instrumentalness": null
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ranked accepted tracks with per-feature explanations and rejected tracks with all reasons. An empty ranking, including when every track is rejected, is a successful result.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GeneratedPlaylist" },
+                "example": {
+                  "rankedTracks": [
+                    {
+                      "track": {
+                        "id": "track-001",
+                        "name": "Example Track",
+                        "artists": ["Example Artist"],
+                        "audioFeatures": {
+                          "tempo": 128,
+                          "energy": 0.75,
+                          "danceability": 0.8,
+                          "valence": 0.6,
+                          "acousticness": 0.2,
+                          "instrumentalness": 0.05,
+                          "speechiness": 0.04,
+                          "liveness": null
+                        }
+                      },
+                      "overallMatch": 1,
+                      "featureMatches": [
+                        {
+                          "feature": "energy",
+                          "level": "high",
+                          "measurement": 0.75,
+                          "match": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "rejectedTracks": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_ERROR for missing body or sections, invalid metadata, duplicate identifiers, measurements or criteria; INVALID_JSON for malformed JSON.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "missingDataset": {
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "message": "Pole \"dataset\" musi być obiektem zbioru playlist"
+                      }
+                    }
+                  },
+                  "invalidJson": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_JSON",
+                        "message": "Treść żądania nie jest poprawnym JSON-em"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds the generator's 1 MiB limit. Other endpoints retain their 100 KiB limit.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": {
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": "Treść żądania przekracza dozwolony rozmiar"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application error; technical details are not exposed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "message": "Wewnętrzny błąd serwera"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1212,6 +1365,286 @@
           }
         },
         "required": ["stats", "audioFeatures"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "details": {
+                "description": "Optional public error details, when provided."
+              }
+            },
+            "required": ["code", "message"]
+          }
+        },
+        "required": ["error"]
+      },
+      "PlaylistUnitMeasurement": {
+        "type": ["number", "null"],
+        "minimum": 0,
+        "maximum": 1,
+        "description": "A measurement from 0 to 1, or null for unavailable data. Zero is a valid measurement."
+      },
+      "PlaylistAudioFeatures": {
+        "type": "object",
+        "description": "All eight fields are required, including when a measurement is unavailable. Extra fields are discarded.",
+        "properties": {
+          "tempo": {
+            "type": ["number", "null"],
+            "exclusiveMinimum": 0,
+            "description": "Positive tempo in BPM, or null for unavailable data."
+          },
+          "energy": { "$ref": "#/components/schemas/PlaylistUnitMeasurement" },
+          "danceability": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "valence": { "$ref": "#/components/schemas/PlaylistUnitMeasurement" },
+          "acousticness": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "instrumentalness": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "speechiness": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "liveness": { "$ref": "#/components/schemas/PlaylistUnitMeasurement" }
+        },
+        "required": [
+          "tempo",
+          "energy",
+          "danceability",
+          "valence",
+          "acousticness",
+          "instrumentalness",
+          "speechiness",
+          "liveness"
+        ]
+      },
+      "PlaylistTrack": {
+        "type": "object",
+        "description": "Source-independent track metadata and measurements. Text fields are trimmed; extra fields are discarded.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "Unique within the dataset after trimming. Does not have to be a Spotify ID."
+          },
+          "name": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "artists": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
+          },
+          "audioFeatures": {
+            "$ref": "#/components/schemas/PlaylistAudioFeatures"
+          }
+        },
+        "required": ["id", "name", "artists", "audioFeatures"]
+      },
+      "PlaylistDataset": {
+        "type": "object",
+        "description": "Version-1 dataset; track IDs must be unique after trimming. Extra fields are discarded.",
+        "properties": {
+          "version": { "type": "integer", "const": 1 },
+          "tracks": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": { "$ref": "#/components/schemas/PlaylistTrack" }
+          }
+        },
+        "required": ["version", "tracks"]
+      },
+      "PlaylistTempoRange": {
+        "type": "object",
+        "description": "Inclusive positive BPM bounds. Min must not exceed max; equal and fractional bounds are accepted. Extra fields are discarded.",
+        "properties": {
+          "min": { "type": "number", "exclusiveMinimum": 0 },
+          "max": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "required": ["min", "max"]
+      },
+      "PlaylistRequirements": {
+        "type": "object",
+        "description": "All fields are required. Null disables a condition; zero remains an active maximum. Every active requirement must be met, and a missing required measurement rejects the track. Extra fields are discarded.",
+        "properties": {
+          "tempoRange": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/PlaylistTempoRange" },
+              { "type": "null" }
+            ]
+          },
+          "maxSpeechiness": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "maxLiveness": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          }
+        },
+        "required": ["tempoRange", "maxSpeechiness", "maxLiveness"]
+      },
+      "PlaylistPreferenceLevel": {
+        "type": "string",
+        "enum": ["low", "medium", "high"]
+      },
+      "PlaylistPreferenceSetting": {
+        "type": ["string", "null"],
+        "enum": ["low", "medium", "high", null],
+        "description": "Exact case-sensitive preference level, or explicit null for no preference. Values are not trimmed or coerced."
+      },
+      "PlaylistPreferences": {
+        "type": "object",
+        "description": "All five fields are required. Preferences affect ranking but never reject tracks. Extra fields are discarded.",
+        "properties": {
+          "energy": {
+            "$ref": "#/components/schemas/PlaylistPreferenceSetting"
+          },
+          "danceability": {
+            "$ref": "#/components/schemas/PlaylistPreferenceSetting"
+          },
+          "valence": {
+            "$ref": "#/components/schemas/PlaylistPreferenceSetting"
+          },
+          "acousticness": {
+            "$ref": "#/components/schemas/PlaylistPreferenceSetting"
+          },
+          "instrumentalness": {
+            "$ref": "#/components/schemas/PlaylistPreferenceSetting"
+          }
+        },
+        "required": [
+          "energy",
+          "danceability",
+          "valence",
+          "acousticness",
+          "instrumentalness"
+        ]
+      },
+      "PlaylistGeneratorRequest": {
+        "type": "object",
+        "properties": {
+          "dataset": { "$ref": "#/components/schemas/PlaylistDataset" },
+          "requirements": {
+            "$ref": "#/components/schemas/PlaylistRequirements"
+          },
+          "preferences": { "$ref": "#/components/schemas/PlaylistPreferences" }
+        },
+        "required": ["dataset", "requirements", "preferences"]
+      },
+      "PlaylistFeatureMatch": {
+        "type": "object",
+        "description": "One active preference. When measurement is null, match is also null. Disabled preferences produce no entry. Low has full membership up to 0.25 and falls to zero at 0.5; medium rises from zero at 0.25 to one at 0.5 and falls to zero at 0.75; high rises from zero at 0.5 to one at 0.75 and stays at one. These thresholds are project parameters, not universal music definitions.",
+        "properties": {
+          "feature": {
+            "type": "string",
+            "enum": [
+              "energy",
+              "danceability",
+              "valence",
+              "acousticness",
+              "instrumentalness"
+            ]
+          },
+          "level": { "$ref": "#/components/schemas/PlaylistPreferenceLevel" },
+          "measurement": {
+            "$ref": "#/components/schemas/PlaylistUnitMeasurement"
+          },
+          "match": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+        },
+        "required": ["feature", "level", "measurement", "match"]
+      },
+      "PlaylistTrackEvaluation": {
+        "type": "object",
+        "properties": {
+          "track": { "$ref": "#/components/schemas/PlaylistTrack" },
+          "overallMatch": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Unrounded mean of available matches, with equal weights. Zero counts in the mean; null matches do not. Null means no active preferences or no available matching measurements. Not a probability of liking the track."
+          },
+          "featureMatches": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "All active preferences, including missing measurements. Empty when all preferences are disabled. The number of non-null matches relative to this array's length describes completeness; no completeness penalty is applied.",
+            "items": { "$ref": "#/components/schemas/PlaylistFeatureMatch" }
+          }
+        },
+        "required": ["track", "overallMatch", "featureMatches"]
+      },
+      "PlaylistTrackRejectionReason": {
+        "description": "Reason for failing an active requirement. All reasons for a rejected track are returned.",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "feature": {
+                "type": "string",
+                "enum": ["tempo", "speechiness", "liveness"]
+              },
+              "code": { "type": "string", "const": "missing-measurement" }
+            },
+            "required": ["feature", "code"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "feature": { "type": "string", "const": "tempo" },
+              "code": { "type": "string", "const": "outside-range" }
+            },
+            "required": ["feature", "code"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "feature": {
+                "type": "string",
+                "enum": ["speechiness", "liveness"]
+              },
+              "code": { "type": "string", "const": "above-maximum" }
+            },
+            "required": ["feature", "code"]
+          }
+        ]
+      },
+      "RejectedPlaylistTrack": {
+        "type": "object",
+        "properties": {
+          "track": { "$ref": "#/components/schemas/PlaylistTrack" },
+          "reasons": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/PlaylistTrackRejectionReason"
+            }
+          }
+        },
+        "required": ["track", "reasons"]
+      },
+      "GeneratedPlaylist": {
+        "type": "object",
+        "description": "Every supplied track appears in exactly one group. Empty groups are valid. Text metadata is normalized; extra input properties are not returned.",
+        "properties": {
+          "rankedTracks": {
+            "type": "array",
+            "maxItems": 500,
+            "description": "Accepted tracks sorted by descending score; null last, stable source order for ties. No active preferences means source order.",
+            "items": { "$ref": "#/components/schemas/PlaylistTrackEvaluation" }
+          },
+          "rejectedTracks": {
+            "type": "array",
+            "maxItems": 500,
+            "description": "Rejected tracks and their reasons, retaining source order.",
+            "items": { "$ref": "#/components/schemas/RejectedPlaylistTrack" }
+          }
+        },
+        "required": ["rankedTracks", "rejectedTracks"]
       },
       "MusicMapTrack": {
         "type": "object",

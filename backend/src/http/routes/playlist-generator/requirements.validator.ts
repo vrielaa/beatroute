@@ -15,7 +15,9 @@ import type {
  * @returns Sprawdzone wymagania, bez dodatkowych pól wejściowych.
  * @throws RequestValidationError Gdy brakuje pola lub jego wartość jest niepoprawna.
  */
-function parsePlaylistRequirements(value: unknown): PlaylistRequirements {
+function parsePlaylistGeneratorRequirements(
+  value: unknown
+): PlaylistRequirements {
   const requirements = requireRecord(
     value,
     "Niepoprawne wymagania playlisty: musi być obiektem"
@@ -154,4 +156,4 @@ function validateLiveness(value: unknown): number | null {
   return value;
 }
 
-export { parsePlaylistRequirements };
+export { parsePlaylistGeneratorRequirements };

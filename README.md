@@ -21,7 +21,11 @@ Fuzzy preference matching and single-track evaluation are implemented and unit-t
 Evaluation averages available matches with equal weights and explains missing measurements;
 it does not filter or sort tracks. The domain generator combines filtering and ranking.
 The preference validator checks all five fields for low, medium, high or explicit null.
-File import, generator endpoints and generation are not implemented yet.
+`POST /api/playlist-generator/generate` accepts a dataset, requirements and preferences,
+then returns ranked tracks and rejected tracks with reasons, without a Spotify session
+or external API calls. Its JSON body limit is 1 MiB; other endpoints retain 100 KiB.
+The endpoint is covered by Supertest and described in OpenAPI. Frontend file import,
+the criteria form and result export are not implemented yet.
 
 Track-category percentages are calculated only from available measurements
 of the relevant feature. No measurements produce `null` (shown as "Brak danych"),
