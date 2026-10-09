@@ -13,6 +13,8 @@ The agreed scope for the generator is documented in
 The version-1 dataset types and a [synthetic sample file](examples/playlist-dataset.json)
 are available. The backend dataset validator checks 1–500 tracks, metadata,
 unique identifiers and all eight measurements, and is covered by unit tests.
+The requirements validator checks optional tempo ranges and maximum speechiness
+and liveness values, with `null` disabling each condition and zero remaining active.
 File import, generator endpoints and generation are not implemented yet.
 
 Track-category percentages are calculated only from available measurements

@@ -99,6 +99,34 @@ Przykład: wymagane BPM 120–140, preferowana wysoka energia.
 Utwór 130 BPM / energia 0,9 może być wyżej niż 125 BPM / energia 0,5.
 Oba są dopuszczone. Utwór 100 BPM / energia 0,95 odpada mimo wysokiej energii.
 
+### Model obowiązkowych wymagań
+
+Typ `PlaylistRequirements` w `backend/src/domain/playlist-generator/types.ts`
+opisuje warunki filtrowania. Typ `TempoRange` opisuje dwie granice BPM:
+
+```json
+{
+  "tempoRange": { "min": 120, "max": 140 },
+  "maxSpeechiness": 0.33,
+  "maxLiveness": null
+}
+```
+
+W tym przykładzie dopuszczamy BPM 120–140 i speechiness nie większe niż 0,33.
+Nie ograniczamy liveness. Wszystkie trzy pola muszą istnieć w znormalizowanym
+modelu; null wyłącza warunek. Granice BPM są dodatnie i skończone, a minimum
+nie może przekraczać maksimum. Maksima speechiness i liveness należą do zakresu
+0–1. Ich granice są włączone; zero jest aktywnym ograniczeniem, nie wyłączeniem.
+Przy wszystkich warunkach ustawionych na null wymagania nie odrzucają utworów.
+
+To osobny model, nie część pliku z utworami ani model preferencji rozmytych.
+Wymagania sprawdza funkcja `parsePlaylistRequirements` w
+`backend/src/http/routes/playlist-generator/requirements.validator.ts`, pokryta
+testami w sąsiednim pliku. Wymaga obecności wszystkich trzech pól, odrzuca
+niepoprawne wartości i zwraca nowy obiekt bez dodatkowych pól wejściowych.
+Filtrowanie pozostaje kolejnym krokiem implementacji; sam walidator nie ocenia
+utworów i nie jest jeszcze podłączony do endpointu ani formularza.
+
 ## Wynik i zakres pierwszej wersji
 
 - Przy każdym wyniku pokazujemy pomiary, spełnione wymagania i uzasadnienie rankingu.

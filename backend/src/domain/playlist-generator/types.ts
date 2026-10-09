@@ -51,4 +51,42 @@ type PlaylistDataset = {
   tracks: PlaylistTrack[];
 };
 
-export type { PlaylistAudioFeatures, PlaylistTrack, PlaylistDataset };
+/**
+ * Dopuszczalny zakres tempa utworu w BPM. Obie granice są włączone.
+ * Granice muszą być dodatnie i skończone, a minimum nie może przekraczać maksimum.
+ * Poprawność wartości sprawdzi walidator wymagań, nie sam typ TypeScript.
+ *
+ * @property min - Najmniejsze dopuszczalne tempo w BPM.
+ * @property max - Największe dopuszczalne tempo w BPM.
+ */
+type TempoRange = {
+  min: number;
+  max: number;
+};
+
+/**
+ * Obowiązkowe warunki dopuszczenia utworu do playlisty, niezależne od preferencji.
+ * Wszystkie pola są obecne; null wyłącza dany warunek. Utwór musi spełnić każdy
+ * aktywny warunek. Brak potrzebnego pomiaru uniemożliwia spełnienie warunku.
+ * Gdy wszystkie warunki są wyłączone, żaden utwór nie jest odrzucany na ich podstawie.
+ *
+ * @property tempoRange - Dopuszczalny zakres BPM albo null bez ograniczenia tempa.
+ * @property maxSpeechiness - Maksymalny pomiar udziału mowy w skali 0–1 albo null bez ograniczenia.
+ * @property maxLiveness - Maksymalny pomiar prawdopodobieństwa wykonania na żywo w skali 0–1 albo null bez ograniczenia.
+ *
+ * @example
+ * { tempoRange: { min: 120, max: 140 }, maxSpeechiness: 0.33, maxLiveness: null }
+ */
+type PlaylistRequirements = {
+  tempoRange: TempoRange | null;
+  maxSpeechiness: number | null;
+  maxLiveness: number | null;
+};
+
+export type {
+  PlaylistAudioFeatures,
+  PlaylistTrack,
+  PlaylistDataset,
+  TempoRange,
+  PlaylistRequirements,
+};
