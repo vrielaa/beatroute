@@ -60,10 +60,10 @@ Typy domenowe znajdują się w `backend/src/domain/playlist-generator/types.ts`:
 `PlaylistAudioFeatures`, `PlaylistTrack` i `PlaylistDataset`. Typy TypeScript nie
 walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDataset`
 w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
-testami w sąsiednim pliku. Filtrowanie i ocena pojedynczego utworu są już dostępne
-jako funkcje domenowe. Limit rozmiaru żądania dla generatora, import i sortowanie
-pozostają kolejnymi etapami; walidator nie jest jeszcze podłączony do endpointu
-ani ekranu importu.
+testami w sąsiednim pliku. Filtrowanie, ocena i ranking są już dostępne jako funkcje
+domenowe, połączone przez generatePlaylist. Limit rozmiaru żądania dla generatora
+i import pozostają kolejnymi etapami; walidator nie jest jeszcze podłączony do
+endpointu ani ekranu importu.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
@@ -157,15 +157,21 @@ Funkcja `filterPlaylistTracks` w `backend/src/domain/playlist-generator/filter-t
 wykonuje ten podział dla wcześniej zwalidowanych utworów i wymagań. Jej testy
 sprawdzają granice, brakujące pomiary, wyłączone warunki, kompletność powodów
 odrzucenia i zachowanie kolejności. Funkcja nie modyfikuje wejścia, nie wywołuje
-API i zwraca referencje do utworów źródłowych. Sortowanie według ocen i podłączenie
-generatora do endpointu oraz formularza pozostają kolejnymi etapami.
+API i zwraca referencje do utworów źródłowych. Podłączenie generatora do endpointu
+oraz formularza pozostaje kolejnym etapem.
 
 ### Preferencje rozmyte i ocena pojedynczego utworu
 
 `PlaylistPreferences` zawiera pięć pól: energy, danceability, valence,
 acousticness i instrumentalness. Każde ma wartość low, medium, high albo null,
-które oznacza „Bez znaczenia”. Wszystkie pola są obecne w modelu domenowym;
-walidator preferencji nie jest jeszcze zaimplementowany.
+które oznacza „Bez znaczenia”. Wszystkie pola są obecne w modelu domenowym.
+Sprawdza je parsePlaylistPreferences w
+`backend/src/http/routes/playlist-generator/preferences.validator.ts`, pokryty
+testami w sąsiednim pliku. Walidator wymaga wszystkich pięciu własnych pól
+obiektu i przyjmuje wyłącznie dokładne wartości low, medium, high albo null.
+Brak pola, undefined, wartości liczbowe, tablice i inne poziomy są odrzucane.
+Nie przycina tekstów ani nie zmienia wielkości liter. Zwraca nowy obiekt bez
+dodatkowych pól i nie modyfikuje wejścia; nie jest jeszcze podłączony do endpointu.
 
 Funkcja `calculatePreferenceMatch` w `preference-match.ts` wyznacza dopasowanie
 pojedynczego pomiaru do preferowanego poziomu:
@@ -197,8 +203,10 @@ Energia 0,7 daje dopasowanie 0,8, taneczność 0,65 daje 0,6, a brak walencji
 pozostaje nieoceniony. Średnia wynosi 0,7; oceniono 2 z 3 aktywnych preferencji.
 Kompletność wynika z liczby niepustych dopasowań względem długości featureMatches.
 Średnie obliczone z różnej liczby pomiarów nie zapewniają jednakowej kompletności;
-interfejs powinien pokazywać te braki. Reguły sortowania i rozstrzygania remisów
-nie są jeszcze zaimplementowane.
+interfejs powinien pokazywać te braki. rankPlaylistTracks sortuje oceny malejąco,
+umieszcza null za ocenami liczbowymi (również za zerem), a przy remisach zachowuje
+kolejność źródłową. generatePlaylist najpierw filtruje wymagania, a dopiero potem
+ocenia i sortuje dopuszczone utwory; odrzucone nie mogą wrócić do rankingu.
 
 Obie funkcje mają testy jednostkowe. Ocena nie zmienia wejścia, nie filtruje ani
 nie sortuje utworów i nie wywołuje API. Wynik zachowuje referencję do utworu źródłowego.

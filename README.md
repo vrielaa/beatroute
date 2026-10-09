@@ -19,7 +19,8 @@ Domain filtering separates accepted and rejected tracks, includes every rejectio
 reason and preserves source order without calling external APIs. It is covered by unit tests.
 Fuzzy preference matching and single-track evaluation are implemented and unit-tested.
 Evaluation averages available matches with equal weights and explains missing measurements;
-it does not filter or sort tracks. Preference validation and ranking are still pending.
+it does not filter or sort tracks. The domain generator combines filtering and ranking.
+The preference validator checks all five fields for low, medium, high or explicit null.
 File import, generator endpoints and generation are not implemented yet.
 
 Track-category percentages are calculated only from available measurements
