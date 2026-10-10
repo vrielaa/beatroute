@@ -67,3 +67,40 @@ input[type='file']:disabled {
 .dataset-import-error {
   color: var(--color-danger);
 }
+
+.playlist-generation,
+.generation-summary {
+  display: grid;
+  gap: 1rem;
+}
+
+.playlist-generation {
+  margin-top: 2rem;
+}
+
+#playlist-generate {
+  justify-self: start;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+#playlist-generate:enabled:hover {
+  background: var(--color-accent-hover);
+}
+
+#playlist-generate:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+#playlist-generate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.generation-error {
+  color: var(--color-danger);
+}

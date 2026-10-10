@@ -33,6 +33,45 @@
   }
 </section>
 
-@if (dataset()) {
-  <app-playlist-criteria-form (criteriaChange)="criteria.set($event)" />
+<!-- Śledzenie zbioru odtwarza formularz z domyślnymi kryteriami po podmianie pliku. -->
+@for (importedDataset of dataset() ? [dataset()] : []; track importedDataset) {
+  <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
 }
+
+<section
+  class="playlist-generation"
+  aria-label="Generowanie playlisty"
+  [attr.aria-busy]="isGenerating()"
+>
+  <button
+    id="playlist-generate"
+    type="button"
+    [disabled]="!canGenerate()"
+    (click)="generatePlaylist()"
+  >
+    {{ generationError() ? 'Spróbuj ponownie' : 'Generuj playlistę' }}
+  </button>
+
+  @if (isGenerating()) {
+    <p role="status">Generowanie playlisty…</p>
+  } @else if (generationError(); as error) {
+    <p class="generation-error" role="alert">{{ error }}</p>
+  } @else if (result(); as generatedPlaylist) {
+    <section class="generation-summary" aria-labelledby="playlist-result-heading" role="status">
+      <h2 id="playlist-result-heading">Podsumowanie generowania</h2>
+      <p>
+        Dopuszczone utwory: <strong>{{ generatedPlaylist.rankedTracks.length }}</strong
+        >.
+      </p>
+      <p>
+        Odrzucone utwory: <strong>{{ generatedPlaylist.rejectedTracks.length }}</strong
+        >.
+      </p>
+      @if (generatedPlaylist.rankedTracks.length === 0) {
+        <p>
+          Żaden utwór nie spełnia aktywnych wymagań. Możesz zmienić kryteria i spróbować ponownie.
+        </p>
+      }
+    </section>
+  }
+</section>
