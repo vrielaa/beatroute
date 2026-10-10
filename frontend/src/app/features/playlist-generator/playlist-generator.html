@@ -1,1 +1,34 @@
-<p class="placeholder-page-message">Generator playlist jest w przygotowaniu</p>
+<section class="dataset-import" aria-labelledby="dataset-import-heading">
+  <header>
+    <h1 id="dataset-import-heading">Generator playlist</h1>
+    <p>Wczytaj zbiór utworów z pliku JSON. Import nie pobiera danych ze Spotify.</p>
+  </header>
+
+  <div class="dataset-file-control">
+    <label for="playlist-dataset-file">Plik ze zbiorem utworów</label>
+    <input
+      id="playlist-dataset-file"
+      type="file"
+      accept=".json,application/json"
+      aria-describedby="playlist-dataset-format"
+      [disabled]="isReadingFile()"
+      (change)="importDataset($event)"
+    />
+    <p id="playlist-dataset-format" class="dataset-format-hint">
+      Format: version: 1 oraz tracks z 1–500 utworami. Każdy utwór musi zawierać id, name, artists i
+      audioFeatures ze wszystkimi ośmioma polami pomiarów. Brak pomiaru zapisuj jako null.
+    </p>
+  </div>
+
+  @if (isReadingFile()) {
+  <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
+  } @else if (importError(); as error) {
+  <p class="dataset-import-error" role="alert">{{ error }}</p>
+  } @else if (dataset(); as importedDataset) {
+  <p class="dataset-import-status" role="status">
+    Wczytano <strong>{{ fileName() }}</strong
+    >. Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
+    >.
+  </p>
+  }
+</section>

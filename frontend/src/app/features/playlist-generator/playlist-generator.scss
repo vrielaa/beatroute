@@ -1,20 +1,69 @@
 :host {
-  display: flex;
+  display: block;
   width: 100%;
   min-width: 0;
   min-height: 24rem;
-  align-items: center;
-  justify-content: center;
   padding: 2rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   color: var(--color-text-primary);
   box-shadow: 0 0.8rem 2.4rem var(--color-shadow);
-  text-align: center;
 }
 
-.placeholder-page-message {
-  font-size: var(--text-lg);
+.dataset-import,
+.dataset-file-control {
+  display: grid;
+  gap: 1rem;
+}
+
+.dataset-import {
+  gap: 2rem;
+}
+
+header p,
+.dataset-format-hint {
+  color: var(--color-text-secondary);
+}
+
+label {
   font-weight: var(--font-weight-semibold);
+}
+
+input[type='file'] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+input[type='file']::file-selector-button {
+  margin-right: 1rem;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  cursor: pointer;
+}
+
+input[type='file']:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+input[type='file']:disabled {
+  opacity: 0.6;
+}
+
+.dataset-import-status,
+.dataset-import-error {
+  overflow-wrap: anywhere;
+}
+
+.dataset-import-error {
+  color: var(--color-danger);
 }
