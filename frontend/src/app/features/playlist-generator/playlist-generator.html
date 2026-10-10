@@ -21,14 +21,18 @@
   </div>
 
   @if (isReadingFile()) {
-  <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
+    <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
   } @else if (importError(); as error) {
-  <p class="dataset-import-error" role="alert">{{ error }}</p>
+    <p class="dataset-import-error" role="alert">{{ error }}</p>
   } @else if (dataset(); as importedDataset) {
-  <p class="dataset-import-status" role="status">
-    Wczytano <strong>{{ fileName() }}</strong
-    >. Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
-    >.
-  </p>
+    <p class="dataset-import-status" role="status">
+      Wczytano <strong>{{ fileName() }}</strong
+      >. Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
+      >.
+    </p>
   }
 </section>
+
+@if (dataset()) {
+  <app-playlist-criteria-form (criteriaChange)="criteria.set($event)" />
+}

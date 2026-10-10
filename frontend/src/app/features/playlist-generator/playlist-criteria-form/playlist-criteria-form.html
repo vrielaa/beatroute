@@ -1,0 +1,131 @@
+<form novalidate aria-labelledby="playlist-criteria-heading">
+  <h2 id="playlist-criteria-heading">Kryteria playlisty</h2>
+
+  <fieldset>
+    <legend>Wymagania obowiązkowe</legend>
+    <p class="criteria-hint">
+      Utwór musi spełnić wszystkie włączone wymagania. Brak potrzebnego pomiaru również powoduje
+      odrzucenie. Wyłączone wymagania nie ograniczają wyboru utworów.
+    </p>
+
+    <div class="requirement">
+      <label class="requirement-toggle" for="playlist-tempo-enabled">
+        <input id="playlist-tempo-enabled" type="checkbox" [formField]="form.tempoEnabled" />
+        Ogranicz zakres BPM
+      </label>
+      @if (form.tempoEnabled().value()) {
+        <div class="tempo-fields">
+          <div class="criteria-field">
+            <label for="playlist-tempo-min">Minimum BPM</label>
+            <input
+              id="playlist-tempo-min"
+              type="number"
+              step="any"
+              [formField]="form.tempoMin"
+              [attr.aria-invalid]="isFieldErrorVisible(form.tempoMin)"
+            />
+            @if (isFieldErrorVisible(form.tempoMin)) {
+              @for (error of form.tempoMin().errors(); track error.kind) {
+                <p class="criteria-error" role="alert">{{ error.message }}</p>
+              }
+            }
+          </div>
+          <div class="criteria-field">
+            <label for="playlist-tempo-max">Maksimum BPM</label>
+            <input
+              id="playlist-tempo-max"
+              type="number"
+              step="any"
+              [formField]="form.tempoMax"
+              [attr.aria-invalid]="isFieldErrorVisible(form.tempoMax)"
+            />
+            @if (isFieldErrorVisible(form.tempoMax)) {
+              @for (error of form.tempoMax().errors(); track error.kind) {
+                <p class="criteria-error" role="alert">{{ error.message }}</p>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="requirement">
+      <label class="requirement-toggle" for="playlist-speechiness-enabled">
+        <input
+          id="playlist-speechiness-enabled"
+          type="checkbox"
+          [formField]="form.speechinessEnabled"
+        />
+        Ogranicz udział mowy (speechiness)
+      </label>
+      @if (form.speechinessEnabled().value()) {
+        <div class="criteria-field">
+          <label for="playlist-max-speechiness">Maksimum speechiness (0–1)</label>
+          <input
+            id="playlist-max-speechiness"
+            type="number"
+            step="any"
+            [formField]="form.maxSpeechiness"
+            [attr.aria-invalid]="isFieldErrorVisible(form.maxSpeechiness)"
+          />
+          @if (isFieldErrorVisible(form.maxSpeechiness)) {
+            @for (error of form.maxSpeechiness().errors(); track error.kind) {
+              <p class="criteria-error" role="alert">{{ error.message }}</p>
+            }
+          }
+        </div>
+      }
+    </div>
+
+    <div class="requirement">
+      <label class="requirement-toggle" for="playlist-liveness-enabled">
+        <input id="playlist-liveness-enabled" type="checkbox" [formField]="form.livenessEnabled" />
+        Ogranicz prawdopodobieństwo wykonania na żywo (liveness)
+      </label>
+      @if (form.livenessEnabled().value()) {
+        <div class="criteria-field">
+          <label for="playlist-max-liveness">Maksimum liveness (0–1)</label>
+          <input
+            id="playlist-max-liveness"
+            type="number"
+            step="any"
+            [formField]="form.maxLiveness"
+            [attr.aria-invalid]="isFieldErrorVisible(form.maxLiveness)"
+          />
+          @if (isFieldErrorVisible(form.maxLiveness)) {
+            @for (error of form.maxLiveness().errors(); track error.kind) {
+              <p class="criteria-error" role="alert">{{ error.message }}</p>
+            }
+          }
+        </div>
+      }
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Preferencje wpływające na kolejność</legend>
+    <p class="criteria-hint">
+      Preferencje nie odrzucają utworów. Określają kolejność tych, które spełniają wymagania. „Bez
+      znaczenia” pomija cechę w ocenie; brak wszystkich preferencji zachowuje kolejność zbioru.
+    </p>
+    <div class="preference-fields">
+      @for (feature of preferenceFeatures; track feature) {
+        <div class="criteria-field">
+          <label [for]="'playlist-preference-' + feature">{{ preferenceLabels[feature] }}</label>
+          <select [id]="'playlist-preference-' + feature" [formField]="form.preferences[feature]">
+            <option value="">Bez znaczenia</option>
+            <option value="low">Niska</option>
+            <option value="medium">Średnia</option>
+            <option value="high">Wysoka</option>
+          </select>
+        </div>
+      }
+    </div>
+  </fieldset>
+
+  @if (form().invalid()) {
+    <p class="criteria-error" role="status">Popraw lub uzupełnij aktywne kryteria playlisty.</p>
+  } @else {
+    <p class="criteria-hint" role="status">Ustawienia są poprawne.</p>
+  }
+</form>

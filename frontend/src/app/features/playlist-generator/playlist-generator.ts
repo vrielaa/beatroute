@@ -1,10 +1,11 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
-import type { PlaylistDataset } from './playlist-generator.models';
+import type { PlaylistCriteria, PlaylistDataset } from './playlist-generator.models';
 import { parsePlaylistDataset } from './playlist-dataset.parser';
+import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
 
 @Component({
   selector: 'app-playlist-generator',
-  imports: [],
+  imports: [PlaylistCriteriaForm],
   templateUrl: './playlist-generator.html',
   styleUrl: './playlist-generator.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -14,6 +15,7 @@ class PlaylistGenerator {
   protected readonly fileName = signal<string | null>(null);
   protected readonly isReadingFile = signal(false);
   protected readonly importError = signal<string | null>(null);
+  protected readonly criteria = signal<PlaylistCriteria | null>(null);
 
   /**
    * Odczytuje wybrany plik JSON, sprawdza zbiór i zapisuje go w stanie widoku.
@@ -42,6 +44,7 @@ class PlaylistGenerator {
     this.dataset.set(null);
     this.fileName.set(null);
     this.importError.set(null);
+    this.criteria.set(null);
     this.isReadingFile.set(true);
 
     try {

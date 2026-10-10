@@ -34,6 +34,7 @@ describe('PlaylistGenerator file import', () => {
     expect(getText()).toContain('1–500 utworami');
     expect(getStatus()).toBeNull();
     expect(getError()).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();
   });
 
   it('shows the imported file name and track count without making HTTP requests', async () => {
@@ -49,6 +50,7 @@ describe('PlaylistGenerator file import', () => {
     expect(getError()).toBeNull();
     expect(getInput().disabled).toBe(false);
     expect(resetInput).toHaveBeenCalledWith('');
+    expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).not.toBeNull();
     http.expectNone(() => true);
   });
 
@@ -90,6 +92,7 @@ describe('PlaylistGenerator file import', () => {
     expect(getError()?.textContent).toBe('Plik nie zawiera poprawnego JSON-a');
     expect(getStatus()).toBeNull();
     expect(getText()).not.toContain('original.json');
+    expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();
     expect(getText()).not.toContain('broken.json');
     expect(getInput().disabled).toBe(false);
     expect(resetInput).toHaveBeenCalledWith('');

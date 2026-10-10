@@ -102,6 +102,18 @@ type PlaylistPreferences = {
   instrumentalness: PlaylistPreferenceLevel | null;
 };
 
+/**
+ * Sprawdzone ustawienia generatora, niezależne od zbioru utworów.
+ * Formularz nie tworzy tych ustawień, dopóki aktywne wymagania są niepoprawne.
+ *
+ * @property requirements - Obowiązkowe warunki dopuszczenia utworu; null wyłącza dany warunek.
+ * @property preferences - Poziomy pięciu cech ustalające ranking; null oznacza „Bez znaczenia”.
+ */
+type PlaylistCriteria = {
+  requirements: PlaylistRequirements;
+  preferences: PlaylistPreferences;
+};
+
 /** Nazwa jednej z pięciu cech ocenianych według preferencji użytkownika. */
 type PlaylistPreferenceFeature = keyof PlaylistPreferences;
 
@@ -213,6 +225,7 @@ export type {
   PlaylistRequirements,
   PlaylistPreferenceLevel,
   PlaylistPreferences,
+  PlaylistCriteria,
   PlaylistPreferenceFeature,
   PlaylistFeatureMatch,
   PlaylistTrackEvaluation,
