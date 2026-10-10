@@ -1,7 +1,7 @@
 /**
  * Osiem pomiarów cech audio przyjmowanych przez generator playlist.
  * Wszystkie pola są wymagane; null oznacza brak pomiaru, a nie wartość zero.
- * Typy nie walidują odczytanego JSON-a ani zakresów liczb — sprawdza je backend.
+ * Typy nie walidują JSON-a ani zakresów liczb — robi to parser frontendu i niezależnie backend.
  *
  * @property tempo - Dodatnie tempo w BPM albo null przy braku pomiaru.
  * @property energy - Szacowana intensywność brzmienia w zakresie 0–1 albo null.
