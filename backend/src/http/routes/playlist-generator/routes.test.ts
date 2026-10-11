@@ -8,6 +8,36 @@ import type {
   PlaylistTrack,
 } from "@domain/playlist-generator/types.js";
 
+describe("playlist dataset preparation in the actual app", () => {
+  it("mounts the preparation endpoint with Spotify authorization", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/prepare-dataset")
+      .send({ version: 1, spotifyTrackIds: ["3sNVsP50132BTNlImLx70i"] })
+      .expect(401, {
+        error: {
+          code: "SPOTIFY_AUTH_REQUIRED",
+          message: "Użytkownik nie jest zalogowany do Spotify",
+        },
+      });
+  });
+
+  it("applies the generator parser limit to preparation requests", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/prepare-dataset")
+      .send({
+        version: 1,
+        spotifyTrackIds: ["3sNVsP50132BTNlImLx70i"],
+        unused: "x".repeat(1024 * 1024),
+      })
+      .expect(413, {
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Treść żądania przekracza dozwolony rozmiar",
+        },
+      });
+  });
+});
+
 describe("POST /api/playlist-generator/generate", () => {
   it("filters and ranks supplied tracks without requiring a Spotify session", async () => {
     const first = createTrack("first", { energy: 0.625 });

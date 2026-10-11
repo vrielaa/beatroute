@@ -33,7 +33,7 @@
     },
     {
       "name": "Playlist generator",
-      "description": "Filtering and fuzzy ranking of supplied tracks without provider API calls"
+      "description": "Prepare tracks from Spotify IDs, then filter and rank a reusable dataset"
     },
     {
       "name": "Last.fm",
@@ -575,6 +575,155 @@
         }
       }
     },
+    "/api/playlist-generator/prepare-dataset": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "preparePlaylistDataset",
+        "summary": "Prepare a reusable playlist dataset from Spotify track IDs",
+        "description": "Requires a Spotify session. Validates the file, trims case-sensitive IDs and removes duplicates, preserving first-occurrence order. Uses the session token to read Spotify metadata and ReccoBeats to obtain audio measurements. Body tokens, metadata and extra properties are ignored. Tracks without metadata or any usable generator measurement are skipped; partial measurements are retained as null and reported separately. Whole-request failures use the shared error contract rather than returning an empty success. Preparation does not filter requirements, rank tracks or create a Spotify playlist. Reuse the resulting dataset with /generate when criteria change.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "description": "A version-1 JSON file with 1–500 ID entries, counted before deduplication. Maximum body size is 1 MiB (1,048,576 bytes).",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlaylistTrackIdsFile" },
+              "example": {
+                "version": 1,
+                "spotifyTrackIds": [
+                  "3sNVsP50132BTNlImLx70i",
+                  "4U4LEUWV8sFtos5PdjfDA7"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dataset, skipped IDs and incomplete measurements in source order. An empty dataset is a successful preparation result but must not be passed to /generate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedPlaylistDataset"
+                },
+                "example": {
+                  "dataset": {
+                    "version": 1,
+                    "tracks": [
+                      {
+                        "id": "3sNVsP50132BTNlImLx70i",
+                        "name": "Example song",
+                        "artists": ["Example artist"],
+                        "audioFeatures": {
+                          "tempo": 128,
+                          "energy": null,
+                          "danceability": 0.75,
+                          "valence": 0.6,
+                          "acousticness": 0.2,
+                          "instrumentalness": 0.05,
+                          "speechiness": 0.04,
+                          "liveness": 0.1
+                        }
+                      }
+                    ]
+                  },
+                  "skippedTracks": [
+                    {
+                      "spotifyId": "4U4LEUWV8sFtos5PdjfDA7",
+                      "reason": "audio-features-unavailable"
+                    }
+                  ],
+                  "incompleteTracks": [
+                    {
+                      "spotifyId": "3sNVsP50132BTNlImLx70i",
+                      "missingFeatures": ["energy"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file version, ID list or ID format (VALIDATION_ERROR), or malformed JSON (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Spotify session is missing (SPOTIFY_AUTH_REQUIRED), cannot be renewed (SPOTIFY_REAUTH_REQUIRED), or Spotify rejects access (SPOTIFY_API_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Spotify denies access to the requested data.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds the 1 MiB limit.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "An integration reached its request limit. Retry-After is included when supplied by the upstream service.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying, when available.",
+                "schema": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application error or invalid Spotify OAuth request; diagnostic data is not returned.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Connection failure, invalid response or upstream error from Spotify or ReccoBeats.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "An integration is temporarily unavailable or Spotify is misconfigured.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Spotify or ReccoBeats did not respond within the request timeout.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/playlist-generator/generate": {
       "post": {
         "tags": ["Playlist generator"],
@@ -888,6 +1037,14 @@
         "schema": {
           "type": "string"
         }
+      }
+    },
+    "securitySchemes": {
+      "SessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionId",
+        "description": "Application session established through the Spotify OAuth flow. The browser sends this HTTP-only cookie automatically."
       }
     },
     "schemas": {
@@ -1460,6 +1617,93 @@
           }
         },
         "required": ["version", "tracks"]
+      },
+      "PlaylistTrackIdsFile": {
+        "type": "object",
+        "description": "User file containing only Spotify IDs. Surrounding whitespace is trimmed; duplicates are removed after trimming without changing case or first-occurrence order. Additional fields are ignored.",
+        "properties": {
+          "version": { "type": "integer", "const": 1 },
+          "spotifyTrackIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "string",
+              "pattern": "^\\s*[A-Za-z0-9]{22}\\s*$"
+            }
+          }
+        },
+        "required": ["version", "spotifyTrackIds"]
+      },
+      "PreparedPlaylistDataset": {
+        "type": "object",
+        "description": "Prepared data for subsequent generation, with safe codes for skipped IDs and missing measurements. Does not include access tokens or raw provider diagnostics.",
+        "properties": {
+          "dataset": {
+            "type": "object",
+            "description": "May be empty when no track can be prepared; /generate requires at least one track.",
+            "properties": {
+              "version": { "type": "integer", "const": 1 },
+              "tracks": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 500,
+                "items": { "$ref": "#/components/schemas/PlaylistTrack" }
+              }
+            },
+            "required": ["version", "tracks"]
+          },
+          "skippedTracks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "spotifyId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9]{22}$"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": ["metadata-unavailable", "audio-features-unavailable"]
+                }
+              },
+              "required": ["spotifyId", "reason"]
+            }
+          },
+          "incompleteTracks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "spotifyId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9]{22}$"
+                },
+                "missingFeatures": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 7,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "tempo",
+                      "energy",
+                      "danceability",
+                      "valence",
+                      "acousticness",
+                      "instrumentalness",
+                      "speechiness",
+                      "liveness"
+                    ]
+                  }
+                }
+              },
+              "required": ["spotifyId", "missingFeatures"]
+            }
+          }
+        },
+        "required": ["dataset", "skippedTracks", "incompleteTracks"]
       },
       "PlaylistTempoRange": {
         "type": "object",

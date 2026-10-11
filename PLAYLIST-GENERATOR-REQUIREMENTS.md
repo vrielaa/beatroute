@@ -51,7 +51,7 @@ niezależnie sprawdzają format. Nie wykonują wywołań API.
 
 1. Format, typy i walidacja pliku z ID, z testami — przygotowane.
 2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach i testami — przygotowany.
-3. Autoryzowany endpoint przygotowania zbioru i testy HTTP.
+3. Autoryzowany endpoint przygotowania zbioru, testy HTTP i opis w OpenAPI — przygotowane.
 4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz.
 5. Testy całego przepływu oraz aktualizacja README i OpenAPI.
 
@@ -64,8 +64,8 @@ Serwis createPlaylistDatasetService w
 backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje dwie
 jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
 audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
-Podłączenie zależności do endpointu jest kolejnym etapem; samo przygotowanie
-zbioru nie jest jeszcze dostępne w UI.
+Produkcyjne zależności są składane w http/routes/playlist-generator/composition.ts.
+Przygotowanie zbioru jest dostępne przez API, ale nie jest jeszcze podłączone do UI.
 
 Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile i token Spotify.
 Pobiera metadane po kolei, a cechy tylko dla utworów z nazwą i co najmniej jednym
@@ -96,6 +96,25 @@ wywoływać generator. Surowe komunikaty dostawcy i token nie trafiają do wynik
 Testy serwisu używają atrap źródeł, bez zewnętrznych API. Sprawdzają format zbioru,
 łączenie po ID, kolejność, porcje do 40 ID, normalizację pomiarów, częściowe braki,
 pomijanie niedostępnych utworów, propagowanie awarii i brak modyfikacji wejścia.
+
+### Endpoint przygotowania zbioru
+
+POST /api/playlist-generator/prepare-dataset przyjmuje bezpośrednio plik JSON
+z polami version i spotifyTrackIds. Wymaga aktywnej sesji Spotify; middleware
+odnawia wygasający token przed wywołaniem serwisu. Token jest odczytywany z sesji,
+nie z body. Walidacja ID odbywa się przed odczytem danych z API.
+
+Odpowiedź 200 zawiera PreparedPlaylistDataset: dataset, skippedTracks oraz
+incompleteTracks. Może zawierać pusty zbiór, jeżeli żaden utwór nie ma użytecznych
+danych. Błędy walidacji, parsera i integracji trafiają do wspólnego middleware;
+limit Retry-After jest przekazywany także w nagłówku odpowiedzi. Parser JSON
+tego routera nadal ma limit 1 MiB, a pozostałe endpointy 100 KiB.
+
+POST /api/playlist-generator/generate pozostaje osobnym endpointem: przyjmuje
+pełny dataset, requirements i preferences, nie wymaga sesji i nie wywołuje API.
+Przy zmianie kryteriów UI będzie wywoływać tylko /generate z przygotowanym zbiorem.
+Testy HTTP sprawdzają prawdziwą sesję Express, autoryzację i odświeżanie tokenu,
+walidację, limity parsera, przekazanie wyników oraz wspólny format błędów.
 
 ## Wewnętrzny zbiór generatora
 
