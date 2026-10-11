@@ -1,0 +1,58 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.ranked-track {
+  display: grid;
+  gap: 1.2rem;
+  min-width: 0;
+  padding: 1.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.ranking-position {
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.track-metadata {
+  flex: 1 1 15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+h3 {
+  font-size: var(--text-lg);
+}
+
+.track-artists,
+.zero-match-hint,
+dt {
+  color: var(--color-text-secondary);
+}
+
+.track-artists {
+  margin-top: 0.4rem;
+}
+
+.overall-match {
+  margin: 0;
+}
+
+.overall-match-value {
+  margin: 0.4rem 0 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
