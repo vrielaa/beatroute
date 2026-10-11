@@ -17,7 +17,9 @@
     odrzucenie. Utwór może znaleźć się w wynikach także z dopasowaniem 0%.
   </p>
   <p class="score-explanation">
-    Procent dopasowania jest oceną preferencji, nie prawdopodobieństwem polubienia utworu.
+    Procent dopasowania jest oceną preferencji, nie prawdopodobieństwem polubienia utworu. Przy
+    remisie porównujemy średnią bliskość pomiarów do wybranych poziomów, a jeśli ona też jest równa,
+    zachowujemy kolejność z pliku. Wyłączone preferencje i brakujące pomiary są pomijane.
   </p>
 
   @if (result().rankedTracks.length === 0) {

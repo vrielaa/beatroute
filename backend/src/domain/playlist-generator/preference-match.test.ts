@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { calculatePreferenceMatch } from "./preference-match.js";
+import {
+  calculatePreferenceMatch,
+  calculatePreferenceCloseness,
+} from "./preference-match.js";
 import type { PlaylistPreferenceLevel } from "./types.js";
 
 describe("calculatePreferenceMatch", () => {
@@ -113,6 +116,51 @@ describe("calculatePreferenceMatch", () => {
       }
 
       previousMatch = match;
+    }
+  });
+});
+
+describe("calculatePreferenceCloseness", () => {
+  const cases: {
+    level: PlaylistPreferenceLevel;
+    measurement: number;
+    expected: number;
+  }[] = [
+    { level: "low", measurement: 0, expected: 1 },
+    { level: "low", measurement: 0.125, expected: 0.875 },
+    { level: "low", measurement: 0.5, expected: 0.5 },
+    { level: "low", measurement: 0.875, expected: 0.125 },
+    { level: "low", measurement: 1, expected: 0 },
+    { level: "medium", measurement: 0, expected: 0 },
+    { level: "medium", measurement: 0.125, expected: 0.25 },
+    { level: "medium", measurement: 0.5, expected: 1 },
+    { level: "medium", measurement: 0.875, expected: 0.25 },
+    { level: "medium", measurement: 1, expected: 0 },
+    { level: "high", measurement: 0, expected: 0 },
+    { level: "high", measurement: 0.125, expected: 0.125 },
+    { level: "high", measurement: 0.5, expected: 0.5 },
+    { level: "high", measurement: 0.875, expected: 0.875 },
+    { level: "high", measurement: 1, expected: 1 },
+  ];
+
+  it.each(cases)(
+    "returns $expected for $level with measurement $measurement",
+    ({ level, measurement, expected }) => {
+      expect(calculatePreferenceCloseness(measurement, level)).toBeCloseTo(
+        expected
+      );
+    }
+  );
+
+  const levels: PlaylistPreferenceLevel[] = ["low", "medium", "high"];
+
+  it.each(levels)("keeps %s closeness within 0–1", (level) => {
+    for (let step = 0; step <= 100; step++) {
+      const closeness = calculatePreferenceCloseness(step / 100, level);
+
+      expect(Number.isFinite(closeness)).toBe(true);
+      expect(closeness).toBeGreaterThanOrEqual(0);
+      expect(closeness).toBeLessThanOrEqual(1);
     }
   });
 });

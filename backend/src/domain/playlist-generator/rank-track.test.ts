@@ -52,7 +52,7 @@ describe("rankPlaylistTracks", () => {
     }
   );
 
-  it("preserves source order for equal numeric scores", () => {
+  it("preserves source order when both preference match and tie-breaker scores are equal", () => {
     const tracks = [
       createTrack("z-first", { energy: 0.625 }),
       createTrack("a-second", { energy: 0.625 }),
@@ -68,6 +68,199 @@ describe("rankPlaylistTracks", () => {
       "a-second",
       "m-third",
     ]);
+  });
+
+  it("places a small instrumentalness measurement above zero for a high preference when both match scores are zero", () => {
+    const tracks = [
+      createTrack("zero", { instrumentalness: 0 }),
+      createTrack("small-measurement", { instrumentalness: 0.0816 }),
+    ];
+    const preferences = createPreferences({
+      energy: null,
+      instrumentalness: "high",
+    });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "small-measurement",
+      "zero",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0, 0]);
+  });
+
+  it.each([
+    { level: "high", measurements: [0, 0.25, 0.5], expected: [2, 1, 0] },
+    { level: "low", measurements: [1, 0.875, 0.5], expected: [2, 1, 0] },
+    { level: "medium", measurements: [0, 0.875, 0.25], expected: [2, 1, 0] },
+  ] as const)(
+    "breaks zero-score ties using closeness to the $level preference",
+    ({ level, measurements, expected }) => {
+      const tracks = measurements.map((energy, index) =>
+        createTrack(`track-${index}`, { energy })
+      );
+
+      const result = rankPlaylistTracks(
+        tracks,
+        createPreferences({ energy: level })
+      );
+
+      expect(result.map(({ track }) => track.id)).toEqual(
+        expected.map((index) => `track-${index}`)
+      );
+      expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0, 0, 0]);
+    }
+  );
+
+  it.each([
+    { level: "high", measurements: [0.75, 1, 0.875] },
+    { level: "low", measurements: [0.25, 0, 0.125] },
+  ] as const)(
+    "breaks full-score plateau ties using closeness to the $level preference",
+    ({ level, measurements }) => {
+      const tracks = measurements.map((energy, index) =>
+        createTrack(`track-${index}`, { energy })
+      );
+
+      const result = rankPlaylistTracks(
+        tracks,
+        createPreferences({ energy: level })
+      );
+
+      expect(result.map(({ track }) => track.id)).toEqual([
+        "track-1",
+        "track-2",
+        "track-0",
+      ]);
+      expect(result.map(({ overallMatch }) => overallMatch)).toEqual([1, 1, 1]);
+    }
+  );
+
+  it("breaks ties using the average closeness of high and low preferences instead of favouring one feature", () => {
+    const tracks = [
+      createTrack("higher-energy-only", { energy: 1, danceability: 0.875 }),
+      createTrack("balanced", { energy: 0.625, danceability: 0.375 }),
+    ];
+    const preferences = createPreferences({ danceability: "low" });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "balanced",
+      "higher-energy-only",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0.5, 0.5]);
+  });
+
+  it("includes all five active preferences and their individual levels when breaking ties", () => {
+    const tracks = [
+      createTrack("closer-energy-only", {
+        energy: 0.4,
+        danceability: 1,
+        valence: 1,
+        acousticness: 0,
+        instrumentalness: 1,
+      }),
+      createTrack("closer-overall", {
+        energy: 0.1,
+        danceability: 0.75,
+        valence: 0.25,
+        acousticness: 0.25,
+        instrumentalness: 0.75,
+      }),
+    ];
+    const preferences = createPreferences({
+      danceability: "low",
+      valence: "medium",
+      acousticness: "high",
+      instrumentalness: "low",
+    });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "closer-overall",
+      "closer-energy-only",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0, 0]);
+  });
+
+  it("does not let a better tie-breaker score override a higher primary match", () => {
+    const tracks = [
+      createTrack("closer-but-worse-match", { energy: 1, danceability: 0.5 }),
+      createTrack("better-primary-match", {
+        energy: 0.75,
+        danceability: 0.375,
+      }),
+    ];
+    const preferences = createPreferences({ danceability: "low" });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "better-primary-match",
+      "closer-but-worse-match",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0.75, 0.5]);
+  });
+
+  it("ignores unavailable measurements when calculating the tie-breaker average", () => {
+    const tracks = [
+      createTrack("complete", { energy: 0.3, danceability: 0.3 }),
+      createTrack("partial", { energy: 0.4, danceability: null }),
+    ];
+    const preferences = createPreferences({ danceability: "high" });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "partial",
+      "complete",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0, 0]);
+    expect(result[0].featureMatches[1].measurement).toBeNull();
+  });
+
+  it("does not include disabled preferences in tie-breaking", () => {
+    const tracks = [
+      createTrack("first", { energy: 0.25, valence: 0 }),
+      createTrack("second", { energy: 0.25, valence: 1 }),
+    ];
+
+    const result = rankPlaylistTracks(tracks, createPreferences());
+
+    expect(result.map(({ track }) => track.id)).toEqual(["first", "second"]);
+  });
+
+  it("preserves source order when different measurements give the same primary and tie-breaker averages", () => {
+    const tracks = [
+      createTrack("z-first", { energy: 1, danceability: 0.75 }),
+      createTrack("a-second", { energy: 0.875, danceability: 0.625 }),
+    ];
+    const preferences = createPreferences({ danceability: "low" });
+
+    const result = rankPlaylistTracks(tracks, preferences);
+
+    expect(result.map(({ track }) => track.id)).toEqual([
+      "z-first",
+      "a-second",
+    ]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0.5, 0.5]);
+  });
+
+  it("preserves source order for measurements equally distant from the medium level", () => {
+    const tracks = [
+      createTrack("first", { energy: 0.125 }),
+      createTrack("second", { energy: 0.875 }),
+    ];
+
+    const result = rankPlaylistTracks(
+      tracks,
+      createPreferences({ energy: "medium" })
+    );
+
+    expect(result.map(({ track }) => track.id)).toEqual(["first", "second"]);
+    expect(result.map(({ overallMatch }) => overallMatch)).toEqual([0, 0]);
   });
 
   it("preserves source order among unscored tracks after scored tracks", () => {
@@ -149,8 +342,8 @@ describe("rankPlaylistTracks", () => {
 
     expect(result.map(({ track }) => track.id)).toEqual([
       "best-average",
-      "high-energy-only",
       "balanced",
+      "high-energy-only",
     ]);
     expect(result.map(({ overallMatch }) => overallMatch)).toEqual([
       0.75, 0.5, 0.5,

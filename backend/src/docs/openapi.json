@@ -580,7 +580,7 @@
         "tags": ["Playlist generator"],
         "operationId": "generatePlaylist",
         "summary": "Generate a ranked playlist from supplied tracks and audio measurements",
-        "description": "Validates a version-1 dataset of 1–500 tracks, mandatory requirements and fuzzy preferences. Filters requirements before ranking, so rejected tracks cannot return through preference matching. Numeric scores are sorted descending, null scores last, and ties retain source order. No Spotify session or external API calls are required. Does not read a file or create a Spotify playlist. Additional input properties are ignored.",
+        "description": "Validates a version-1 dataset of 1–500 tracks, mandatory requirements and fuzzy preferences. Filters requirements before ranking, so rejected tracks cannot return through preference matching. Numeric scores are sorted descending, null scores last. Exact numeric ties use the equally weighted mean closeness of available measurements: high = measurement, low = 1 - measurement, medium = 1 - 2 * abs(measurement - 0.5). Missing measurements and disabled preferences are ignored; equal primary and tie-breaker scores retain source order. Tie-breaking does not change returned match scores. No Spotify session or external API calls are required. Does not read a file or create a Spotify playlist. Additional input properties are ignored.",
         "security": [],
         "requestBody": {
           "required": true,
@@ -1634,7 +1634,7 @@
           "rankedTracks": {
             "type": "array",
             "maxItems": 500,
-            "description": "Accepted tracks sorted by descending score; null last, stable source order for ties. No active preferences means source order.",
+            "description": "Accepted tracks sorted by descending score; null last. Exact numeric ties use mean closeness to preferred levels across available active measurements, with equal weights and no completeness penalty. Equal primary and tie-breaker scores retain source order. Unscored tracks and no active preferences preserve source order. Returned match scores are unchanged by tie-breaking.",
             "items": { "$ref": "#/components/schemas/PlaylistTrackEvaluation" }
           },
           "rejectedTracks": {

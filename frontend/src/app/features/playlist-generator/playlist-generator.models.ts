@@ -195,7 +195,8 @@ type RejectedPlaylistTrack = {
  * Każdy utwór wejściowy znajduje się w jednej grupie. Każda grupa może być pusta.
  *
  * @property rankedTracks - Dopuszczone utwory w kolejności malejącej oceny; null na końcu,
- * a remisy i brak aktywnych preferencji zachowują kolejność źródłową.
+ * remisy rozstrzyga średnia bliskość dostępnych pomiarów do wybranych poziomów.
+ * Przy równych obu ocenach lub braku aktywnych preferencji zachowana jest kolejność źródłowa.
  * @property rejectedTracks - Odrzucone utwory z powodami, w kolejności źródłowej.
  */
 type GeneratedPlaylist = {

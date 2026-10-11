@@ -202,9 +202,19 @@ Energia 0,7 daje dopasowanie 0,8, taneczność 0,65 daje 0,6, a brak walencji
 pozostaje nieoceniony. Średnia wynosi 0,7; oceniono 2 z 3 aktywnych preferencji.
 Kompletność wynika z liczby niepustych dopasowań względem długości featureMatches.
 Średnie obliczone z różnej liczby pomiarów nie zapewniają jednakowej kompletności;
-interfejs powinien pokazywać te braki. rankPlaylistTracks sortuje oceny malejąco,
-umieszcza null za ocenami liczbowymi (również za zerem), a przy remisach zachowuje
-kolejność źródłową. generatePlaylist najpierw filtruje wymagania, a dopiero potem
+interfejs powinien pokazywać te braki. rankPlaylistTracks sortuje oceny malejąco
+i umieszcza null za ocenami liczbowymi (również za zerem). Przy dokładnie równych
+ocenach liczbowych porównuje średnią bliskość dostępnych pomiarów do wybranych poziomów:
+
+- high: bliskość równa pomiarowi;
+- low: bliskość równa `1 - pomiar`;
+- medium: bliskość równa `1 - 2 * abs(pomiar - 0.5)`.
+
+Każda aktywna preferencja z pomiarem ma równą wagę. Wyłączone preferencje i null
+są pomijane, a zero jest pomiarem. Gdy obie oceny są równe, pozostaje kolejność
+źródłowa; to samo dotyczy utworów bez oceny. Rozstrzygnięcie remisu nie zmienia
+overallMatch ani dopasowań poszczególnych cech. Nie porównujemy procentów
+zaokrąglonych przez interfejs. generatePlaylist najpierw filtruje wymagania, a dopiero potem
 ocenia i sortuje dopuszczone utwory; odrzucone nie mogą wrócić do rankingu.
 
 Obie funkcje mają testy jednostkowe. Ocena nie zmienia wejścia, nie filtruje ani

@@ -30,4 +30,29 @@ function calculatePreferenceMatch(
   }
 }
 
-export { calculatePreferenceMatch };
+/**
+ * Oblicza bliskość pomiaru do wybranego poziomu bez plateau funkcji rozmytej.
+ * Dla high większy pomiar daje większą bliskość, dla low mniejszy, a dla medium
+ * najwyższą bliskość ma pomiar 0.5. Wszystkie poziomy korzystają ze skali 0–1.
+ * Ta pomocnicza ocena służy tylko do rozstrzygania remisów; nie zmienia
+ * dopasowania rozmytego pokazywanego użytkownikowi.
+ *
+ * @param measurement - Zwalidowany pomiar cechy audio z zakresu 0–1.
+ * @param level - Preferowany poziom cechy.
+ * @returns Bliskość z zakresu 0–1; większa wartość oznacza lepsze dopasowanie poziomu.
+ */
+function calculatePreferenceCloseness(
+  measurement: number,
+  level: PlaylistPreferenceLevel
+): number {
+  switch (level) {
+    case "low":
+      return 1 - measurement;
+    case "medium":
+      return 1 - Math.abs(measurement - 0.5) * 2;
+    case "high":
+      return measurement;
+  }
+}
+
+export { calculatePreferenceMatch, calculatePreferenceCloseness };

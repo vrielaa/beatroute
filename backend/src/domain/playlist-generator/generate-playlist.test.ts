@@ -250,7 +250,7 @@ describe("generatePlaylist", () => {
     });
   });
 
-  it("ranks all accepted tracks and preserves source order for ties", () => {
+  it("ranks all accepted tracks and preserves source order when both ranking scores tie", () => {
     const firstTie = createTrack("z-first", { energy: 0.625 });
     const zero = createTrack("zero", { energy: 0.25 });
     const best = createTrack("best", { energy: 0.75 });
@@ -272,6 +272,42 @@ describe("generatePlaylist", () => {
       [1, 0.5, 0.5, 0]
     );
     expect(result.rejectedTracks).toEqual([]);
+  });
+
+  it("breaks ties across multiple preferences without changing match scores or restoring rejected tracks", () => {
+    const rejected = createTrack("rejected-with-best-preferences", {
+      tempo: 110,
+      energy: 0.9,
+      instrumentalness: 0.9,
+    });
+    const first = createTrack("zero-instrumentalness", {
+      energy: 0.2,
+      instrumentalness: 0,
+    });
+    const closer = createTrack("closer-to-both-preferences", {
+      energy: 0.4,
+      instrumentalness: 0.1,
+    });
+
+    const result = generatePlaylist(
+      createDataset([rejected, first, closer]),
+      createRequirements(),
+      createPreferences({ instrumentalness: "high" })
+    );
+
+    expect(result.rankedTracks.map(({ track }) => track.id)).toEqual([
+      "closer-to-both-preferences",
+      "zero-instrumentalness",
+    ]);
+    expect(result.rankedTracks.map(({ overallMatch }) => overallMatch)).toEqual(
+      [0, 0]
+    );
+    expect(result.rejectedTracks).toEqual([
+      {
+        track: rejected,
+        reasons: [{ feature: "tempo", code: "outside-range" }],
+      },
+    ]);
   });
 
   it("does not mutate input and assigns every source track to exactly one result group", () => {

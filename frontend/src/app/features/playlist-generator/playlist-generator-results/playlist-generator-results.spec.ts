@@ -75,6 +75,13 @@ describe('PlaylistGeneratorResults', () => {
       'Utwór może znaleźć się w wynikach także z dopasowaniem 0%.'
     );
     expect(getText('.score-explanation')).toContain('nie prawdopodobieństwem polubienia utworu');
+    expect(getText('.score-explanation')).toContain(
+      'Przy remisie porównujemy średnią bliskość pomiarów do wybranych poziomów'
+    );
+    expect(getText('.score-explanation')).toContain('zachowujemy kolejność z pliku');
+    expect(getText('.score-explanation')).toContain(
+      'Wyłączone preferencje i brakujące pomiary są pomijane.'
+    );
   });
 
   it('shows an empty ranking as a valid outcome and still displays every rejection', () => {
