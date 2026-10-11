@@ -50,13 +50,52 @@ niezależnie sprawdzają format. Nie wykonują wywołań API.
 ### Etapy przejścia na import ID
 
 1. Format, typy i walidacja pliku z ID, z testami — przygotowane.
-2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach.
+2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach i testami — przygotowany.
 3. Autoryzowany endpoint przygotowania zbioru i testy HTTP.
 4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz.
 5. Testy całego przepływu oraz aktualizacja README i OpenAPI.
 
 Interfejs nadal importuje pełny zbiór do czasu podłączenia przygotowania danych.
 Nie przełączamy go na same ID, zanim będzie gotowe pobieranie metadanych i pomiarów.
+
+### Przygotowanie zbioru z ID
+
+Serwis createPlaylistDatasetService w
+backend/src/application/playlist-generator/prepare-dataset.ts przyjmuje dwie
+jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
+audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
+Podłączenie zależności do endpointu jest kolejnym etapem; samo przygotowanie
+zbioru nie jest jeszcze dostępne w UI.
+
+Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile i token Spotify.
+Pobiera metadane po kolei, a cechy tylko dla utworów z nazwą i co najmniej jednym
+wykonawcą. Zapytania o cechy dzieli na porcje do 40 ID, aby ograniczyć długość
+adresu żądania. To ograniczenie wielkości porcji, nie zastępstwo schedulera HTTP
+kontrolującego tempo i równoległość. Wyniki łączy po spotifyId, a nie po kolejności
+odpowiedzi. Zachowuje identyfikatory i kolejność wejściową.
+
+Wynik PreparedPlaylistDataset zawiera:
+
+- dataset — metadane i osiem pomiarów gotowych do filtrowania i rankingu;
+- skippedTracks — pominięte ID z kodem metadata-unavailable (404 lub brak
+  wymaganych metadanych) albo audio-features-unavailable (nieudany odczyt
+  pojedynczego utworu lub brak wszystkich ośmiu użytecznych pomiarów);
+- incompleteTracks — zachowane utwory z listą brakujących pomiarów.
+
+Niepoprawny pomiar staje się null, nie zerem. Częściowe braki nie usuwają utworu:
+generator nadal rozstrzyga, czy brakuje pomiaru potrzebnego do aktywnego wymagania.
+Zero w skali 0–1 pozostaje poprawną wartością. Pominięcie przy pobieraniu danych
+jest czymś innym niż odrzucenie przez wymagania użytkownika.
+
+Błędy całych zapytań, w tym problemy z tokenem, limit API lub brak połączenia,
+przerywają przygotowanie i są przekazywane do obsługi błędów. Nie zastępujemy ich
+pustym wynikiem. Jeśli wszystkie odczyty zakończą się brakami pojedynczych utworów,
+dataset.tracks jest pusty; UI powinno wtedy wyświetlić informację o brakach zamiast
+wywoływać generator. Surowe komunikaty dostawcy i token nie trafiają do wyniku.
+
+Testy serwisu używają atrap źródeł, bez zewnętrznych API. Sprawdzają format zbioru,
+łączenie po ID, kolejność, porcje do 40 ID, normalizację pomiarów, częściowe braki,
+pomijanie niedostępnych utworów, propagowanie awarii i brak modyfikacji wejścia.
 
 ## Wewnętrzny zbiór generatora
 
@@ -90,7 +129,9 @@ do sprawdzania algorytmu bez API, nie docelowym formatem pliku użytkownika.
 ```
 
 - `version` ma wartość 1 i opisuje wersję formatu, nie wersję aplikacji.
-- `tracks` jest tablicą od 1 do 500 utworów. `id` jest niepusty i unikalny w zbiorze.
+- `tracks` przekazane do generatora zawiera od 1 do 500 utworów. Przygotowanie
+  danych może zwrócić pustą tablicę, której nie wysyłamy do generatora.
+  `id` jest niepusty i unikalny w zbiorze.
 - `name` jest niepustym tekstem, a `artists` niepustą tablicą niepustych nazw.
 - Wszystkie osiem pól `audioFeatures` musi istnieć. Wartość null oznacza brak pomiaru.
 - `tempo` jest dodatnią, skończoną liczbą BPM albo null.

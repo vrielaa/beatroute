@@ -1,3 +1,9 @@
+import type {
+  PlaylistAudioFeatures,
+  PlaylistDataset,
+} from "@domain/playlist-generator/types.js";
+import type { TrackAudioFeaturesResult } from "@domain/tracks/types.js";
+
 /**
  * Plik JSON wskazujący utwory Spotify do przygotowania zbioru generatora.
  * Nie wymaga nazw, artystów ani pomiarów — te dane uzupełni aplikacja.
@@ -15,4 +21,97 @@ type PlaylistTrackIdsFile = {
   spotifyTrackIds: string[];
 };
 
-export type { PlaylistTrackIdsFile };
+/**
+ * Minimalne metadane wymagane od źródła katalogu utworów.
+ * Pełna odpowiedź Spotify może zawierać więcej pól, ale przygotowanie zbioru
+ * potrzebuje tylko nazwy utworu i nazw wykonawców.
+ *
+ * @property name - Nazwa utworu, przycinana przed zapisaniem w zbiorze.
+ * @property artists - Wykonawcy opisani nazwami; lista musi zawierać co najmniej jedną nazwę.
+ */
+type PlaylistSourceTrack = {
+  name: string;
+  artists: { name: string }[];
+};
+
+/**
+ * Utwór pominięty podczas pobierania danych, przed filtrowaniem wymagań.
+ * Nie jest to odrzucenie przez kryteria użytkownika ani ocena preferencji.
+ *
+ * @property spotifyId - ID utworu z pliku użytkownika.
+ * @property reason - metadata-unavailable: brak utworu lub wymaganych metadanych;
+ * audio-features-unavailable: nieudany odczyt albo brak wszystkich ośmiu użytecznych pomiarów.
+ */
+type SkippedPlaylistTrack = {
+  spotifyId: string;
+  reason: "metadata-unavailable" | "audio-features-unavailable";
+};
+
+/**
+ * Utwór włączony do zbioru mimo częściowych braków pomiarów.
+ * Brakujące pomiary pozostają null; generator uwzględnia je zgodnie z wymaganiami i preferencjami.
+ *
+ * @property spotifyId - ID utworu w przygotowanym zbiorze.
+ * @property missingFeatures - Nazwy niedostępnych cech z ośmiu pomiarów generatora.
+ */
+type IncompletePlaylistTrack = {
+  spotifyId: string;
+  missingFeatures: (keyof PlaylistAudioFeatures)[];
+};
+
+/**
+ * Przygotowany zbiór oraz informacje o kompletności pobranych danych.
+ * Wszystkie listy zachowują kolejność utworów z pliku. Zbiór może być pusty,
+ * gdy żaden utwór nie ma metadanych i użytecznego pomiaru; UI nie powinno wtedy wywoływać generatora.
+ * Awarie całych zapytań są wyjątkami, nie pustym zbiorem ani wpisami skippedTracks.
+ *
+ * @property dataset - Metadane i pomiary gotowe do kolejnych analiz bez pobierania API.
+ * @property skippedTracks - Utwory pominięte podczas przygotowania, z bezpiecznym kodem powodu.
+ * @property incompleteTracks - Utwory zachowane w zbiorze z częściowymi brakami pomiarów.
+ */
+type PreparedPlaylistDataset = {
+  dataset: PlaylistDataset;
+  skippedTracks: SkippedPlaylistTrack[];
+  incompleteTracks: IncompletePlaylistTrack[];
+};
+
+/**
+ * Operacje pobierania danych potrzebne do przygotowania zbioru playlisty.
+ * Serwis nie importuje produkcyjnych gatewayów ani konfiguracji środowiska.
+ *
+ * @property getSpotifyTrackById - Pobiera metadane jednego ID z tokenem użytkownika;
+ * brak utworu jest błędem integracji ze statusem źródłowym 404.
+ * @property getAudioFeaturesBySpotifyIds - Pobiera wyniki cech audio dla wskazanych ID;
+ * błąd pojedynczego utworu jest wpisem wyniku, a awaria całego odczytu wyjątkiem.
+ */
+type PlaylistDatasetDependencies = {
+  getSpotifyTrackById(
+    spotifyId: string,
+    accessToken: string
+  ): Promise<PlaylistSourceTrack>;
+  getAudioFeaturesBySpotifyIds(
+    spotifyIds: string[]
+  ): Promise<TrackAudioFeaturesResult[]>;
+};
+
+/**
+ * Operacja przygotowania danych oddzielona od filtrowania i rankingu.
+ *
+ * @property prepareDataset - Uzupełnia wcześniej zwalidowany plik ID o metadane i pomiary.
+ */
+type PlaylistDatasetService = {
+  prepareDataset(
+    file: PlaylistTrackIdsFile,
+    accessToken: string
+  ): Promise<PreparedPlaylistDataset>;
+};
+
+export type {
+  PlaylistTrackIdsFile,
+  PlaylistSourceTrack,
+  SkippedPlaylistTrack,
+  IncompletePlaylistTrack,
+  PreparedPlaylistDataset,
+  PlaylistDatasetDependencies,
+  PlaylistDatasetService,
+};
