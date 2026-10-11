@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.rejected-tracks {
+  display: grid;
+  gap: 1rem;
+}
+
+.rejections-empty,
+.rejections-hint,
+.track-artists {
+  color: var(--color-text-secondary);
+}
+
+.rejected-track-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rejected-track {
+  min-width: 0;
+  padding: 1.6rem;
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+
+h4 {
+  font-size: var(--text-base);
+}
+
+.track-artists {
+  margin-top: 0.4rem;
+}
+
+.rejection-reasons {
+  display: grid;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding-inline-start: 1.6rem;
+  list-style: disc;
+}
