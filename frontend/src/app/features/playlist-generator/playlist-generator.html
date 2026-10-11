@@ -7,13 +7,33 @@
   <div class="dataset-file-control">
     <label for="playlist-dataset-file">Plik ze zbiorem utworów</label>
     <input
+      #datasetFileInput
       id="playlist-dataset-file"
       type="file"
+      hidden
       accept=".json,application/json"
       aria-describedby="playlist-dataset-format"
       [disabled]="isReadingFile()"
       (change)="importDataset($event)"
     />
+    <div class="dataset-file-picker">
+      <button
+        id="playlist-choose-file"
+        type="button"
+        aria-describedby="playlist-selected-file playlist-dataset-format"
+        [disabled]="isReadingFile()"
+        (click)="datasetFileInput.click()"
+      >
+        {{ dataset() ? 'Zmień plik' : 'Wybierz plik' }}
+      </button>
+      <span id="playlist-selected-file" class="dataset-file-name">
+        @if (isReadingFile()) {
+          Wczytywanie pliku…
+        } @else {
+          {{ fileName() ?? 'Nie wybrano pliku' }}
+        }
+      </span>
+    </div>
     <p id="playlist-dataset-format" class="dataset-format-hint">
       Format: version: 1 oraz tracks z 1–500 utworami. Każdy utwór musi zawierać id, name, artists i
       audioFeatures ze wszystkimi ośmioma polami pomiarów. Brak pomiaru zapisuj jako null.

@@ -29,8 +29,12 @@ describe('PlaylistGenerator file import', () => {
     const input = getInput();
 
     expect(input.accept).toBe('.json,application/json');
+    expect(input.hidden).toBe(true);
     expect(input.multiple).toBe(false);
     expect(input.disabled).toBe(false);
+    expect(getChooseButton().disabled).toBe(false);
+    expect(getChooseButton().textContent?.trim()).toBe('Wybierz plik');
+    expect(getSelectedFileName()).toBe('Nie wybrano pliku');
     expect(getText()).toContain('1–500 utworami');
     expect(getStatus()).toBeNull();
     expect(getError()).toBeNull();
@@ -50,6 +54,9 @@ describe('PlaylistGenerator file import', () => {
     expect(getError()).toBeNull();
     expect(getInput().disabled).toBe(false);
     expect(resetInput).toHaveBeenCalledWith('');
+    expect(getInput().hidden).toBe(true);
+    expect(getSelectedFileName()).toBe('playlist.json');
+    expect(getChooseButton().textContent?.trim()).toBe('Zmień plik');
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).not.toBeNull();
     http.expectNone(() => true);
   });
@@ -65,6 +72,8 @@ describe('PlaylistGenerator file import', () => {
 
     expect(getStatus()?.textContent).toBe(previousStatus);
     expect(getInput().disabled).toBe(false);
+    expect(getSelectedFileName()).toBe('playlist.json');
+    expect(getChooseButton().textContent?.trim()).toBe('Zmień plik');
   });
 
   it('preserves the existing error when file selection is cancelled', async () => {
@@ -94,6 +103,8 @@ describe('PlaylistGenerator file import', () => {
     expect(getText()).not.toContain('original.json');
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();
     expect(getText()).not.toContain('broken.json');
+    expect(getSelectedFileName()).toBe('Nie wybrano pliku');
+    expect(getChooseButton().textContent?.trim()).toBe('Wybierz plik');
     expect(getInput().disabled).toBe(false);
     expect(resetInput).toHaveBeenCalledWith('');
   });
@@ -154,6 +165,8 @@ describe('PlaylistGenerator file import', () => {
     await updateView();
 
     expect(getInput().disabled).toBe(true);
+    expect(getChooseButton().disabled).toBe(true);
+    expect(getSelectedFileName()).toBe('Wczytywanie pliku…');
     expect(getStatus()?.textContent).toBe('Wczytywanie pliku…');
     expect(getText()).not.toContain('original.json');
     expect(getError()).toBeNull();
@@ -163,6 +176,8 @@ describe('PlaylistGenerator file import', () => {
 
     expect(getInput().disabled).toBe(false);
     expect(getStatus()?.textContent).toContain('replacement.json');
+    expect(getChooseButton().disabled).toBe(false);
+    expect(getSelectedFileName()).toBe('replacement.json');
     expect(getText()).not.toContain('Wczytywanie pliku…');
   });
 
@@ -201,7 +216,39 @@ describe('PlaylistGenerator file import', () => {
     expect(resetInput).toHaveBeenCalledTimes(2);
     expect(resetInput).toHaveBeenLastCalledWith('');
     expect(getStatus()?.textContent).toContain('playlist.json');
+    expect(getSelectedFileName()).toBe('playlist.json');
   });
+
+  it('opens the native file picker through the visible button without importing data', () => {
+    const openPicker = vi.spyOn(getInput(), 'click');
+
+    getChooseButton().click();
+
+    expect(openPicker).toHaveBeenCalledOnce();
+    expect(getSelectedFileName()).toBe('Nie wybrano pliku');
+    expect(getStatus()).toBeNull();
+    http.expectNone(() => true);
+  });
+
+  function getChooseButton(): HTMLButtonElement {
+    const button = fixture.nativeElement.querySelector('#playlist-choose-file');
+
+    if (!(button instanceof HTMLButtonElement)) {
+      throw new Error('Nie znaleziono przycisku wyboru pliku');
+    }
+
+    return button;
+  }
+
+  function getSelectedFileName(): string {
+    const name = fixture.nativeElement.querySelector('#playlist-selected-file');
+
+    if (!(name instanceof HTMLElement)) {
+      throw new Error('Nie znaleziono nazwy wybranego pliku');
+    }
+
+    return name.textContent?.trim() ?? '';
+  }
 
   function getInput(): HTMLInputElement {
     return fixture.nativeElement.querySelector('#playlist-dataset-file');

@@ -375,6 +375,81 @@ describe('PlaylistGenerator generation', () => {
     http.expectNone(() => true);
   });
 
+  it('reuses the imported dataset after changing preferences and requirements without reading the file again', async () => {
+    const dataset = createDataset();
+    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const read = vi.spyOn(file, 'text');
+    selectFile(file);
+    await updateView();
+    const criteriaForm = fixture.nativeElement.querySelector('app-playlist-criteria-form');
+    setPreference('energy', 'high');
+    generate();
+    const firstRequest = http.expectOne('/api/playlist-generator/generate');
+    const importedDataset = firstRequest.request.body.dataset;
+    firstRequest.flush(createResult());
+    fixture.detectChanges();
+
+    setPreference('energy', 'low');
+    setTempoRange('125', '135');
+    await updateView();
+
+    expect(read).toHaveBeenCalledOnce();
+    expect(getText()).toContain('current-playlist.json');
+    expect(fixture.nativeElement.querySelector('#playlist-selected-file').textContent.trim()).toBe(
+      'current-playlist.json'
+    );
+    expect(getText()).toContain('Liczba utworów: 2');
+    expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBe(criteriaForm);
+    expect(getResults()).toBeNull();
+    expect(getGenerateButton().disabled).toBe(false);
+    http.expectNone(() => true);
+
+    generate();
+    const nextRequest = http.expectOne('/api/playlist-generator/generate');
+    expect(nextRequest.request.body.dataset).toBe(importedDataset);
+    expect(nextRequest.request.body).toEqual({
+      dataset,
+      requirements: { tempoRange: { min: 125, max: 135 }, maxSpeechiness: null, maxLiveness: null },
+      preferences: {
+        energy: 'low',
+        danceability: null,
+        valence: null,
+        acousticness: null,
+        instrumentalness: null,
+      },
+    });
+    nextRequest.flush(createResult());
+    fixture.detectChanges();
+
+    expect(getResults()).not.toBeNull();
+    expect(read).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the current dataset while invalid criteria are corrected without another file selection', async () => {
+    const dataset = createDataset();
+    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const read = vi.spyOn(file, 'text');
+    selectFile(file);
+    await updateView();
+
+    setTempoRange('140', '120');
+
+    expect(getGenerateButton().disabled).toBe(true);
+    expect(getText()).toContain('current-playlist.json');
+    expect(getText()).toContain('Liczba utworów: 2');
+    http.expectNone(() => true);
+
+    setTempoRange('120', '140');
+    expect(getGenerateButton().disabled).toBe(false);
+
+    generate();
+    const request = http.expectOne('/api/playlist-generator/generate');
+    expect(request.request.body.dataset).toEqual(dataset);
+    expect(request.request.body.requirements.tempoRange).toEqual({ min: 120, max: 140 });
+    expect(read).toHaveBeenCalledOnce();
+    request.flush(createResult());
+  });
+
   it('cancels an outdated request after a preference change and generates using the new value', async () => {
     await importDataset();
     generate();
@@ -504,6 +579,26 @@ describe('PlaylistGenerator generation', () => {
     expect(getResultText('.rejected-track h4')).toBe('Second track');
     expect(getGenerationError()).toBeNull();
     http.expectNone(() => true);
+  });
+
+  it('uses the current dataset and new criteria after cancelling the file picker', async () => {
+    const dataset = createDataset();
+    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const read = vi.spyOn(file, 'text');
+    selectFile(file);
+    await updateView();
+    selectFile(null);
+    await updateView();
+
+    setPreference('danceability', 'high');
+    generate();
+
+    const request = http.expectOne('/api/playlist-generator/generate');
+    expect(request.request.body.dataset).toEqual(dataset);
+    expect(request.request.body.preferences.danceability).toBe('high');
+    expect(getText()).toContain('current-playlist.json');
+    expect(read).toHaveBeenCalledOnce();
+    request.flush(createResult());
   });
 
   it('cancels the pending HTTP request when the component is destroyed', async () => {

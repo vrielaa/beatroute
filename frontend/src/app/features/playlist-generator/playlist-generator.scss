@@ -30,7 +30,11 @@ label {
   font-weight: var(--font-weight-semibold);
 }
 
-input[type='file'] {
+.dataset-file-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
   width: 100%;
   min-width: 0;
   padding: 0.8rem;
@@ -40,8 +44,12 @@ input[type='file'] {
   color: var(--color-text-primary);
 }
 
-input[type='file']::file-selector-button {
-  margin-right: 1rem;
+.dataset-file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#playlist-choose-file {
   padding: 0.6rem 1rem;
   border: 0;
   border-radius: var(--radius-xs);
@@ -50,13 +58,14 @@ input[type='file']::file-selector-button {
   cursor: pointer;
 }
 
-input[type='file']:focus-visible {
+#playlist-choose-file:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
 
-input[type='file']:disabled {
+#playlist-choose-file:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .dataset-import-status,
