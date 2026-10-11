@@ -40,7 +40,8 @@ type PlaylistTrack = {
 };
 
 /**
- * Zbiór utworów wejściowych generatora, zgodny z formatem pliku JSON.
+ * Przygotowany zbiór metadanych i pomiarów analizowany przez generator.
+ * Nie opisuje pliku z samymi ID ani pobierania danych z zewnętrznych API.
  * Nie zawiera ustawień generatora — wymagania i preferencje wybiera użytkownik osobno.
  *
  * @property version - Wersja formatu; obecnie obsługiwana jest wyłącznie wartość 1.

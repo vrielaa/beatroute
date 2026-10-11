@@ -1,4 +1,21 @@
 /**
+ * Plik JSON wskazujący utwory Spotify do przygotowania zbioru generatora.
+ * Nie wymaga nazw, artystów ani pomiarów — te dane uzupełni aplikacja.
+ * Walidacja przycina ID i usuwa duplikaty, zachowując kolejność pierwszych wystąpień.
+ *
+ * @property version - Wersja formatu pliku; obsługiwana jest wartość 1.
+ * @property spotifyTrackIds - Identyfikatory utworów Spotify; plik zawiera od 1 do 500 wpisów.
+ * Każdy ID ma 22 znaki: cyfry lub litery alfabetu łacińskiego, z rozróżnieniem wielkości liter.
+ *
+ * @example
+ * { version: 1, spotifyTrackIds: ["3sNVsP50132BTNlImLx70i"] }
+ */
+type PlaylistTrackIdsFile = {
+  version: 1;
+  spotifyTrackIds: string[];
+};
+
+/**
  * Osiem pomiarów cech audio przyjmowanych przez generator playlist.
  * Wszystkie pola są wymagane; null oznacza brak pomiaru, a nie wartość zero.
  * Typy nie walidują JSON-a ani zakresów liczb — robi to parser frontendu i niezależnie backend.
@@ -40,7 +57,8 @@ type PlaylistTrack = {
 };
 
 /**
- * Zbiór wejściowy zgodny z wersją 1 formatu pliku JSON.
+ * Przygotowany zbiór metadanych i pomiarów analizowany przez generator.
+ * Jest modelem wewnętrznym; format źródła danych opisuje osobny typ PlaylistTrackIdsFile.
  * Ustawienia generatora są przesyłane osobno, nie stanowią części zbioru.
  *
  * @property version - Wersja formatu danych; obsługiwana jest wyłącznie wartość 1.
@@ -219,6 +237,7 @@ type PlaylistGeneratorRequest = {
 };
 
 export type {
+  PlaylistTrackIdsFile,
   PlaylistAudioFeatures,
   PlaylistTrack,
   PlaylistDataset,

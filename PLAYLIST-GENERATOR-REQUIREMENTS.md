@@ -1,6 +1,7 @@
 # Ustalenia generatora playlist
 
-Uzgodnione 8 października 2026 r. Dokument opisuje wymagania do implementacji,
+Uzgodnione 8 października 2026 r., format importu zmieniony 11 października 2026 r.
+Dokument opisuje wymagania do implementacji,
 nie funkcjonalność już dostępną w aplikacji. Projekt jest pracą inżynierską;
 rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
 
@@ -8,19 +9,62 @@ rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
 
 Docelowo użytkownik wybiera jedno z trzech źródeł:
 
-1. Plik JSON zawierający metadane utworów i pomiary cech audio. Ten wariant
-   nie wymaga pobierania danych z zewnętrznych API.
+1. Plik JSON zawierający wyłącznie identyfikatory utworów Spotify.
+   Użytkownik nie dostarcza nazw, artystów, okładek ani pomiarów cech audio.
+   Aplikacja uzupełnia dane z API przed uruchomieniem generatora.
 2. Zapisane utwory zalogowanego użytkownika Spotify.
 3. Playlista Spotify należąca do użytkownika lub przez niego współtworzona.
 
-Najpierw powstaje kompletny wariant plikowy, następnie źródła Spotify.
-Wszystkie źródła korzystają z tego samego algorytmu generatora.
+Wszystkie źródła dostarczają utwory do przygotowania wspólnego PlaylistDataset.
+Filtrowanie i ranking działają na tym zbiorze, niezależnie od źródła danych.
+Metadane i pomiary pobieramy raz po imporcie lub wyborze źródła. Zmiana kryteriów
+korzysta z przygotowanego zbioru, bez ponownego pobierania danych z API.
 
 ## Format pliku wejściowego
 
-Plik jest zapisany jako JSON w kodowaniu UTF-8. Przykład z sześcioma fikcyjnymi
-utworami i syntetycznymi pomiarami: [playlist-dataset.json](examples/playlist-dataset.json).
-Przykład nie zawiera danych pobranych z żadnego dostawcy.
+Plik jest zapisany jako JSON w kodowaniu UTF-8. Wymagane są tylko pola version
+i spotifyTrackIds. Przykład: [playlist-track-ids.json](examples/playlist-track-ids.json).
+
+```json
+{
+  "version": 1,
+  "spotifyTrackIds": ["3sNVsP50132BTNlImLx70i", "4U4LEUWV8sFtos5PdjfDA7"]
+}
+```
+
+- version ma wartość liczbową 1 i opisuje wersję formatu, nie wersję aplikacji.
+- spotifyTrackIds jest tablicą od 1 do 500 wpisów; limit dotyczy pliku przed usunięciem duplikatów.
+- Każdy wpis jest ID utworu Spotify złożonym z 22 liter alfabetu łacińskiego lub cyfr.
+- Przycinamy teksty i usuwamy duplikaty, zachowując kolejność pierwszych wystąpień.
+- Wielkość liter ma znaczenie; identyfikatorów nie zmieniamy na małe litery.
+- Nie przyjmujemy adresów URL ani URI spotify:track: w miejsce ID.
+- Poprawny format ID nie potwierdza istnienia utworu ani dostępności jego pomiarów.
+- Dodatkowe pola nie trafiają do wyniku walidacji.
+- Wymagania i preferencje użytkownik wybiera osobno w formularzu.
+
+Typ PlaylistTrackIdsFile znajduje się w backend/src/application/playlist-generator/types.ts
+i w frontendowym playlist-generator.models.ts. Frontendowy parsePlaylistTrackIdsFile
+w playlist-track-ids.parser.ts oraz backendowy walidator w track-ids.validator.ts
+niezależnie sprawdzają format. Nie wykonują wywołań API.
+
+### Etapy przejścia na import ID
+
+1. Format, typy i walidacja pliku z ID, z testami — przygotowane.
+2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach.
+3. Autoryzowany endpoint przygotowania zbioru i testy HTTP.
+4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz.
+5. Testy całego przepływu oraz aktualizacja README i OpenAPI.
+
+Interfejs nadal importuje pełny zbiór do czasu podłączenia przygotowania danych.
+Nie przełączamy go na same ID, zanim będzie gotowe pobieranie metadanych i pomiarów.
+
+## Wewnętrzny zbiór generatora
+
+PlaylistDataset zawiera już metadane i pomiary. Użytkownik nie musi przygotowywać
+takiego JSON-a; zbiór będzie budowany przez aplikację po odczycie ID.
+Przykład z sześcioma fikcyjnymi utworami i syntetycznymi pomiarami:
+[playlist-dataset.json](examples/playlist-dataset.json). Pozostaje materiałem testowym
+do sprawdzania algorytmu bez API, nie docelowym formatem pliku użytkownika.
 
 ```json
 {
@@ -52,7 +96,7 @@ Przykład nie zawiera danych pobranych z żadnego dostawcy.
 - `tempo` jest dodatnią, skończoną liczbą BPM albo null.
 - Pozostałe siedem cech jest skończoną liczbą od 0 do 1 albo null.
 - Liczba 0 jest poprawnym pomiarem cech w skali 0–1, nie oznacza braku danych.
-- Plik nie zawiera wymagań ani preferencji; użytkownik wybiera je w formularzu.
+- Zbiór nie zawiera wymagań ani preferencji; użytkownik wybiera je w formularzu.
 - Walidator przycina identyfikatory, nazwy utworów i artystów. Duplikaty
   identyfikatorów sprawdza po przycięciu. Dodatkowe pola nie trafiają do wyniku.
 
@@ -62,7 +106,8 @@ walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDat
 w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
 testami w sąsiednim pliku. Filtrowanie, ocena i ranking są już dostępne jako funkcje
 domenowe, połączone przez generatePlaylist i udostępnione przez endpoint generatora.
-Walidatory są podłączone do HTTP; import i formularz frontendu pozostają kolejnymi etapami.
+Walidatory są podłączone do HTTP. Import pełnego zbioru, formularz i prezentacja
+wyników są dostępne w UI; przejście na import samych ID opisano wyżej.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
@@ -125,7 +170,7 @@ Wymagania sprawdza funkcja `parsePlaylistGeneratorRequirements` w
 testami w sąsiednim pliku. Wymaga obecności wszystkich trzech pól, odrzuca
 niepoprawne wartości i zwraca nowy obiekt bez dodatkowych pól wejściowych.
 Sam walidator nie ocenia utworów. Jest podłączony do endpointu generatora,
-ale formularz frontendu nie jest jeszcze zaimplementowany.
+a wymagania użytkownik wybiera w formularzu frontendu.
 
 ### Model wyniku filtrowania
 
@@ -157,7 +202,7 @@ wykonuje ten podział dla wcześniej zwalidowanych utworów i wymagań. Jej test
 sprawdzają granice, brakujące pomiary, wyłączone warunki, kompletność powodów
 odrzucenia i zachowanie kolejności. Funkcja nie modyfikuje wejścia, nie wywołuje
 API i zwraca referencje do utworów źródłowych. Generator jest podłączony do
-endpointu; formularz pozostaje kolejnym etapem.
+endpointu, a UI udostępnia formularz i pokazuje ranking oraz powody odrzucenia.
 
 ### Preferencje rozmyte i ocena pojedynczego utworu
 
@@ -238,8 +283,8 @@ Parser 1 MiB dla `/api/playlist-generator` działa przed globalnym parserem 100 
 więc pozostałe endpointy zachowują mniejszy limit. Endpoint nie wymaga sesji Spotify,
 nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na koncie Spotify.
 Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
-brak body, walidację i wynik generowania. Import, formularz i eksport wyniku w UI
-nie są jeszcze zaimplementowane.
+brak body, walidację i wynik generowania. Import pełnego zbioru i formularz
+są dostępne w UI; import ID i eksport wyniku pozostają do wdrożenia.
 
 ## Wynik i zakres pierwszej wersji
 
