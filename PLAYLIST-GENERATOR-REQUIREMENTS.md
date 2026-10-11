@@ -1,8 +1,8 @@
 # Ustalenia generatora playlist
 
 Uzgodnione 8 października 2026 r., format importu zmieniony 11 października 2026 r.
-Dokument opisuje wymagania do implementacji,
-nie funkcjonalność już dostępną w aplikacji. Projekt jest pracą inżynierską;
+Dokument opisuje uzgodnione wymagania i stan ich wdrożenia. Funkcje docelowe,
+które nie są jeszcze dostępne, są oznaczone w opisie. Projekt jest pracą inżynierską;
 rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
 
 ## Źródła danych
@@ -52,11 +52,11 @@ niezależnie sprawdzają format. Nie wykonują wywołań API.
 1. Format, typy i walidacja pliku z ID, z testami — przygotowane.
 2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach i testami — przygotowany.
 3. Autoryzowany endpoint przygotowania zbioru, testy HTTP i opis w OpenAPI — przygotowane.
-4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz.
-5. Testy całego przepływu oraz aktualizacja README i OpenAPI.
+4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz i testami — przygotowane.
+5. Końcowa weryfikacja przepływu, porządki oraz aktualizacja README i przegląd OpenAPI.
 
-Interfejs nadal importuje pełny zbiór do czasu podłączenia przygotowania danych.
-Nie przełączamy go na same ID, zanim będzie gotowe pobieranie metadanych i pomiarów.
+Interfejs przyjmuje plik z samymi ID. Poprzedni format z tracks i audioFeatures
+nie jest już formatem importu w UI; pozostaje wewnętrznym modelem generatora.
 
 ### Przygotowanie zbioru z ID
 
@@ -65,7 +65,7 @@ backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje
 jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
 audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
 Produkcyjne zależności są składane w http/routes/playlist-generator/composition.ts.
-Przygotowanie zbioru jest dostępne przez API, ale nie jest jeszcze podłączone do UI.
+Przygotowanie zbioru jest dostępne przez API i podłączone do importu w UI.
 
 Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile i token Spotify.
 Pobiera metadane po kolei, a cechy tylko dla utworów z nazwą i co najmniej jednym
@@ -90,7 +90,7 @@ jest czymś innym niż odrzucenie przez wymagania użytkownika.
 Błędy całych zapytań, w tym problemy z tokenem, limit API lub brak połączenia,
 przerywają przygotowanie i są przekazywane do obsługi błędów. Nie zastępujemy ich
 pustym wynikiem. Jeśli wszystkie odczyty zakończą się brakami pojedynczych utworów,
-dataset.tracks jest pusty; UI powinno wtedy wyświetlić informację o brakach zamiast
+dataset.tracks jest pusty; UI wyświetla wtedy informację o brakach zamiast
 wywoływać generator. Surowe komunikaty dostawcy i token nie trafiają do wyniku.
 
 Testy serwisu używają atrap źródeł, bez zewnętrznych API. Sprawdzają format zbioru,
@@ -112,14 +112,32 @@ tego routera nadal ma limit 1 MiB, a pozostałe endpointy 100 KiB.
 
 POST /api/playlist-generator/generate pozostaje osobnym endpointem: przyjmuje
 pełny dataset, requirements i preferences, nie wymaga sesji i nie wywołuje API.
-Przy zmianie kryteriów UI będzie wywoływać tylko /generate z przygotowanym zbiorem.
+Przy zmianie kryteriów UI wywołuje tylko /generate z przygotowanym zbiorem.
 Testy HTTP sprawdzają prawdziwą sesję Express, autoryzację i odświeżanie tokenu,
 walidację, limity parsera, przekazanie wyników oraz wspólny format błędów.
+
+### Import i ponowienie w UI
+
+Komponent osobno pokazuje odczyt pliku i pobieranie danych. Po sprawdzeniu ID
+wywołuje prepare-dataset raz i zachowuje PreparedPlaylistDataset w pamięci.
+Zmiana kryteriów nie odczytuje pliku ani nie pobiera ponownie metadanych i pomiarów.
+Nowy wybór pliku usuwa poprzedni zbiór i wynik; anulowanie wyboru ich nie zmienia.
+
+Awaria API wyświetla komunikat i przycisk ponowienia dla zapamiętanych ID, bez
+ponownego wyboru pliku. Pusty zbiór jest poprawną odpowiedzią, ale blokuje
+generowanie. Pominięte ID i brakujące pomiary są pokazane w osobnych listach.
+Wymiana pliku lub zniszczenie komponentu anuluje oczekiwanie na odpowiedź HTTP;
+nie oznacza to gwarancji zatrzymania pracy już rozpoczętej przez backend.
+
+Testy frontendu sprawdzają żądanie i cookie sesji, walidację importu, ponowienie,
+braki danych, komunikaty HTTP, anulowanie oraz ponowne użycie zbioru dla kryteriów.
+W testach odpowiedzi API są zastępowane przez HttpTestingController, bez zapytań
+do Spotify lub ReccoBeats.
 
 ## Wewnętrzny zbiór generatora
 
 PlaylistDataset zawiera już metadane i pomiary. Użytkownik nie musi przygotowywać
-takiego JSON-a; zbiór będzie budowany przez aplikację po odczycie ID.
+takiego JSON-a; zbiór jest budowany przez aplikację po odczycie ID.
 Przykład z sześcioma fikcyjnymi utworami i syntetycznymi pomiarami:
 [playlist-dataset.json](examples/playlist-dataset.json). Pozostaje materiałem testowym
 do sprawdzania algorytmu bez API, nie docelowym formatem pliku użytkownika.
@@ -166,8 +184,8 @@ walidują odczytanego JSON-a. Zbiór sprawdza funkcja `parsePlaylistGeneratorDat
 w `backend/src/http/routes/playlist-generator/dataset.validator.ts`, pokryta
 testami w sąsiednim pliku. Filtrowanie, ocena i ranking są już dostępne jako funkcje
 domenowe, połączone przez generatePlaylist i udostępnione przez endpoint generatora.
-Walidatory są podłączone do HTTP. Import pełnego zbioru, formularz i prezentacja
-wyników są dostępne w UI; przejście na import samych ID opisano wyżej.
+Walidatory są podłączone do HTTP. Import ID, formularz i prezentacja wyników
+są dostępne w UI; przygotowanie pełnego zbioru opisano wyżej.
 
 Przykład obejmuje utwory o różnej energii, tempo poza zakresem 120–140 i obie jego
 granice, pomiar liveness 0,9, wartości zero oraz brakujące pomiary. Pozwoli sprawdzić
@@ -343,8 +361,8 @@ Parser 1 MiB dla `/api/playlist-generator` działa przed globalnym parserem 100 
 więc pozostałe endpointy zachowują mniejszy limit. Endpoint nie wymaga sesji Spotify,
 nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na koncie Spotify.
 Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
-brak body, walidację i wynik generowania. Import pełnego zbioru i formularz
-są dostępne w UI; import ID i eksport wyniku pozostają do wdrożenia.
+brak body, walidację i wynik generowania. Import ID i formularz są dostępne
+w UI; eksport wyniku pozostaje do wdrożenia.
 
 ## Wynik i zakres pierwszej wersji
 

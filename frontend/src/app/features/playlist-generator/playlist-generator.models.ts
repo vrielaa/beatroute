@@ -18,7 +18,7 @@ type PlaylistTrackIdsFile = {
 /**
  * Osiem pomiarów cech audio przyjmowanych przez generator playlist.
  * Wszystkie pola są wymagane; null oznacza brak pomiaru, a nie wartość zero.
- * Typy nie walidują JSON-a ani zakresów liczb — robi to parser frontendu i niezależnie backend.
+ * Backend normalizuje pomiary podczas pobierania i waliduje je przed generowaniem.
  *
  * @property tempo - Dodatnie tempo w BPM albo null przy braku pomiaru.
  * @property energy - Szacowana intensywność brzmienia w zakresie 0–1 albo null.
@@ -62,11 +62,49 @@ type PlaylistTrack = {
  * Ustawienia generatora są przesyłane osobno, nie stanowią części zbioru.
  *
  * @property version - Wersja formatu danych; obsługiwana jest wyłącznie wartość 1.
- * @property tracks - Od 1 do 500 utworów z unikalnymi identyfikatorami po przycięciu tekstów.
+ * @property tracks - Do 500 utworów z unikalnymi identyfikatorami; przygotowanie może zwrócić
+ * pustą listę, ale żądanie generowania wymaga co najmniej jednego utworu.
  */
 type PlaylistDataset = {
   version: 1;
   tracks: PlaylistTrack[];
+};
+
+/**
+ * Utwór pominięty podczas pobierania danych, nie przez wymagania użytkownika.
+ *
+ * @property spotifyId - Identyfikator z pliku użytkownika.
+ * @property reason - metadata-unavailable oznacza brak wymaganych metadanych Spotify;
+ * audio-features-unavailable oznacza nieudany odczyt lub brak wszystkich użytecznych pomiarów.
+ */
+type SkippedPlaylistTrack = {
+  spotifyId: string;
+  reason: 'metadata-unavailable' | 'audio-features-unavailable';
+};
+
+/**
+ * Utwór zachowany w zbiorze mimo częściowych braków cech audio.
+ *
+ * @property spotifyId - Identyfikator utworu w przygotowanym zbiorze.
+ * @property missingFeatures - Nazwy pomiarów zapisanych jako null, nie jako zero.
+ */
+type IncompletePlaylistTrack = {
+  spotifyId: string;
+  missingFeatures: (keyof PlaylistAudioFeatures)[];
+};
+
+/**
+ * Odpowiedź przygotowania danych na podstawie ID, zachowana do kolejnych analiz.
+ * Zmiana kryteriów nie wymaga ponownego pobierania metadanych ani pomiarów.
+ *
+ * @property dataset - Zbiór generatora; pusta lista oznacza brak utworów do analizy.
+ * @property skippedTracks - Pominięte identyfikatory z bezpiecznymi kodami przyczyn.
+ * @property incompleteTracks - Zachowane utwory z informacją o brakujących pomiarach.
+ */
+type PreparedPlaylistDataset = {
+  dataset: PlaylistDataset;
+  skippedTracks: SkippedPlaylistTrack[];
+  incompleteTracks: IncompletePlaylistTrack[];
 };
 
 /**
@@ -241,6 +279,9 @@ export type {
   PlaylistAudioFeatures,
   PlaylistTrack,
   PlaylistDataset,
+  SkippedPlaylistTrack,
+  IncompletePlaylistTrack,
+  PreparedPlaylistDataset,
   TempoRange,
   PlaylistRequirements,
   PlaylistPreferenceLevel,

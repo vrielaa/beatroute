@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlaylistGenerator } from './playlist-generator';
-import type { PlaylistDataset } from './playlist-generator.models';
+import type { PlaylistDataset, PreparedPlaylistDataset } from './playlist-generator.models';
 
 describe('PlaylistGenerator file import', () => {
   let fixture: ComponentFixture<PlaylistGenerator>;
@@ -35,18 +35,20 @@ describe('PlaylistGenerator file import', () => {
     expect(getChooseButton().disabled).toBe(false);
     expect(getChooseButton().textContent?.trim()).toBe('Wybierz plik');
     expect(getSelectedFileName()).toBe('Nie wybrano pliku');
-    expect(getText()).toContain('1–500 utworami');
+    expect(getText()).toContain('1–500 identyfikatorami');
+    expect(getText()).toContain('spotifyTrackIds');
+    expect(getText()).toContain('połączenia konta Spotify');
     expect(getStatus()).toBeNull();
     expect(getError()).toBeNull();
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();
   });
 
-  it('shows the imported file name and track count without making HTTP requests', async () => {
-    const { file, read } = createFile('playlist.json', JSON.stringify(createDataset()));
+  it('prepares IDs once and then shows the file name and available track count', async () => {
+    const { file, read } = createFile('playlist.json', JSON.stringify(createTrackIdsFile()));
     const resetInput = vi.spyOn(getInput(), 'value', 'set');
 
     selectFile(file);
-    await updateView();
+    await completePreparation();
 
     expect(read).toHaveBeenCalledOnce();
     expect(getStatus()?.textContent).toContain('playlist.json');
@@ -62,9 +64,9 @@ describe('PlaylistGenerator file import', () => {
   });
 
   it('preserves the loaded dataset when file selection is cancelled', async () => {
-    const { file } = createFile('playlist.json', JSON.stringify(createDataset()));
+    const { file } = createFile('playlist.json', JSON.stringify(createTrackIdsFile()));
     selectFile(file);
-    await updateView();
+    await completePreparation();
     const previousStatus = getStatus()?.textContent;
 
     selectFile(null);
@@ -88,9 +90,9 @@ describe('PlaylistGenerator file import', () => {
   });
 
   it('shows a syntax error and removes the previously imported dataset and name', async () => {
-    const original = createFile('original.json', JSON.stringify(createDataset()));
+    const original = createFile('original.json', JSON.stringify(createTrackIdsFile()));
     selectFile(original.file);
-    await updateView();
+    await completePreparation();
     expect(getStatus()).not.toBeNull();
     const resetInput = vi.spyOn(getInput(), 'value', 'set');
 
@@ -110,14 +112,17 @@ describe('PlaylistGenerator file import', () => {
   });
 
   it('shows the parser error for a JSON file with an invalid dataset structure', async () => {
-    const { file } = createFile('invalid.json', JSON.stringify({ version: 2, tracks: [] }));
+    const { file } = createFile(
+      'invalid.json',
+      JSON.stringify({ version: 2, spotifyTrackIds: [] })
+    );
     const resetInput = vi.spyOn(getInput(), 'value', 'set');
 
     selectFile(file);
     await updateView();
 
     expect(getError()?.textContent).toBe(
-      'Nieobsługiwana wersja zbioru: pole version musi mieć wartość 1'
+      'Nieobsługiwana wersja pliku: pole version musi mieć wartość 1'
     );
     expect(getStatus()).toBeNull();
     expect(getInput().disabled).toBe(false);
@@ -145,18 +150,18 @@ describe('PlaylistGenerator file import', () => {
     await updateView();
     expect(getError()).not.toBeNull();
 
-    const corrected = createFile('playlist.json', JSON.stringify(createDataset()));
+    const corrected = createFile('playlist.json', JSON.stringify(createTrackIdsFile()));
     selectFile(corrected.file);
-    await updateView();
+    await completePreparation();
 
     expect(getError()).toBeNull();
     expect(getStatus()?.textContent).toContain('playlist.json');
   });
 
   it('disables the input and shows loading only while the file is being read', async () => {
-    const original = createFile('original.json', JSON.stringify(createDataset()));
+    const original = createFile('original.json', JSON.stringify(createTrackIdsFile()));
     selectFile(original.file);
-    await updateView();
+    await completePreparation();
     const pendingText = createPendingRead();
     const { file, read } = createFile('replacement.json', '');
     read.mockReturnValue(pendingText.promise);
@@ -171,8 +176,8 @@ describe('PlaylistGenerator file import', () => {
     expect(getText()).not.toContain('original.json');
     expect(getError()).toBeNull();
 
-    pendingText.resolve(JSON.stringify(createDataset()));
-    await updateView();
+    pendingText.resolve(JSON.stringify(createTrackIdsFile()));
+    await completePreparation();
 
     expect(getInput().disabled).toBe(false);
     expect(getStatus()?.textContent).toContain('replacement.json');
@@ -188,15 +193,15 @@ describe('PlaylistGenerator file import', () => {
     selectFile(first.file);
     await updateView();
 
-    const second = createFile('second.json', JSON.stringify(createDataset()));
+    const second = createFile('second.json', JSON.stringify(createTrackIdsFile()));
     selectFile(second.file);
     await updateView();
 
     expect(second.read).not.toHaveBeenCalled();
     expect(getStatus()?.textContent).toBe('Wczytywanie pliku…');
 
-    pendingText.resolve(JSON.stringify(createDataset()));
-    await updateView();
+    pendingText.resolve(JSON.stringify(createTrackIdsFile()));
+    await completePreparation();
 
     expect(getStatus()?.textContent).toContain('first.json');
     expect(getText()).not.toContain('second.json');
@@ -204,13 +209,13 @@ describe('PlaylistGenerator file import', () => {
   });
 
   it('allows the same file to be selected again after completion', async () => {
-    const { file, read } = createFile('playlist.json', JSON.stringify(createDataset()));
+    const { file, read } = createFile('playlist.json', JSON.stringify(createTrackIdsFile()));
     const resetInput = vi.spyOn(getInput(), 'value', 'set');
 
     selectFile(file);
-    await updateView();
+    await completePreparation();
     selectFile(file);
-    await updateView();
+    await completePreparation();
 
     expect(read).toHaveBeenCalledTimes(2);
     expect(resetInput).toHaveBeenCalledTimes(2);
@@ -229,6 +234,258 @@ describe('PlaylistGenerator file import', () => {
     expect(getStatus()).toBeNull();
     http.expectNone(() => true);
   });
+
+  it('shows API preparation separately from file reading and blocks generation', async () => {
+    selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(getStatus()?.textContent).toBe('Pobieranie metadanych i cech audio…');
+    expect(getSelectedFileName()).toBe('ids.json');
+    expect(getInput().disabled).toBe(false);
+    expect(getChooseButton().disabled).toBe(false);
+    expect(getGenerateButton().disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.dataset-import').getAttribute('aria-busy')).toBe(
+      'true'
+    );
+    getGenerateButton().dispatchEvent(new Event('click'));
+    http.expectNone('/api/playlist-generator/generate');
+    http.expectOne('/api/playlist-generator/prepare-dataset').flush(createPreparedDataset());
+    await updateView();
+
+    expect(getGenerateButton().disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('.dataset-import').getAttribute('aria-busy')).toBe(
+      'false'
+    );
+  });
+
+  it('trims and deduplicates IDs before sending them to the backend', async () => {
+    const ids = createTrackIdsFile().spotifyTrackIds;
+    const { file } = createFile(
+      'ids.json',
+      JSON.stringify({
+        version: 1,
+        spotifyTrackIds: [` ${ids[0]} `, ids[1], ids[0]],
+        tracks: [{ name: 'Not required' }],
+        accessToken: 'not-a-session-token',
+      })
+    );
+    selectFile(file);
+    await completePreparation();
+
+    expect(getError()).toBeNull();
+    http.expectNone(() => true);
+  });
+
+  it('rejects the previous full-file format rather than requesting API data for it', async () => {
+    selectFile(createFile('old-format.json', JSON.stringify(createDataset())).file);
+    await updateView();
+
+    expect(getError()?.textContent).toBe('Pole spotifyTrackIds musi być tablicą');
+    expect(getRetryButton()).toBeNull();
+    expect(getGenerateButton().disabled).toBe(true);
+    http.expectNone(() => true);
+  });
+
+  it('shows skipped tracks and incomplete measurements without treating them as a request error', async () => {
+    const prepared = createPreparedDataset();
+    prepared.dataset.tracks[0].audioFeatures.energy = null;
+    prepared.skippedTracks = [
+      { spotifyId: 'A'.repeat(22), reason: 'metadata-unavailable' },
+      { spotifyId: 'B'.repeat(22), reason: 'audio-features-unavailable' },
+    ];
+    prepared.incompleteTracks = [
+      { spotifyId: prepared.dataset.tracks[0].id, missingFeatures: ['energy'] },
+    ];
+    selectFile(createFile('partial.json', JSON.stringify(createTrackIdsFile())).file);
+    await completePreparation(prepared);
+
+    expect(getText()).toContain('Liczba utworów: 2');
+    expect(getText()).toContain('Pominięte utwory: 2');
+    expect(getText()).toContain('Utwory z niepełnymi pomiarami: 1');
+    expect(getText()).toContain('Brak metadanych Spotify');
+    expect(getText()).toContain('Brak cech audio');
+    expect(getText()).toContain('brak: Energia');
+    expect(getError()).toBeNull();
+    expect(getGenerateButton().disabled).toBe(false);
+  });
+
+  it('distinguishes an empty prepared dataset from an API failure and disallows generation', async () => {
+    const prepared = createPreparedDataset();
+    prepared.dataset.tracks = [];
+    prepared.skippedTracks = createTrackIdsFile().spotifyTrackIds.map((spotifyId) => ({
+      spotifyId,
+      reason: 'audio-features-unavailable',
+    }));
+    selectFile(createFile('unavailable.json', JSON.stringify(createTrackIdsFile())).file);
+    await completePreparation(prepared);
+
+    expect(getText()).toContain('Nie znaleziono utworów z metadanymi i użytecznymi pomiarami');
+    expect(getText()).toContain('Pominięte utwory: 2');
+    expect(getError()).toBeNull();
+    expect(getGenerateButton().disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();
+    getGenerateButton().dispatchEvent(new Event('click'));
+    http.expectNone(() => true);
+  });
+
+  it.each([
+    { status: 400, message: 'Sprawdź format pliku i identyfikatory Spotify.' },
+    { status: 401, message: 'Połącz ponownie konto Spotify' },
+    { status: 403, message: 'Spotify odmówiło dostępu' },
+    { status: 413, message: 'Plik jest zbyt duży.' },
+    { status: 429, message: 'Przekroczono limit zapytań' },
+    { status: 500, message: 'Nie udało się przygotować zbioru.' },
+    { status: 502, message: 'Nie udało się pobrać danych ze Spotify lub ReccoBeats.' },
+    { status: 503, message: 'Nie udało się pobrać danych ze Spotify lub ReccoBeats.' },
+    { status: 504, message: 'Pobieranie danych trwało zbyt długo.' },
+  ])(
+    'shows a safe HTTP $status preparation error and preserves IDs for retry',
+    async ({ status, message }) => {
+      const { file, read } = createFile('retry.json', JSON.stringify(createTrackIdsFile()));
+      selectFile(file);
+      await Promise.resolve();
+      const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+      preparation.flush(
+        { error: { message: 'Private provider diagnostic' } },
+        { status, statusText: 'Failure' }
+      );
+      await updateView();
+
+      expect(getError()?.textContent).toContain(message);
+      expect(getText()).not.toContain('Private provider diagnostic');
+      expect(getSelectedFileName()).toBe('retry.json');
+      expect(getStatus()).toBeNull();
+      expect(getGenerateButton().disabled).toBe(true);
+      expect(getRetryButton()).not.toBeNull();
+
+      getRetryButton()?.click();
+      fixture.detectChanges();
+      expect(getError()).toBeNull();
+      expect(getStatus()?.textContent).toContain('Pobieranie metadanych');
+      const retry = http.expectOne('/api/playlist-generator/prepare-dataset');
+      expect(retry.request.body).toEqual(createTrackIdsFile());
+      retry.flush(createPreparedDataset());
+      await updateView();
+
+      expect(read).toHaveBeenCalledOnce();
+      expect(getGenerateButton().disabled).toBe(false);
+      expect(getSelectedFileName()).toBe('retry.json');
+      http.expectNone('/api/playlist-generator/generate');
+    }
+  );
+
+  it('shows a network error rather than reporting that no tracks were found', async () => {
+    selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    http.expectOne('/api/playlist-generator/prepare-dataset').error(new ProgressEvent('error'));
+    await updateView();
+
+    expect(getError()?.textContent).toContain('Nie udało się połączyć z backendem');
+    expect(getText()).not.toContain('Nie znaleziono utworów');
+    expect(getRetryButton()).not.toBeNull();
+  });
+
+  it('uses Retry-After in the rate-limit message', async () => {
+    selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    http.expectOne('/api/playlist-generator/prepare-dataset').flush(
+      {},
+      {
+        status: 429,
+        statusText: 'Too Many Requests',
+        headers: { 'Retry-After': '30' },
+      }
+    );
+    await updateView();
+
+    expect(getError()?.textContent).toContain('Ponów pobieranie za 30 s.');
+  });
+
+  it.each(['', ' ', 'not-a-number', '-1', '1.5', 'Infinity'])(
+    'ignores an invalid Retry-After header %j',
+    async (header) => {
+      selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+      await Promise.resolve();
+      http.expectOne('/api/playlist-generator/prepare-dataset').flush(
+        {},
+        {
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: { 'Retry-After': header },
+        }
+      );
+      await updateView();
+
+      expect(getError()?.textContent).toContain('Ponów pobieranie później.');
+    }
+  );
+
+  it('cancels outdated preparation when another file is selected', async () => {
+    selectFile(createFile('first.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    const previous = http.expectOne('/api/playlist-generator/prepare-dataset');
+
+    selectFile(createFile('replacement.json', JSON.stringify(createTrackIdsFile())).file);
+    await completePreparation();
+
+    expect(previous.cancelled).toBe(true);
+    expect(getSelectedFileName()).toBe('replacement.json');
+    expect(getText()).not.toContain('first.json');
+  });
+
+  it('preserves pending preparation when the file picker is cancelled', async () => {
+    selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+    selectFile(null);
+
+    expect(preparation.cancelled).toBe(false);
+    preparation.flush(createPreparedDataset());
+    await updateView();
+    expect(getSelectedFileName()).toBe('ids.json');
+  });
+
+  it('cancels preparation when the component is destroyed', async () => {
+    selectFile(createFile('ids.json', JSON.stringify(createTrackIdsFile())).file);
+    await Promise.resolve();
+    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+
+    fixture.destroy();
+
+    expect(preparation.cancelled).toBe(true);
+  });
+
+  it('does not start HTTP after destruction while a file read is pending', async () => {
+    const pending = createPendingRead();
+    const { file, read } = createFile('ids.json', '');
+    read.mockReturnValue(pending.promise);
+    selectFile(file);
+    fixture.destroy();
+
+    pending.resolve(JSON.stringify(createTrackIdsFile()));
+    await Promise.resolve();
+
+    http.expectNone(() => true);
+  });
+
+  async function completePreparation(prepared = createPreparedDataset()): Promise<void> {
+    await Promise.resolve();
+    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+    expect(preparation.request.method).toBe('POST');
+    expect(preparation.request.withCredentials).toBe(true);
+    expect(preparation.request.body).toEqual(createTrackIdsFile());
+    preparation.flush(prepared);
+    await updateView();
+  }
+
+  function getGenerateButton(): HTMLButtonElement {
+    return fixture.nativeElement.querySelector('#playlist-generate');
+  }
+
+  function getRetryButton(): HTMLButtonElement | null {
+    return fixture.nativeElement.querySelector('#playlist-retry-preparation');
+  }
 
   function getChooseButton(): HTMLButtonElement {
     const button = fixture.nativeElement.querySelector('#playlist-choose-file');
@@ -300,7 +557,7 @@ function createPendingRead() {
 
 function createDataset(): PlaylistDataset {
   const track = {
-    id: 'track-1',
+    id: '3sNVsP50132BTNlImLx70i',
     name: 'Track 1',
     artists: ['Artist A'],
     audioFeatures: {
@@ -317,6 +574,14 @@ function createDataset(): PlaylistDataset {
 
   return {
     version: 1,
-    tracks: [track, { ...track, id: 'track-2', name: 'Track 2' }],
+    tracks: [track, { ...track, id: '4U4LEUWV8sFtos5PdjfDA7', name: 'Track 2' }],
   };
+}
+
+function createTrackIdsFile() {
+  return { version: 1, spotifyTrackIds: createDataset().tracks.map((track) => track.id) };
+}
+
+function createPreparedDataset(): PreparedPlaylistDataset {
+  return { dataset: createDataset(), skippedTracks: [], incompleteTracks: [] };
 }

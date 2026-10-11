@@ -31,7 +31,7 @@ describe('PlaylistGenerator generation', () => {
     expect(getResults()).toBeNull();
   });
 
-  it('enables generation after import without automatically sending a request', async () => {
+  it('enables generation after preparation without automatically generating or fetching again', async () => {
     await importDataset();
 
     expect(getGenerateButton().disabled).toBe(false);
@@ -71,8 +71,8 @@ describe('PlaylistGenerator generation', () => {
     getGenerateButton().dispatchEvent(new Event('click'));
     http.expectNone(() => true);
 
-    finishReading(JSON.stringify(createDataset()));
-    await updateView();
+    finishReading(JSON.stringify(createTrackIdsFile(createDataset())));
+    await completePreparation(createDataset());
 
     expect(getGenerateButton().disabled).toBe(false);
   });
@@ -377,10 +377,10 @@ describe('PlaylistGenerator generation', () => {
 
   it('reuses the imported dataset after changing preferences and requirements without reading the file again', async () => {
     const dataset = createDataset();
-    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await updateView();
+    await completePreparation(dataset);
     const criteriaForm = fixture.nativeElement.querySelector('app-playlist-criteria-form');
     setPreference('energy', 'high');
     generate();
@@ -427,10 +427,10 @@ describe('PlaylistGenerator generation', () => {
 
   it('keeps the current dataset while invalid criteria are corrected without another file selection', async () => {
     const dataset = createDataset();
-    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await updateView();
+    await completePreparation(dataset);
 
     setTempoRange('140', '120');
 
@@ -488,7 +488,7 @@ describe('PlaylistGenerator generation', () => {
     generate();
     const request = http.expectOne('/api/playlist-generator/generate');
     const replacement = createDataset();
-    replacement.tracks[0].id = 'replacement-track';
+    replacement.tracks[0].id = 'A'.repeat(22);
 
     await importDataset(replacement, 'replacement.json');
 
@@ -583,10 +583,10 @@ describe('PlaylistGenerator generation', () => {
 
   it('uses the current dataset and new criteria after cancelling the file picker', async () => {
     const dataset = createDataset();
-    const file = createFile('current-playlist.json', JSON.stringify(dataset));
+    const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await updateView();
+    await completePreparation(dataset);
     selectFile(null);
     await updateView();
 
@@ -669,7 +669,15 @@ describe('PlaylistGenerator generation', () => {
   }
 
   async function importDataset(dataset = createDataset(), name = 'playlist.json'): Promise<void> {
-    selectFile(createFile(name, JSON.stringify(dataset)));
+    selectFile(createFile(name, JSON.stringify(createTrackIdsFile(dataset))));
+    await completePreparation(dataset);
+  }
+
+  async function completePreparation(dataset: PlaylistDataset): Promise<void> {
+    await Promise.resolve();
+    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+    expect(preparation.request.body).toEqual(createTrackIdsFile(dataset));
+    preparation.flush({ dataset, skippedTracks: [], incompleteTracks: [] });
     await updateView();
   }
 
@@ -723,7 +731,7 @@ function createFile(name: string, text: string): File {
 
 function createDataset(): PlaylistDataset {
   const track = {
-    id: 'track-1',
+    id: '3sNVsP50132BTNlImLx70i',
     name: 'First track',
     artists: ['Example artist'],
     audioFeatures: {
@@ -743,12 +751,16 @@ function createDataset(): PlaylistDataset {
       track,
       {
         ...track,
-        id: 'track-2',
+        id: '4U4LEUWV8sFtos5PdjfDA7',
         name: 'Second track',
         audioFeatures: { ...track.audioFeatures, tempo: 150 },
       },
     ],
   };
+}
+
+function createTrackIdsFile(dataset: PlaylistDataset) {
+  return { version: 1, spotifyTrackIds: dataset.tracks.map((track) => track.id) };
 }
 
 function createResult(): GeneratedPlaylist {

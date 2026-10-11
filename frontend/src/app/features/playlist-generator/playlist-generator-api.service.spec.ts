@@ -3,7 +3,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
-import type { GeneratedPlaylist, PlaylistGeneratorRequest } from './playlist-generator.models';
+import type {
+  GeneratedPlaylist,
+  PlaylistGeneratorRequest,
+  PlaylistTrackIdsFile,
+  PreparedPlaylistDataset,
+} from './playlist-generator.models';
 
 describe('PlaylistGeneratorApiService', () => {
   let service: PlaylistGeneratorApiService;
@@ -18,6 +23,102 @@ describe('PlaylistGeneratorApiService', () => {
   });
 
   afterEach(() => http.verify());
+
+  describe('prepareDataset', () => {
+    const file: PlaylistTrackIdsFile = {
+      version: 1,
+      spotifyTrackIds: ['3sNVsP50132BTNlImLx70i'],
+    };
+    const url = '/api/playlist-generator/prepare-dataset';
+
+    it('does not read API data before subscription', () => {
+      service.prepareDataset(file);
+      http.expectNone(url);
+    });
+
+    it('posts only the file and sends the session cookie', () => {
+      service.prepareDataset(file).subscribe();
+
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.urlWithParams).toBe(url);
+      expect(request.request.withCredentials).toBe(true);
+      expect(request.request.body).toEqual(file);
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush({
+        dataset: { version: 1, tracks: [] },
+        skippedTracks: [],
+        incompleteTracks: [],
+      });
+    });
+
+    it('passes the dataset, skipped IDs and missing measurements through unchanged', () => {
+      const dataset = createRequest().dataset;
+      const response: PreparedPlaylistDataset = {
+        dataset,
+        skippedTracks: [{ spotifyId: '4U4LEUWV8sFtos5PdjfDA7', reason: 'metadata-unavailable' }],
+        incompleteTracks: [{ spotifyId: dataset.tracks[1].id, missingFeatures: ['tempo'] }],
+      };
+      const next = vi.fn();
+      service.prepareDataset(file).subscribe(next);
+
+      http.expectOne(url).flush(response);
+
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+      http.expectNone('/api/playlist-generator/generate');
+    });
+
+    it('does not turn an empty prepared dataset into a request failure', () => {
+      const response: PreparedPlaylistDataset = {
+        dataset: { version: 1, tracks: [] },
+        skippedTracks: [
+          { spotifyId: file.spotifyTrackIds[0], reason: 'audio-features-unavailable' },
+        ],
+        incompleteTracks: [],
+      };
+      const next = vi.fn();
+      const error = vi.fn();
+      service.prepareDataset(file).subscribe({ next, error });
+
+      http.expectOne(url).flush(response);
+
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+      expect(error).not.toHaveBeenCalled();
+    });
+
+    it.each([400, 401, 403, 413, 429, 500, 502, 503, 504])(
+      'passes HTTP %s to the caller without returning an empty dataset',
+      (status) => {
+        const next = vi.fn();
+        const error = vi.fn();
+        service.prepareDataset(file).subscribe({ next, error });
+
+        http.expectOne(url).flush(
+          { error: { message: 'Failure' } },
+          {
+            status,
+            statusText: 'Request failed',
+            headers: { 'Retry-After': '30' },
+          }
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledOnce();
+        const failure: HttpErrorResponse = error.mock.calls[0][0];
+        expect(failure.status).toBe(status);
+        expect(failure.headers.get('Retry-After')).toBe('30');
+      }
+    );
+
+    it('cancels preparation when the subscription is closed', () => {
+      const subscription = service.prepareDataset(file).subscribe();
+      const request = http.expectOne(url);
+
+      subscription.unsubscribe();
+
+      expect(request.cancelled).toBe(true);
+    });
+  });
 
   it('does not send a request before subscription', () => {
     service.generatePlaylist(createRequest());

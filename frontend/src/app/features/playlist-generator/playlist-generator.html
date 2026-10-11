@@ -1,11 +1,18 @@
-<section class="dataset-import" aria-labelledby="dataset-import-heading">
+<section
+  class="dataset-import"
+  aria-labelledby="dataset-import-heading"
+  [attr.aria-busy]="isReadingFile() || isPreparingDataset()"
+>
   <header>
     <h1 id="dataset-import-heading">Generator playlist</h1>
-    <p>Wczytaj zbiór utworów z pliku JSON. Import nie pobiera danych ze Spotify.</p>
+    <p>
+      Wczytaj plik JSON z identyfikatorami utworów Spotify. Aplikacja pobierze metadane ze Spotify i
+      cechy audio z ReccoBeats. Przygotowanie wymaga połączenia konta Spotify.
+    </p>
   </header>
 
   <div class="dataset-file-control">
-    <label for="playlist-dataset-file">Plik ze zbiorem utworów</label>
+    <label for="playlist-dataset-file">Plik z identyfikatorami utworów Spotify</label>
     <input
       #datasetFileInput
       id="playlist-dataset-file"
@@ -24,7 +31,7 @@
         [disabled]="isReadingFile()"
         (click)="datasetFileInput.click()"
       >
-        {{ dataset() ? 'Zmień plik' : 'Wybierz plik' }}
+        {{ fileName() ? 'Zmień plik' : 'Wybierz plik' }}
       </button>
       <span id="playlist-selected-file" class="dataset-file-name">
         @if (isReadingFile()) {
@@ -35,26 +42,80 @@
       </span>
     </div>
     <p id="playlist-dataset-format" class="dataset-format-hint">
-      Format: version: 1 oraz tracks z 1–500 utworami. Każdy utwór musi zawierać id, name, artists i
-      audioFeatures ze wszystkimi ośmioma polami pomiarów. Brak pomiaru zapisuj jako null.
+      Format: version: 1 oraz spotifyTrackIds z 1–500 identyfikatorami. Każdy ID ma 22 litery lub
+      cyfry; nie podawaj adresów URL. Nazwy, artystów i pomiary uzupełni aplikacja. Duplikaty
+      zostaną usunięte.
     </p>
   </div>
 
   @if (isReadingFile()) {
     <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
+  } @else if (isPreparingDataset()) {
+    <p class="dataset-import-status" role="status">Pobieranie metadanych i cech audio…</p>
   } @else if (importError(); as error) {
     <p class="dataset-import-error" role="alert">{{ error }}</p>
+    @if (canRetryPreparation()) {
+      <button id="playlist-retry-preparation" type="button" (click)="retryPreparation()">
+        Ponów pobieranie
+      </button>
+    }
   } @else if (dataset(); as importedDataset) {
     <p class="dataset-import-status" role="status">
       Wczytano <strong>{{ fileName() }}</strong
       >. Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
       >.
     </p>
+    @if (importedDataset.tracks.length === 0) {
+      <p class="dataset-empty" role="status">
+        Nie znaleziono utworów z metadanymi i użytecznymi pomiarami. Wybierz inny plik. Generowanie
+        playlisty jest niedostępne.
+      </p>
+    }
+  }
+
+  @if (preparedDataset(); as prepared) {
+    @if (prepared.skippedTracks.length > 0) {
+      <details class="dataset-data-gaps">
+        <summary>Pominięte utwory: {{ prepared.skippedTracks.length }}</summary>
+        <p>Te utwory nie trafiły do zbioru z powodu brakujących danych, nie ustawionych wymagań.</p>
+        <ul>
+          @for (skipped of prepared.skippedTracks; track skipped.spotifyId) {
+            <li>
+              <code>{{ skipped.spotifyId }}</code> —
+              {{
+                skipped.reason === 'metadata-unavailable'
+                  ? 'Brak metadanych Spotify'
+                  : 'Brak cech audio'
+              }}.
+            </li>
+          }
+        </ul>
+      </details>
+    }
+    @if (prepared.incompleteTracks.length > 0) {
+      <details class="dataset-data-gaps">
+        <summary>Utwory z niepełnymi pomiarami: {{ prepared.incompleteTracks.length }}</summary>
+        <p>
+          Te utwory pozostają w zbiorze. Brak pomiaru nie oznacza zera; aktywne wymaganie bez
+          potrzebnego pomiaru odrzuci utwór.
+        </p>
+        <ul>
+          @for (incomplete of prepared.incompleteTracks; track incomplete.spotifyId) {
+            <li>
+              <code>{{ incomplete.spotifyId }}</code> — brak:
+              @for (feature of incomplete.missingFeatures; track feature) {
+                {{ featureLabels[feature] }}{{ $last ? '.' : ', ' }}
+              }
+            </li>
+          }
+        </ul>
+      </details>
+    }
   }
 </section>
 
 <!-- Śledzenie zbioru odtwarza formularz z domyślnymi kryteriami po podmianie pliku. -->
-@for (importedDataset of dataset() ? [dataset()] : []; track importedDataset) {
+@for (importedDataset of dataset()?.tracks.length ? [dataset()] : []; track importedDataset) {
   <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
 }
 
