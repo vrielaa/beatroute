@@ -61,7 +61,7 @@ Nie przełączamy go na same ID, zanim będzie gotowe pobieranie metadanych i po
 ### Przygotowanie zbioru z ID
 
 Serwis createPlaylistDatasetService w
-backend/src/application/playlist-generator/prepare-dataset.ts przyjmuje dwie
+backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje dwie
 jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
 audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
 Podłączenie zależności do endpointu jest kolejnym etapem; samo przygotowanie

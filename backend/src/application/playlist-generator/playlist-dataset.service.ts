@@ -10,7 +10,6 @@ import type {
 import type {
   IncompletePlaylistTrack,
   PlaylistDatasetDependencies,
-  PlaylistDatasetService,
   PlaylistSourceTrack,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
@@ -41,7 +40,7 @@ const AUDIO_FEATURE_KEYS: (keyof PlaylistAudioFeatures)[] = [
 function createPlaylistDatasetService({
   getSpotifyTrackById,
   getAudioFeaturesBySpotifyIds,
-}: PlaylistDatasetDependencies): PlaylistDatasetService {
+}: PlaylistDatasetDependencies) {
   /**
    * Pobiera metadane po kolei, a następnie cechy wyłącznie dla znalezionych utworów.
    * Status 404 oznacza pominięty utwór; pozostałe wyjątki przerywają przygotowanie

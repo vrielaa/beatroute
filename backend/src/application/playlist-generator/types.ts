@@ -94,18 +94,6 @@ type PlaylistDatasetDependencies = {
   ): Promise<TrackAudioFeaturesResult[]>;
 };
 
-/**
- * Operacja przygotowania danych oddzielona od filtrowania i rankingu.
- *
- * @property prepareDataset - Uzupełnia wcześniej zwalidowany plik ID o metadane i pomiary.
- */
-type PlaylistDatasetService = {
-  prepareDataset(
-    file: PlaylistTrackIdsFile,
-    accessToken: string
-  ): Promise<PreparedPlaylistDataset>;
-};
-
 export type {
   PlaylistTrackIdsFile,
   PlaylistSourceTrack,
@@ -113,5 +101,4 @@ export type {
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
   PlaylistDatasetDependencies,
-  PlaylistDatasetService,
 };

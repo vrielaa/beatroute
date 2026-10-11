@@ -3,7 +3,7 @@ import type { PlaylistAudioFeatures } from "@domain/playlist-generator/types.js"
 import type { TrackAudioFeatures } from "@domain/tracks/types.js";
 import { IntegrationApiError } from "@integrations/integration-api.error.js";
 import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/dataset.validator.js";
-import { createPlaylistDatasetService } from "./prepare-dataset.js";
+import { createPlaylistDatasetService } from "./playlist-dataset.service.js";
 import type {
   PlaylistDatasetDependencies,
   PlaylistSourceTrack,
