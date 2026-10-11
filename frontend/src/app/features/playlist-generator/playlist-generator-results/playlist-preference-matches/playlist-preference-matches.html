@@ -1,0 +1,47 @@
+@if (featureMatches().length === 0) {
+  <p class="preferences-empty">Nie wybrano aktywnych preferencji.</p>
+} @else {
+  <p class="measurement-summary">
+    Pomiary dostępne dla {{ availableMeasurementsCount() }} z
+    {{ featureMatches().length }} aktywnych preferencji.
+  </p>
+  @if (hasMissingMeasurements()) {
+    <p class="missing-measurements-hint">
+      Brakujące pomiary nie są uwzględniane w średniej dopasowania.
+    </p>
+  }
+
+  <ul class="preference-matches" aria-label="Szczegóły dopasowania do preferencji">
+    @for (featureMatch of featureMatches(); track featureMatch.feature) {
+      <li class="preference-match">
+        <p class="preference-name">{{ featureLabels[featureMatch.feature] }}</p>
+        <dl>
+          <div>
+            <dt>Preferowany poziom</dt>
+            <dd class="preference-level">{{ levelLabels[featureMatch.level] }}</dd>
+          </div>
+          <div>
+            <dt>Pomiar (0–1)</dt>
+            <dd class="preference-measurement">
+              @if (featureMatch.measurement !== null) {
+                {{ featureMatch.measurement }}
+              } @else {
+                Brak pomiaru
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Dopasowanie</dt>
+            <dd class="preference-score">
+              @if (featureMatch.match !== null) {
+                {{ featureMatch.match | percent: '1.0-1' }}
+              } @else {
+                Brak oceny
+              }
+            </dd>
+          </div>
+        </dl>
+      </li>
+    }
+  </ul>
+}

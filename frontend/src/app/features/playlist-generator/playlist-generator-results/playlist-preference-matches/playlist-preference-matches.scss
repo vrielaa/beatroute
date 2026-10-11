@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.measurement-summary,
+.missing-measurements-hint,
+.preferences-empty {
+  color: var(--color-text-secondary);
+}
+
+.missing-measurements-hint {
+  margin-top: 0.4rem;
+}
+
+.preference-matches {
+  display: grid;
+  gap: 0.8rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preference-match {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+}
+
+.preference-name,
+.preference-score {
+  font-weight: var(--font-weight-semibold);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.8rem;
+  margin: 0.8rem 0 0;
+}
+
+dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+dd {
+  margin: 0.4rem 0 0;
+  overflow-wrap: anywhere;
+}
