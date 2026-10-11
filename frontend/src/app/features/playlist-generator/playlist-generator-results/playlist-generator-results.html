@@ -1,0 +1,38 @@
+<section class="playlist-results" aria-label="Wynik generowania playlisty">
+  <h2>Wynik generowania</h2>
+
+  <div class="generation-summary" role="status">
+    <p>
+      Dopuszczone utwory: <strong>{{ result().rankedTracks.length }}</strong
+      >.
+    </p>
+    <p>
+      Odrzucone utwory: <strong>{{ result().rejectedTracks.length }}</strong
+      >.
+    </p>
+  </div>
+
+  <p class="results-explanation">
+    Utwory w rankingu spełniają wymagania obowiązkowe. Preferencje wpływają na ich kolejność, nie na
+    odrzucenie. Utwór może znaleźć się w wynikach także z dopasowaniem 0%.
+  </p>
+  <p class="score-explanation">
+    Procent dopasowania jest oceną preferencji, nie prawdopodobieństwem polubienia utworu.
+  </p>
+
+  @if (result().rankedTracks.length === 0) {
+    <p class="empty-ranking">
+      Żaden utwór nie spełnia aktywnych wymagań. Możesz zmienić kryteria i spróbować ponownie.
+    </p>
+  } @else {
+    <ol class="playlist-ranking" aria-label="Ranking dopuszczonych utworów">
+      @for (evaluation of result().rankedTracks; track evaluation.track.id; let index = $index) {
+        <li>
+          <app-playlist-ranked-track [evaluation]="evaluation" [position]="index + 1" />
+        </li>
+      }
+    </ol>
+  }
+
+  <app-playlist-rejected-tracks [rejectedTracks]="result().rejectedTracks" />
+</section>

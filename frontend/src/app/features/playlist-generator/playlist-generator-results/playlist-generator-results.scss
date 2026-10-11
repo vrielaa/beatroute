@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.playlist-results {
+  display: grid;
+  gap: 1.6rem;
+  min-width: 0;
+}
+
+.generation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  padding: 1rem;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-secondary);
+}
+
+.results-explanation,
+.score-explanation {
+  color: var(--color-text-secondary);
+}
+
+.playlist-ranking {
+  display: grid;
+  gap: 1.2rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
