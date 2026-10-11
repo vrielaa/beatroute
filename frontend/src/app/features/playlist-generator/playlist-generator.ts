@@ -18,10 +18,11 @@ import type {
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
 import { parsePlaylistDataset } from './playlist-dataset.parser';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
+import { PlaylistGeneratorResults } from './playlist-generator-results/playlist-generator-results';
 
 @Component({
   selector: 'app-playlist-generator',
-  imports: [PlaylistCriteriaForm],
+  imports: [PlaylistCriteriaForm, PlaylistGeneratorResults],
   templateUrl: './playlist-generator.html',
   styleUrl: './playlist-generator.scss',
   changeDetection: ChangeDetectionStrategy.Eager,

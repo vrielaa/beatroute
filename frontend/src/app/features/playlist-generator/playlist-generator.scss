@@ -68,13 +68,9 @@ input[type='file']:disabled {
   color: var(--color-danger);
 }
 
-.playlist-generation,
-.generation-summary {
+.playlist-generation {
   display: grid;
   gap: 1rem;
-}
-
-.playlist-generation {
   margin-top: 2rem;
 }
 

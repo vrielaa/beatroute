@@ -28,6 +28,7 @@ describe('PlaylistGenerator generation', () => {
 
     http.expectNone(() => true);
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
   });
 
   it('enables generation after import without automatically sending a request', async () => {
@@ -38,6 +39,7 @@ describe('PlaylistGenerator generation', () => {
     setPreference('energy', 'high');
 
     expect(getGenerateButton().disabled).toBe(false);
+    expect(getResults()).toBeNull();
     http.expectNone(() => true);
   });
 
@@ -106,6 +108,7 @@ describe('PlaylistGenerator generation', () => {
 
     expect(getGenerateButton().disabled).toBe(true);
     expect(getText()).toContain('Generowanie playlisty…');
+    expect(getResults()).toBeNull();
     expect(
       fixture.nativeElement.querySelector('.playlist-generation').getAttribute('aria-busy')
     ).toBe('true');
@@ -121,7 +124,7 @@ describe('PlaylistGenerator generation', () => {
     expect(getText()).not.toContain('Generowanie playlisty…');
   });
 
-  it('shows accepted and rejected counts after successful generation', async () => {
+  it('shows the detailed results with counts, ranking and rejections after generation', async () => {
     await importDataset();
     setTempoRange('120', '140');
     generate();
@@ -129,11 +132,21 @@ describe('PlaylistGenerator generation', () => {
     http.expectOne('/api/playlist-generator/generate').flush(createResult());
     fixture.detectChanges();
 
-    expect(getSummary()?.textContent).toContain('Podsumowanie generowania');
+    expect(getResults()?.textContent).toContain('Wynik generowania');
     expect(getText()).toContain('Dopuszczone utwory: 1.');
     expect(getText()).toContain('Odrzucone utwory: 1.');
+    expect(getResultElements('app-playlist-ranked-track')).toHaveLength(1);
+    expect(getResultText('app-playlist-ranked-track h3')).toBe('First track');
+    expect(getResultText('.ranking-position')).toBe('Pozycja 1');
+    expect(getResultText('.track-artists')).toBe('Example artist');
+    expect(getResultText('.overall-match-value')).toBe('Bez aktywnych preferencji');
+    expect(getResultElements('.rejected-track')).toHaveLength(1);
+    expect(getResultText('.rejected-track h4')).toBe('Second track');
+    expect(getResultText('.rejection-reasons')).toBe('Tempo (BPM) jest poza wybranym zakresem.');
+    expect(getResultElements('.generation-summary')).toHaveLength(1);
     expect(getGenerationError()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
+    http.expectNone(() => true);
   });
 
   it('treats an empty ranking as a valid result rather than a request error', async () => {
@@ -154,8 +167,108 @@ describe('PlaylistGenerator generation', () => {
     expect(getText()).toContain('Dopuszczone utwory: 0.');
     expect(getText()).toContain('Odrzucone utwory: 2.');
     expect(getText()).toContain('Żaden utwór nie spełnia aktywnych wymagań');
+    expect(getResultElements('app-playlist-ranked-track')).toHaveLength(0);
+    expect(getResultElements('.rejected-track')).toHaveLength(2);
+    expect(getResultElements('.rejection-reasons')).toHaveLength(2);
     expect(getGenerationError()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
+  });
+
+  it('displays zero preference match as an accepted track, preserving the returned ranking', async () => {
+    const dataset = createDataset();
+    dataset.tracks[0].audioFeatures.energy = 0.801;
+    dataset.tracks[1].audioFeatures.energy = 0.2;
+    await importDataset(dataset);
+    setPreference('energy', 'low');
+    generate();
+
+    const response: GeneratedPlaylist = {
+      rankedTracks: [
+        {
+          track: dataset.tracks[1],
+          overallMatch: 1,
+          featureMatches: [{ feature: 'energy', level: 'low', measurement: 0.2, match: 1 }],
+        },
+        {
+          track: dataset.tracks[0],
+          overallMatch: 0,
+          featureMatches: [{ feature: 'energy', level: 'low', measurement: 0.801, match: 0 }],
+        },
+      ],
+      rejectedTracks: [],
+    };
+    http.expectOne('/api/playlist-generator/generate').flush(response);
+    fixture.detectChanges();
+
+    expect(
+      getResultElements('app-playlist-ranked-track h3').map((element) => element.textContent.trim())
+    ).toEqual(['Second track', 'First track']);
+    expect(
+      getResultElements('.ranking-position').map((element) => element.textContent.trim())
+    ).toEqual(['Pozycja 1', 'Pozycja 2']);
+    expect(
+      getResultElements('.overall-match-value').map((element) => element.textContent.trim())
+    ).toEqual(['100%', '0%']);
+    expect(
+      getResultElements('.preference-measurement').map((element) => element.textContent.trim())
+    ).toEqual(['0.2', '0.801']);
+    expect(getResultText('.zero-match-hint')).toContain('Utwór spełnia wymagania obowiązkowe.');
+    expect(getResultText('.rejections-empty')).toContain('Żaden utwór nie został odrzucony');
+    expect(getResultText('.generation-summary')).toContain('Dopuszczone utwory: 2.');
+    expect(getResultText('.generation-summary')).toContain('Odrzucone utwory: 0.');
+    expect(getGenerationError()).toBeNull();
+    http.expectNone(() => true);
+  });
+
+  it('displays partial and unavailable measurements from the response without treating them as errors', async () => {
+    const dataset = createDataset();
+    dataset.tracks[0].audioFeatures.danceability = null;
+    dataset.tracks[1].audioFeatures.energy = null;
+    dataset.tracks[1].audioFeatures.danceability = null;
+    await importDataset(dataset);
+    setPreference('energy', 'high');
+    setPreference('danceability', 'high');
+    generate();
+
+    const response: GeneratedPlaylist = {
+      rankedTracks: [
+        {
+          track: dataset.tracks[0],
+          overallMatch: 1,
+          featureMatches: [
+            { feature: 'energy', level: 'high', measurement: 0.8, match: 1 },
+            { feature: 'danceability', level: 'high', measurement: null, match: null },
+          ],
+        },
+        {
+          track: dataset.tracks[1],
+          overallMatch: null,
+          featureMatches: [
+            { feature: 'energy', level: 'high', measurement: null, match: null },
+            { feature: 'danceability', level: 'high', measurement: null, match: null },
+          ],
+        },
+      ],
+      rejectedTracks: [],
+    };
+    http.expectOne('/api/playlist-generator/generate').flush(response);
+    fixture.detectChanges();
+
+    expect(
+      getResultElements('.overall-match-value').map((element) => element.textContent.trim())
+    ).toEqual(['100%', 'Brak dostępnych pomiarów']);
+    expect(
+      getResultElements('.measurement-summary').map((element) => element.textContent.trim())
+    ).toEqual([
+      'Pomiary dostępne dla 1 z 2 aktywnych preferencji.',
+      'Pomiary dostępne dla 0 z 2 aktywnych preferencji.',
+    ]);
+    expect(
+      getResultElements('.preference-score').map((element) => element.textContent.trim())
+    ).toEqual(['100%', 'Brak oceny', 'Brak oceny', 'Brak oceny']);
+    expect(getResultText('.generation-summary')).toContain('Dopuszczone utwory: 2.');
+    expect(getGenerationError()).toBeNull();
+    http.expectNone(() => true);
   });
 
   it.each([
@@ -184,6 +297,7 @@ describe('PlaylistGenerator generation', () => {
       expect(getGenerationError()?.textContent).toContain(message);
       expect(getText()).not.toContain('Technical backend details');
       expect(getSummary()).toBeNull();
+      expect(getResults()).toBeNull();
       expect(getGenerateButton().disabled).toBe(false);
       expect(getGenerateButton().textContent).toContain('Spróbuj ponownie');
       expect(getText()).toContain('playlist.json');
@@ -201,6 +315,7 @@ describe('PlaylistGenerator generation', () => {
       'Nie udało się wygenerować playlisty. Spróbuj ponownie.'
     );
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
   });
 
@@ -223,6 +338,10 @@ describe('PlaylistGenerator generation', () => {
     fixture.detectChanges();
 
     expect(getSummary()).not.toBeNull();
+    expect(getResultText('app-playlist-ranked-track h3')).toBe('First track');
+    expect(getResultText('.rejection-reasons')).toContain(
+      'Tempo (BPM) jest poza wybranym zakresem.'
+    );
     expect(getGenerationError()).toBeNull();
   });
 
@@ -236,6 +355,7 @@ describe('PlaylistGenerator generation', () => {
     generate();
 
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getText()).toContain('Generowanie playlisty…');
     http.expectOne('/api/playlist-generator/generate').flush(createResult());
   });
@@ -245,10 +365,12 @@ describe('PlaylistGenerator generation', () => {
     generate();
     http.expectOne('/api/playlist-generator/generate').flush(createResult());
     fixture.detectChanges();
+    expect(getResults()).not.toBeNull();
 
     setPreference('energy', 'high');
 
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
     http.expectNone(() => true);
   });
@@ -262,6 +384,7 @@ describe('PlaylistGenerator generation', () => {
 
     expect(previousRequest.cancelled).toBe(true);
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerationError()).toBeNull();
     expect(getText()).not.toContain('Generowanie playlisty…');
     expect(getGenerateButton().disabled).toBe(false);
@@ -296,6 +419,7 @@ describe('PlaylistGenerator generation', () => {
 
     expect(request.cancelled).toBe(true);
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerationError()).toBeNull();
     expect(getText()).not.toContain('Generowanie playlisty…');
 
@@ -315,6 +439,7 @@ describe('PlaylistGenerator generation', () => {
     await updateView();
 
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerationError()).toBeNull();
     expect(getGenerateButton().disabled).toBe(true);
     expect(getText()).toContain('Plik nie zawiera poprawnego JSON-a');
@@ -331,6 +456,7 @@ describe('PlaylistGenerator generation', () => {
     await importDataset(createDataset(), 'replacement.json');
 
     expect(getSummary()).toBeNull();
+    expect(getResults()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
     expect(fixture.nativeElement.querySelector('#playlist-tempo-min')).toBeNull();
     expect(fixture.nativeElement.querySelector('#playlist-preference-energy').value).toBe('');
@@ -359,6 +485,25 @@ describe('PlaylistGenerator generation', () => {
     request.flush(createResult());
     fixture.detectChanges();
     expect(getSummary()).not.toBeNull();
+  });
+
+  it('preserves the displayed detailed result when file selection is cancelled', async () => {
+    await importDataset();
+    setTempoRange('120', '140');
+    generate();
+    http.expectOne('/api/playlist-generator/generate').flush(createResult());
+    fixture.detectChanges();
+    const previousResults = getResults();
+    expect(previousResults).not.toBeNull();
+
+    selectFile(null);
+    fixture.detectChanges();
+
+    expect(getResults()).toBe(previousResults);
+    expect(getResultText('app-playlist-ranked-track h3')).toBe('First track');
+    expect(getResultText('.rejected-track h4')).toBe('Second track');
+    expect(getGenerationError()).toBeNull();
+    http.expectNone(() => true);
   });
 
   it('cancels the pending HTTP request when the component is destroyed', async () => {
@@ -444,6 +589,30 @@ describe('PlaylistGenerator generation', () => {
 
   function getSummary(): HTMLElement | null {
     return fixture.nativeElement.querySelector('.generation-summary');
+  }
+
+  function getResults(): HTMLElement | null {
+    return fixture.nativeElement.querySelector('app-playlist-generator-results');
+  }
+
+  function getResultElements(selector: string): HTMLElement[] {
+    const results = getResults();
+
+    if (!results) {
+      throw new Error('Nie znaleziono widoku wyników generatora');
+    }
+
+    return Array.from(results.querySelectorAll(selector));
+  }
+
+  function getResultText(selector: string): string {
+    const element = getResultElements(selector)[0];
+
+    if (!element) {
+      throw new Error(`Nie znaleziono elementu wyników generatora: ${selector}`);
+    }
+
+    return element.textContent.replace(/\s+/g, ' ').trim();
   }
 
   function getGenerationError(): HTMLElement | null {
