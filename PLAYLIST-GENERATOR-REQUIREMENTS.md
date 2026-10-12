@@ -404,6 +404,9 @@ Uzgodnione 12 października 2026 r. Ta sekcja opisuje zasady do wdrożenia;
 obecny widok wyników nie ma jeszcze kontrolek wyboru ani zapisu w Spotify.
 Frontendowy typ PlaylistSelectionMode w playlist-generator.models.ts opisuje
 dwa tryby: top („Top N”) i manual („Ręcznie”). Nie zmienia kontraktu generatora.
+W playlist-track-selection.ts są już funkcje validateTopTrackCount i selectTopTrackIds,
+z testami walidacji limitu i wyboru pierwszych N identyfikatorów. Nie są jeszcze
+podłączone do widoku; formularz wyboru i checkboxy pozostają kolejnym etapem.
 
 ### Wspólne zasady
 
