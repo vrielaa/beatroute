@@ -106,6 +106,20 @@ describe("playlist dataset preparation OpenAPI contract", () => {
         dataset.tracks.some((track) => track.id === skipped.spotifyId)
       ).toBe(false);
     }
+    const requestedIds = parsePlaylistTrackIdsFile(
+      operation.requestBody.content["application/json"].example
+    ).spotifyTrackIds;
+    const returnedIds = [
+      ...dataset.tracks.map((track) => track.id),
+      ...example.skippedTracks.map((track) => track.spotifyId),
+    ];
+    expect(returnedIds).toHaveLength(new Set(returnedIds).size);
+    expect(new Set(returnedIds)).toEqual(new Set(requestedIds));
+    for (const track of dataset.tracks) {
+      expect(Object.keys(track.audioFeatures).sort()).toEqual(
+        [...schemas.PlaylistAudioFeatures.required].sort()
+      );
+    }
   });
 });
 

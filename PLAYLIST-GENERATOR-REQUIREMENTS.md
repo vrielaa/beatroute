@@ -10,7 +10,7 @@ rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
 Docelowo użytkownik wybiera jedno z trzech źródeł:
 
 1. Plik JSON zawierający wyłącznie identyfikatory utworów Spotify.
-   Użytkownik nie dostarcza nazw, artystów, okładek ani pomiarów cech audio.
+   Użytkownik nie dostarcza nazw, artystów ani pomiarów cech audio.
    Aplikacja uzupełnia dane z API przed uruchomieniem generatora.
 2. Zapisane utwory zalogowanego użytkownika Spotify.
 3. Playlista Spotify należąca do użytkownika lub przez niego współtworzona.
@@ -55,7 +55,7 @@ niezależnie sprawdzają format. Nie wykonują wywołań API.
 2. Serwis aplikacyjny uzupełniający metadane i pomiary, z informacją o brakach i testami — przygotowany.
 3. Autoryzowany endpoint przygotowania zbioru, testy HTTP i opis w OpenAPI — przygotowane.
 4. Podłączenie importu ID w UI, z pobieraniem danych tylko raz i testami — przygotowane.
-5. Końcowa weryfikacja przepływu, porządki oraz aktualizacja README i przegląd OpenAPI.
+5. Końcowa weryfikacja przepływu, porządki oraz aktualizacja README i przegląd OpenAPI — przygotowane.
 
 Interfejs przyjmuje plik z samymi ID. Poprzedni format z tracks i audioFeatures
 nie jest już formatem importu w UI; pozostaje wewnętrznym modelem generatora.
@@ -90,14 +90,20 @@ Zero w skali 0–1 pozostaje poprawną wartością. Pominięcie przy pobieraniu 
 jest czymś innym niż odrzucenie przez wymagania użytkownika.
 
 Błędy całych zapytań, w tym problemy z tokenem, limit API lub brak połączenia,
-przerywają przygotowanie i są przekazywane do obsługi błędów. Nie zastępujemy ich
-pustym wynikiem. Jeśli wszystkie odczyty zakończą się brakami pojedynczych utworów,
+przerywają przygotowanie i są przekazywane do obsługi błędów. Tak samo traktujemy
+sytuację, w której żaden odczyt cech ReccoBeats się nie udał i wystąpiła awaria
+inna niż oczekiwany brak pomiarów 404. Zachowujemy oryginalny błąd i Retry-After,
+nie zastępując ich pustym wynikiem. Częściowe niepowodzenia nadal są raportowane
+per utwór, gdy są również poprawne odczyty. Jeśli wszystkie odczyty zakończą się brakami pojedynczych utworów,
 dataset.tracks jest pusty; UI wyświetla wtedy informację o brakach zamiast
 wywoływać generator. Surowe komunikaty dostawcy i token nie trafiają do wyniku.
 
 Testy serwisu używają atrap źródeł, bez zewnętrznych API. Sprawdzają format zbioru,
 łączenie po ID, kolejność, porcje do 40 ID, normalizację pomiarów, częściowe braki,
 pomijanie niedostępnych utworów, propagowanie awarii i brak modyfikacji wejścia.
+Test HTTP całego procesu wykorzystuje rzeczywiste serwisy przygotowania i ReccoBeats,
+rzeczywisty generator oraz sesję Express; atrapy zastępują tylko granice dostawców.
+Sprawdza przygotowanie, ranking, powody odrzucenia, ponowne użycie zbioru i Retry-After.
 
 ### Endpoint przygotowania zbioru
 
@@ -154,6 +160,12 @@ Przy zachowanym zbiorze pobieranie jest już ukończone, więc proces zaczyna si
 Awaria lub pusty zbiór zatrzymują animację bez pokazywania pełnego ukończenia.
 Zmiana pliku lub kryteriów usuwa poprzedni postęp i anuluje oczekiwanie na wynik.
 Animacja uwzględnia prefers-reduced-motion, a etap jest ogłaszany przez role=status.
+
+Nieużywany frontendowy parser pełnego zbioru i jego testy zostały usunięte.
+Pozostał parser pliku z ID; backendowy dataset.validator.ts nadal
+sprawdza kompletny zbiór przesyłany do /generate. UI nie importuje gotowego zbioru
+i nie ma jeszcze trybu offline. Eksport wyniku, zapisane utwory Spotify i playlisty
+użytkownika pozostają etapami dalszego rozwoju, poza zakończoną migracją importu.
 
 ## Wewnętrzny zbiór generatora
 
@@ -290,7 +302,7 @@ Kody przyczyn mają następujące znaczenie:
 | above-maximum       | speechiness, liveness        | Pomiar większy niż ustawione maksimum         |
 
 Przykładowa przyczyna: `{ "feature": "tempo", "code": "outside-range" }`.
-Domena zwraca kod, a interfejs przygotuje komunikat dla użytkownika. Wyłączony
+Domena zwraca kod, a interfejs wyświetla odpowiedni komunikat dla użytkownika. Wyłączony
 warunek nie tworzy powodu odrzucenia, również przy braku jego pomiaru.
 Każdy utwór należy do jednej grupy; obie zachowują kolejność źródłową. Każda
 grupa może być pusta. Dla odrzuconego utworu zbieramy wszystkie powody, zamiast
@@ -393,4 +405,4 @@ w UI; eksport wyniku pozostaje do wdrożenia.
 - `key`, `mode`, `timeSignature` i `loudness` nie są kryteriami pierwszej wersji generatora.
 - Progi speechiness i liveness ograniczają pomiary, nie gwarantują braku wokalu
   ani braku wykonania koncertowego.
-- Najpierw wdrażamy i testujemy filtrowanie, następnie ranking rozmyty.
+- Filtrowanie wymagań jest wykonywane przed oceną i rankingiem rozmytym.
