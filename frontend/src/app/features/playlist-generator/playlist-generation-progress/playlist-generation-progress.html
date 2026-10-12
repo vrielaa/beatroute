@@ -1,0 +1,69 @@
+<section
+  class="generation-progress"
+  aria-labelledby="generation-progress-heading"
+  [class.is-running]="isAnimating()"
+>
+  <div class="progress-header">
+    <div>
+      <p class="progress-eyebrow">Twoja playlista</p>
+      <h2 id="generation-progress-heading">
+        {{
+          stage() === 'completed'
+            ? 'Wynik jest gotowy'
+            : isRunning()
+              ? 'Łączymy muzykę z Twoimi preferencjami'
+              : 'Proces zatrzymany'
+        }}
+      </h2>
+    </div>
+    <p class="progress-counter">
+      Etap <strong>{{ currentStep() }}/{{ stages.length }}</strong>
+    </p>
+  </div>
+
+  <div class="progress-status" role="status" aria-live="polite" aria-atomic="true">
+    <div class="progress-visual" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div>
+      <p class="current-stage">{{ stageLabels[stage()] }}</p>
+      <p class="stage-description">{{ description() }}</p>
+    </div>
+  </div>
+
+  <div
+    class="progress-track"
+    role="progressbar"
+    aria-label="Ukończone etapy generowania playlisty"
+    aria-valuemin="0"
+    [attr.aria-valuemax]="stages.length"
+    [attr.aria-valuenow]="completedSteps()"
+    [attr.aria-valuetext]="
+      'Ukończono ' + completedSteps() + ' z ' + stages.length + ' etapów. ' + stageLabels[stage()]
+    "
+  >
+    <div class="progress-fill" [style.width.%]="completedPercentage()"></div>
+  </div>
+
+  <ol class="progress-steps" aria-label="Etapy generowania">
+    @for (step of stages; track step) {
+      <li
+        [class.is-complete]="$index < completedSteps()"
+        [class.is-current]="step === stage() && isAnimating()"
+        [attr.aria-current]="step === stage() && isAnimating() ? 'step' : null"
+      >
+        <span class="step-marker" aria-hidden="true">{{
+          $index < completedSteps() ? '✓' : $index + 1
+        }}</span>
+        <span>{{ stageLabels[step] }}</span>
+        @if ($index < completedSteps()) {
+          <span class="step-state">Ukończono</span>
+        } @else if (step === stage() && isAnimating()) {
+          <span class="step-state">W toku</span>
+        } @else {
+          <span class="step-state">{{ step === stage() ? 'Przerwano' : 'Oczekuje' }}</span>
+        }
+      </li>
+    }
+  </ol>
+</section>

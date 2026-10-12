@@ -17,8 +17,10 @@ Docelowo użytkownik wybiera jedno z trzech źródeł:
 
 Wszystkie źródła dostarczają utwory do przygotowania wspólnego PlaylistDataset.
 Filtrowanie i ranking działają na tym zbiorze, niezależnie od źródła danych.
-Metadane i pomiary pobieramy raz po imporcie lub wyborze źródła. Zmiana kryteriów
-korzysta z przygotowanego zbioru, bez ponownego pobierania danych z API.
+Wybór pliku tylko odczytuje i sprawdza ID lokalnie. Metadane i pomiary pobieramy
+dopiero po kliknięciu „Generuj playlistę”. Udane przygotowanie zachowujemy w pamięci;
+kolejne generowania dla innych kryteriów korzystają z tego samego zbioru, bez ponownego
+pobierania danych z API. Zmiana kryteriów nie uruchamia procesu automatycznie.
 
 ## Format pliku wejściowego
 
@@ -65,7 +67,7 @@ backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje
 jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
 audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
 Produkcyjne zależności są składane w http/routes/playlist-generator/composition.ts.
-Przygotowanie zbioru jest dostępne przez API i podłączone do importu w UI.
+Przygotowanie zbioru jest dostępne przez API i uruchamiane przyciskiem generowania w UI.
 
 Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile i token Spotify.
 Pobiera metadane po kolei, a cechy tylko dla utworów z nazwą i co najmniej jednym
@@ -112,19 +114,23 @@ tego routera nadal ma limit 1 MiB, a pozostałe endpointy 100 KiB.
 
 POST /api/playlist-generator/generate pozostaje osobnym endpointem: przyjmuje
 pełny dataset, requirements i preferences, nie wymaga sesji i nie wywołuje API.
-Przy zmianie kryteriów UI wywołuje tylko /generate z przygotowanym zbiorem.
+Po zmianie kryteriów kolejne kliknięcie generowania wywołuje tylko /generate,
+jeżeli zbiór został już przygotowany. Sama edycja formularza nie wywołuje API.
 Testy HTTP sprawdzają prawdziwą sesję Express, autoryzację i odświeżanie tokenu,
 walidację, limity parsera, przekazanie wyników oraz wspólny format błędów.
 
 ### Import i ponowienie w UI
 
-Komponent osobno pokazuje odczyt pliku i pobieranie danych. Po sprawdzeniu ID
-wywołuje prepare-dataset raz i zachowuje PreparedPlaylistDataset w pamięci.
-Zmiana kryteriów nie odczytuje pliku ani nie pobiera ponownie metadanych i pomiarów.
+Komponent odczytuje plik i sprawdza ID lokalnie, bez wywołań API. Po poprawnym
+imporcie udostępnia formularz kryteriów. Dopiero „Generuj playlistę” wywołuje
+prepare-dataset, zachowuje PreparedPlaylistDataset w pamięci i wysyła /generate.
+Kolejne kliknięcia korzystają z zachowanego zbioru. Zmiana kryteriów nie odczytuje
+pliku ani nie pobiera ponownie metadanych i pomiarów.
 Nowy wybór pliku usuwa poprzedni zbiór i wynik; anulowanie wyboru ich nie zmienia.
 
-Awaria API wyświetla komunikat i przycisk ponowienia dla zapamiętanych ID, bez
-ponownego wyboru pliku. Pusty zbiór jest poprawną odpowiedzią, ale blokuje
+Awaria API wyświetla komunikat; przycisk generowania pozwala ponowić proces dla
+zapamiętanych ID, bez ponownego wyboru pliku. Udane przygotowanie pozostaje
+dostępne także po błędzie analizy. Pusty zbiór jest poprawną odpowiedzią, ale blokuje
 generowanie. Pominięte ID i brakujące pomiary są pokazane w osobnych listach.
 Wymiana pliku lub zniszczenie komponentu anuluje oczekiwanie na odpowiedź HTTP;
 nie oznacza to gwarancji zatrzymania pracy już rozpoczętej przez backend.
@@ -133,6 +139,21 @@ Testy frontendu sprawdzają żądanie i cookie sesji, walidację importu, ponowi
 braki danych, komunikaty HTTP, anulowanie oraz ponowne użycie zbioru dla kryteriów.
 W testach odpowiedzi API są zastępowane przez HttpTestingController, bez zapytań
 do Spotify lub ReccoBeats.
+
+### Widoczny postęp generowania
+
+PlaylistGenerationProgress pojawia się dopiero po kliknięciu generowania i pokazuje:
+
+1. Pobieranie danych — metadane Spotify i cechy audio ReccoBeats w jednym żądaniu przygotowania.
+2. Analiza i ranking — sprawdzenie wymagań oraz ocena preferencji przez /generate.
+3. Gotowy wynik — ustawiany dopiero po otrzymaniu odpowiedzi generatora.
+
+Licznik 1/3, 2/3 lub 3/3 opisuje etap procesu, nie liczbę utworów ani procent
+pozostałego czasu. Etapy zmieniają się po odpowiedziach API, nie według zegara.
+Przy zachowanym zbiorze pobieranie jest już ukończone, więc proces zaczyna się od analizy.
+Awaria lub pusty zbiór zatrzymują animację bez pokazywania pełnego ukończenia.
+Zmiana pliku lub kryteriów usuwa poprzedni postęp i anuluje oczekiwanie na wynik.
+Animacja uwzględnia prefers-reduced-motion, a etap jest ogłaszany przez role=status.
 
 ## Wewnętrzny zbiór generatora
 

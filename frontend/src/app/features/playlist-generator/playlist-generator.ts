@@ -8,12 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { EMPTY, finalize, of, switchMap, tap } from 'rxjs';
 import type { Subscription } from 'rxjs';
 import type {
   GeneratedPlaylist,
   PlaylistAudioFeatures,
   PlaylistCriteria,
+  PlaylistGenerationStage,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
 } from './playlist-generator.models';
@@ -21,10 +22,11 @@ import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
 import { parsePlaylistTrackIdsFile } from './playlist-track-ids.parser';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
 import { PlaylistGeneratorResults } from './playlist-generator-results/playlist-generator-results';
+import { PlaylistGenerationProgress } from './playlist-generation-progress/playlist-generation-progress';
 
 @Component({
   selector: 'app-playlist-generator',
-  imports: [PlaylistCriteriaForm, PlaylistGeneratorResults],
+  imports: [PlaylistCriteriaForm, PlaylistGeneratorResults, PlaylistGenerationProgress],
   templateUrl: './playlist-generator.html',
   styleUrl: './playlist-generator.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -33,35 +35,26 @@ class PlaylistGenerator {
   private readonly playlistGeneratorApi = inject(PlaylistGeneratorApiService);
   private readonly destroyRef = inject(DestroyRef);
   private generationSubscription: Subscription | null = null;
-  private preparationSubscription: Subscription | null = null;
-  private readonly trackIdsFile = signal<PlaylistTrackIdsFile | null>(null);
 
+  protected readonly trackIdsFile = signal<PlaylistTrackIdsFile | null>(null);
   protected readonly preparedDataset = signal<PreparedPlaylistDataset | null>(null);
   protected readonly dataset = computed(() => this.preparedDataset()?.dataset ?? null);
   protected readonly fileName = signal<string | null>(null);
   protected readonly isReadingFile = signal(false);
-  protected readonly isPreparingDataset = signal(false);
   protected readonly importError = signal<string | null>(null);
   protected readonly criteria = signal<PlaylistCriteria | null>(null);
   protected readonly result = signal<GeneratedPlaylist | null>(null);
   protected readonly isGenerating = signal(false);
   protected readonly generationError = signal<string | null>(null);
+  protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
 
   protected readonly canGenerate = computed(
     () =>
-      (this.dataset()?.tracks.length ?? 0) > 0 &&
+      this.trackIdsFile() !== null &&
+      (this.dataset() === null || (this.dataset()?.tracks.length ?? 0) > 0) &&
       this.criteria() !== null &&
       !this.isReadingFile() &&
-      !this.isPreparingDataset() &&
       !this.isGenerating()
-  );
-
-  protected readonly canRetryPreparation = computed(
-    () =>
-      this.trackIdsFile() !== null &&
-      this.importError() !== null &&
-      !this.isReadingFile() &&
-      !this.isPreparingDataset()
   );
 
   protected readonly featureLabels: Record<keyof PlaylistAudioFeatures, string> = {
@@ -82,49 +75,75 @@ class PlaylistGenerator {
   }
 
   /**
-   * Wysyła wczytany zbiór i poprawne kryteria do generatora backendowego.
-   * Pomija wywołanie bez utworów, przy niepoprawnym formularzu oraz podczas odczytu,
-   * przygotowania danych lub generowania.
+   * Dopiero po kliknięciu przygotowuje dane z ID i analizuje je według kryteriów.
+   * Zachowuje przygotowany zbiór do kolejnych generowań bez ponownego pobierania.
+   * Pomija wywołanie bez pliku, przy pustym przygotowanym zbiorze, niepoprawnym
+   * formularzu oraz podczas odczytu lub trwającego procesu.
+   * Etap zmienia dopiero po zakończeniu pobierania lub otrzymaniu wyniku;
+   * nie szacuje liczby przetworzonych utworów ani czasu pozostałego do końca.
    * Zapisuje ranking i odrzucenia albo komunikat błędu; pusty ranking jest poprawnym wynikiem.
    * Zmiana danych lub kryteriów oraz zniszczenie komponentu anulują oczekiwanie na odpowiedź.
    * Nie tworzy playlisty w Spotify.
    */
   protected generatePlaylist(): void {
-    const dataset = this.dataset();
+    const file = this.trackIdsFile();
     const criteria = this.criteria();
 
-    if (!dataset || !criteria || !this.canGenerate()) {
+    if (!file || !criteria || !this.canGenerate()) {
       return;
     }
 
     this.clearGeneration();
     this.isGenerating.set(true);
 
-    this.generationSubscription = this.playlistGeneratorApi
-      .generatePlaylist({
-        dataset,
-        requirements: criteria.requirements,
-        preferences: criteria.preferences,
-      })
+    const cachedDataset = this.preparedDataset();
+    this.generationStage.set(cachedDataset ? 'analysis' : 'preparation');
+    const preparation = cachedDataset
+      ? of(cachedDataset)
+      : this.playlistGeneratorApi.prepareDataset(file);
+
+    this.generationSubscription = preparation
       .pipe(
+        tap((prepared) => this.preparedDataset.set(prepared)),
+        switchMap((prepared) => {
+          if (prepared.dataset.tracks.length === 0) {
+            return EMPTY;
+          }
+
+          this.generationStage.set('analysis');
+          return this.playlistGeneratorApi.generatePlaylist({
+            dataset: prepared.dataset,
+            requirements: criteria.requirements,
+            preferences: criteria.preferences,
+          });
+        }),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isGenerating.set(false))
       )
       .subscribe({
-        next: (result) => this.result.set(result),
-        error: (error: unknown) => this.generationError.set(getGenerationErrorMessage(error)),
+        next: (result) => {
+          this.result.set(result);
+          this.generationStage.set('completed');
+        },
+        error: (error: unknown) => {
+          const message =
+            this.generationStage() === 'preparation'
+              ? getPreparationErrorMessage(error)
+              : getGenerationErrorMessage(error);
+          this.generationError.set(message);
+        },
       });
   }
 
   /**
-   * Odczytuje plik z ID, sprawdza go i rozpoczyna jednorazowe przygotowanie danych przez API.
+   * Odczytuje plik z ID i sprawdza go lokalnie, bez wywołań API ani generowania.
    * Anulowanie wyboru nie zmienia stanu; podczas odczytu kolejne importy są
    * pomijane. Rozpoczęcie importu usuwa poprzedni zbiór, nazwę, kryteria i błędy,
    * czyści wynik generowania oraz anuluje jego trwające żądanie.
    * Błędy odczytu, składni JSON-a oraz struktury danych są wyświetlane osobno.
    * Po zakończeniu czyści input, umożliwiając ponowny wybór tego samego pliku.
-   * Zastąpienie pliku anuluje poprzednie przygotowanie. Zniszczenie komponentu
-   * podczas odczytu nie uruchamia później zapytania. Nie generuje playlisty.
+   * Zastąpienie pliku anuluje poprzedni proces. Po udanym odczycie udostępnia
+   * formularz kryteriów; pobieranie danych rozpoczyna dopiero generatePlaylist.
    *
    * @param event - Zdarzenie change pola wyboru pliku; target wskazuje input z files.
    * @returns Zakończenie odczytu i aktualizacji stanu, z błędem zapisanym w importError.
@@ -143,9 +162,6 @@ class PlaylistGenerator {
     }
 
     this.clearGeneration();
-    this.preparationSubscription?.unsubscribe();
-    this.preparationSubscription = null;
-    this.isPreparingDataset.set(false);
     this.preparedDataset.set(null);
     this.trackIdsFile.set(null);
     this.fileName.set(null);
@@ -183,45 +199,6 @@ class PlaylistGenerator {
       this.isReadingFile.set(false);
       input.value = '';
     }
-
-    this.prepareDataset();
-  }
-
-  /** Ponawia pobieranie dla zapamiętanych ID, bez ponownego odczytu pliku. */
-  protected retryPreparation(): void {
-    if (this.canRetryPreparation()) {
-      this.prepareDataset();
-    }
-  }
-
-  /**
-   * Uzupełnia zapamiętane ID o metadane i pomiary; zapisuje odpowiedź do dalszego użycia.
-   * Błąd nie udaje pustego wyniku. Zachowuje plik i jego nazwę do ponowienia pobierania.
-   * Oczekiwanie kończy się także przy podmianie pliku lub zniszczeniu komponentu.
-   */
-  private prepareDataset(): void {
-    const file = this.trackIdsFile();
-
-    if (!file || this.destroyRef.destroyed || this.isReadingFile() || this.isPreparingDataset()) {
-      return;
-    }
-
-    this.clearGeneration();
-    this.preparedDataset.set(null);
-    this.criteria.set(null);
-    this.importError.set(null);
-    this.isPreparingDataset.set(true);
-
-    this.preparationSubscription = this.playlistGeneratorApi
-      .prepareDataset(file)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isPreparingDataset.set(false))
-      )
-      .subscribe({
-        next: (prepared) => this.preparedDataset.set(prepared),
-        error: (error: unknown) => this.importError.set(getPreparationErrorMessage(error)),
-      });
   }
 
   /** Anuluje żądanie generatora i czyści jego wynik, komunikat oraz stan oczekiwania. */
@@ -231,6 +208,7 @@ class PlaylistGenerator {
     this.result.set(null);
     this.generationError.set(null);
     this.isGenerating.set(false);
+    this.generationStage.set(null);
   }
 }
 

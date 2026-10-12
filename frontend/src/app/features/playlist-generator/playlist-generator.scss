@@ -49,8 +49,7 @@ label {
   overflow-wrap: anywhere;
 }
 
-#playlist-choose-file,
-#playlist-retry-preparation {
+#playlist-choose-file {
   padding: 0.6rem 1rem;
   border: 0;
   border-radius: var(--radius-xs);
@@ -59,8 +58,7 @@ label {
   cursor: pointer;
 }
 
-#playlist-choose-file:focus-visible,
-#playlist-retry-preparation:focus-visible {
+#playlist-choose-file:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }

@@ -8,8 +8,12 @@ import type { GeneratedPlaylist, PlaylistDataset } from './playlist-generator.mo
 describe('PlaylistGenerator generation', () => {
   let fixture: ComponentFixture<PlaylistGenerator>;
   let http: HttpTestingController;
+  let sourceDataset: PlaylistDataset;
+  let datasetWasPrepared: boolean;
 
   beforeEach(async () => {
+    sourceDataset = createDataset();
+    datasetWasPrepared = false;
     await TestBed.configureTestingModule({
       imports: [PlaylistGenerator],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -31,7 +35,7 @@ describe('PlaylistGenerator generation', () => {
     expect(getResults()).toBeNull();
   });
 
-  it('enables generation after preparation without automatically generating or fetching again', async () => {
+  it('enables generation after local import without automatically preparing or generating', async () => {
     await importDataset();
 
     expect(getGenerateButton().disabled).toBe(false);
@@ -72,7 +76,7 @@ describe('PlaylistGenerator generation', () => {
     http.expectNone(() => true);
 
     finishReading(JSON.stringify(createTrackIdsFile(createDataset())));
-    await completePreparation(createDataset());
+    await updateView();
 
     expect(getGenerateButton().disabled).toBe(false);
   });
@@ -380,7 +384,7 @@ describe('PlaylistGenerator generation', () => {
     const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await completePreparation(dataset);
+    await updateView();
     const criteriaForm = fixture.nativeElement.querySelector('app-playlist-criteria-form');
     setPreference('energy', 'high');
     generate();
@@ -398,7 +402,7 @@ describe('PlaylistGenerator generation', () => {
     expect(fixture.nativeElement.querySelector('#playlist-selected-file').textContent.trim()).toBe(
       'current-playlist.json'
     );
-    expect(getText()).toContain('Liczba utworów: 2');
+    expect(getText()).toContain('Liczba identyfikatorów: 2');
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBe(criteriaForm);
     expect(getResults()).toBeNull();
     expect(getGenerateButton().disabled).toBe(false);
@@ -430,13 +434,13 @@ describe('PlaylistGenerator generation', () => {
     const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await completePreparation(dataset);
+    await updateView();
 
     setTempoRange('140', '120');
 
     expect(getGenerateButton().disabled).toBe(true);
     expect(getText()).toContain('current-playlist.json');
-    expect(getText()).toContain('Liczba utworów: 2');
+    expect(getText()).toContain('Liczba identyfikatorów: 2');
     http.expectNone(() => true);
 
     setTempoRange('120', '140');
@@ -586,7 +590,7 @@ describe('PlaylistGenerator generation', () => {
     const file = createFile('current-playlist.json', JSON.stringify(createTrackIdsFile(dataset)));
     const read = vi.spyOn(file, 'text');
     selectFile(file);
-    await completePreparation(dataset);
+    await updateView();
     selectFile(null);
     await updateView();
 
@@ -630,6 +634,17 @@ describe('PlaylistGenerator generation', () => {
   function generate(): void {
     getGenerateButton().click();
     fixture.detectChanges();
+
+    if (datasetWasPrepared) {
+      http.expectNone('/api/playlist-generator/prepare-dataset');
+      return;
+    }
+
+    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+    expect(preparation.request.body).toEqual(createTrackIdsFile(sourceDataset));
+    preparation.flush({ dataset: sourceDataset, skippedTracks: [], incompleteTracks: [] });
+    datasetWasPrepared = true;
+    fixture.detectChanges();
   }
 
   function setTempoEnabled(enabled: boolean): void {
@@ -669,16 +684,11 @@ describe('PlaylistGenerator generation', () => {
   }
 
   async function importDataset(dataset = createDataset(), name = 'playlist.json'): Promise<void> {
+    sourceDataset = dataset;
+    datasetWasPrepared = false;
     selectFile(createFile(name, JSON.stringify(createTrackIdsFile(dataset))));
-    await completePreparation(dataset);
-  }
-
-  async function completePreparation(dataset: PlaylistDataset): Promise<void> {
-    await Promise.resolve();
-    const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
-    expect(preparation.request.body).toEqual(createTrackIdsFile(dataset));
-    preparation.flush({ dataset, skippedTracks: [], incompleteTracks: [] });
     await updateView();
+    http.expectNone(() => true);
   }
 
   async function updateView(): Promise<void> {

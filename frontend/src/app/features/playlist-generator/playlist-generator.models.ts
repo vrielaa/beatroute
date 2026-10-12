@@ -108,6 +108,13 @@ type PreparedPlaylistDataset = {
 };
 
 /**
+ * Etap procesu rozpoczętego przyciskiem generowania, nie licznik przetworzonych utworów.
+ * preparation trwa do otrzymania metadanych i pomiarów; analysis obejmuje filtrowanie
+ * oraz ranking; completed jest ustawiany dopiero po otrzymaniu wyniku generatora.
+ */
+type PlaylistGenerationStage = 'preparation' | 'analysis' | 'completed';
+
+/**
  * Włączony zakres tempa w BPM, z obiema granicami włącznie.
  * Granice muszą być dodatnie i skończone, a minimum nie może przekraczać maksimum.
  *
@@ -282,6 +289,7 @@ export type {
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
+  PlaylistGenerationStage,
   TempoRange,
   PlaylistRequirements,
   PlaylistPreferenceLevel,

@@ -1,13 +1,14 @@
 <section
   class="dataset-import"
   aria-labelledby="dataset-import-heading"
-  [attr.aria-busy]="isReadingFile() || isPreparingDataset()"
+  [attr.aria-busy]="isReadingFile()"
 >
   <header>
     <h1 id="dataset-import-heading">Generator playlist</h1>
     <p>
-      Wczytaj plik JSON z identyfikatorami utworów Spotify. Aplikacja pobierze metadane ze Spotify i
-      cechy audio z ReccoBeats. Przygotowanie wymaga połączenia konta Spotify.
+      Wczytaj plik JSON z identyfikatorami utworów Spotify i wybierz kryteria. Dopiero po kliknięciu
+      „Generuj playlistę” aplikacja pobierze metadane ze Spotify i cechy audio z ReccoBeats.
+      Pobieranie wymaga połączenia konta Spotify.
     </p>
   </header>
 
@@ -50,19 +51,19 @@
 
   @if (isReadingFile()) {
     <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
-  } @else if (isPreparingDataset()) {
-    <p class="dataset-import-status" role="status">Pobieranie metadanych i cech audio…</p>
   } @else if (importError(); as error) {
     <p class="dataset-import-error" role="alert">{{ error }}</p>
-    @if (canRetryPreparation()) {
-      <button id="playlist-retry-preparation" type="button" (click)="retryPreparation()">
-        Ponów pobieranie
-      </button>
-    }
-  } @else if (dataset(); as importedDataset) {
+  } @else if (trackIdsFile(); as importedFile) {
     <p class="dataset-import-status" role="status">
       Wczytano <strong>{{ fileName() }}</strong
-      >. Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
+      >. Liczba identyfikatorów: <strong>{{ importedFile.spotifyTrackIds.length }}</strong
+      >.
+    </p>
+  }
+
+  @if (dataset(); as importedDataset) {
+    <p class="dataset-import-status">
+      Liczba utworów: <strong>{{ importedDataset.tracks.length }}</strong
       >.
     </p>
     @if (importedDataset.tracks.length === 0) {
@@ -114,8 +115,8 @@
   }
 </section>
 
-<!-- Śledzenie zbioru odtwarza formularz z domyślnymi kryteriami po podmianie pliku. -->
-@for (importedDataset of dataset()?.tracks.length ? [dataset()] : []; track importedDataset) {
+<!-- Śledzenie pliku odtwarza formularz po jego zmianie, nie po pobraniu danych. -->
+@for (importedFile of trackIdsFile() ? [trackIdsFile()] : []; track importedFile) {
   <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
 }
 
@@ -130,12 +131,20 @@
     [disabled]="!canGenerate()"
     (click)="generatePlaylist()"
   >
-    {{ generationError() ? 'Spróbuj ponownie' : 'Generuj playlistę' }}
+    {{
+      isGenerating()
+        ? 'Generowanie playlisty…'
+        : generationError()
+          ? 'Spróbuj ponownie'
+          : 'Generuj playlistę'
+    }}
   </button>
 
-  @if (isGenerating()) {
-    <p role="status">Generowanie playlisty…</p>
-  } @else if (generationError(); as error) {
+  @if (generationStage(); as stage) {
+    <app-playlist-generation-progress [stage]="stage" [isRunning]="isGenerating()" />
+  }
+
+  @if (generationError(); as error) {
     <p class="generation-error" role="alert">{{ error }}</p>
   } @else if (result(); as generatedPlaylist) {
     <app-playlist-generator-results [result]="generatedPlaylist" />
