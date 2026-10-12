@@ -268,6 +268,18 @@ type GeneratedPlaylist = {
 };
 
 /**
+ * Sposób wyboru dopuszczonych utworów z gotowego rankingu do zapisu w Spotify.
+ * top oznacza pierwsze N pozycji; manual oznacza konkretne utwory zaznaczone przez użytkownika.
+ * Żaden tryb nie zmienia ocen, kolejności rankingu ani powodów odrzucenia.
+ * Zapis wybranych utworów zawsze zachowuje kolejność otrzymanego rankingu.
+ *
+ * @example
+ * 'top' — z rankingu 100 utworów wybieramy pierwsze 50 po ustawieniu N = 50.
+ * 'manual' — wybieramy np. pozycje 2, 7 i 12, niezależnie od kolejności kliknięć.
+ */
+type PlaylistSelectionMode = 'top' | 'manual';
+
+/**
  * Body żądania POST /api/playlist-generator/generate.
  * Nie zawiera tokenów dostawców; generator analizuje przesłane pomiary.
  *
@@ -301,5 +313,6 @@ export type {
   PlaylistTrackRejectionReason,
   RejectedPlaylistTrack,
   GeneratedPlaylist,
+  PlaylistSelectionMode,
   PlaylistGeneratorRequest,
 };

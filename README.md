@@ -109,8 +109,10 @@ cancellation, cache reuse and presentation. Both endpoints are described in Open
 
 Only the Spotify-ID file source is currently available. Saved Spotify tracks and
 user-owned/collaborated playlists are planned sources, not implemented options.
-Exporting the generated result to a file is also not implemented yet. The app does
-not create a playlist on the user's Spotify account. Importing IDs is not an
+The planned output is a new private Spotify playlist, not a JSON export. Track
+selection will offer Top N and manual selection from accepted results, preserving
+ranking order and scores. Selection and Spotify saving are not implemented yet;
+the current app does not create a playlist on the user's account. Importing IDs is not an
 offline mode: the first preparation requires Spotify, ReccoBeats and a working
 backend. The pure generator can be tested separately with the synthetic dataset.
 

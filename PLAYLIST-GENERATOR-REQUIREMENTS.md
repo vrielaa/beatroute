@@ -164,7 +164,8 @@ Animacja uwzględnia prefers-reduced-motion, a etap jest ogłaszany przez role=s
 Nieużywany frontendowy parser pełnego zbioru i jego testy zostały usunięte.
 Pozostał parser pliku z ID; backendowy dataset.validator.ts nadal
 sprawdza kompletny zbiór przesyłany do /generate. UI nie importuje gotowego zbioru
-i nie ma jeszcze trybu offline. Eksport wyniku, zapisane utwory Spotify i playlisty
+i nie ma jeszcze trybu offline. Wybór utworów do zapisu w Spotify, sam zapis,
+zapisane utwory Spotify i playlisty
 użytkownika pozostają etapami dalszego rozwoju, poza zakończoną migracją importu.
 
 ## Wewnętrzny zbiór generatora
@@ -395,13 +396,65 @@ więc pozostałe endpointy zachowują mniejszy limit. Endpoint nie wymaga sesji 
 nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na koncie Spotify.
 Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
 brak body, walidację i wynik generowania. Import ID i formularz są dostępne
-w UI; eksport wyniku pozostaje do wdrożenia.
+w UI; wybór utworów i zapis wyniku na koncie Spotify pozostają do wdrożenia.
+
+## Wybór utworów do zapisu w Spotify
+
+Uzgodnione 12 października 2026 r. Ta sekcja opisuje zasady do wdrożenia;
+obecny widok wyników nie ma jeszcze kontrolek wyboru ani zapisu w Spotify.
+Frontendowy typ PlaylistSelectionMode w playlist-generator.models.ts opisuje
+dwa tryby: top („Top N”) i manual („Ręcznie”). Nie zmienia kontraktu generatora.
+
+### Wspólne zasady
+
+- Wybór odbywa się po wygenerowaniu wyniku, wyłącznie z rankedTracks.
+- Utwory z rejectedTracks nie są dostępne do zaznaczenia. Wybór ręczny nie omija
+  obowiązkowych wymagań, a pominięte przy pobieraniu utwory nie wracają do wyników.
+- Ranking, oceny, pozycje i wyjaśnienia pozostają bez zmian. Pełny ranking jest
+  nadal widoczny; niezaznaczony utwór nie jest przez to odrzucony przez algorytm.
+- Wynik 0% lub brak oceny nie wyklucza wyboru dopuszczonego utworu.
+- Lista do zapisu zawiera tylko wybrane ID, zawsze w kolejności rankingu,
+  nie w kolejności zaznaczania. Każde ID występuje w niej najwyżej raz.
+- Zmiana trybu, limitu lub zaznaczeń nie pobiera danych, nie wywołuje generatora
+  i nie tworzy playlisty. Zapis będzie osobną czynnością po kliknięciu przycisku.
+- Domyślnie aktywny jest „Top N”, z N równym liczbie dopuszczonych utworów.
+- Pusty ranking nie daje możliwości wyboru ani zapisu. Dla istniejącego wyniku
+  licznik pokazuje np. „Wybrano 50 ze 100”.
+
+### Tryb „Top N”
+
+- Użytkownik podaje liczbę N; zaznaczone są dokładnie pierwsze N pozycji rankingu.
+- N musi być skończoną liczbą całkowitą od 1 do liczby dopuszczonych utworów.
+- Niepoprawne N wymaga poprawienia i blokuje zapis; nie przycinamy go po cichu.
+- W tym trybie checkboxy odzwierciedlają automatyczny wybór i nie służą do ręcznej edycji.
+- Przykład: ze 100 wyników N = 50 zaznacza pozycje 1–50; pozycje 51–100
+  pozostają widoczne, ale nie trafią do zapisu.
+
+### Tryb „Ręcznie”
+
+- Przejście z „Top N” zachowuje bieżący automatyczny wybór jako punkt wyjścia.
+- Użytkownik może zaznaczyć lub odznaczyć dowolny dopuszczony utwór.
+- N nie ogranicza wyboru ręcznego i nie jest w nim aktywnym polem formularza.
+- Można odznaczyć wszystkie utwory, ale pustego wyboru nie można zapisać w Spotify.
+- Powrót do „Top N” zastępuje ręczne zaznaczenia pierwszymi N pozycjami.
+
+### Zmiana wyniku i danych
+
+- Nowy wynik generowania resetuje wybór do domyślnego „Top N” dla nowego rankingu,
+  także gdy identyfikatory utworów są takie same, ale zmieniły się oceny lub kolejność.
+- Edycja kryteriów usuwa poprzedni wynik i jego wybór. Przygotowany zbiór pozostaje
+  w pamięci do kolejnego generowania, zgodnie z obecnym mechanizmem cache.
+- Wybór nowego pliku usuwa wynik i zaznaczenia; anulowanie wyboru pliku je zachowuje.
+- Zaznaczenia dotyczą wyniku, nie pliku wejściowego. Format version/spotifyTrackIds
+  nie zmienia się i nie zapisujemy w nim limitu N, trybu ani checkboxów.
 
 ## Wynik i zakres pierwszej wersji
 
 - Przy każdym wyniku pokazujemy pomiary, spełnione wymagania i uzasadnienie rankingu.
-- Wynik można zapisać do pliku JSON; nie chodzi o pobieranie nagrań.
-- Automatyczne tworzenie playlisty na koncie Spotify nie jest wymaganiem pierwszej wersji.
+- Docelowy zapis to nowa playlista na koncie Spotify z wybranymi utworami,
+  nie eksport wyniku do pliku JSON ani pobieranie nagrań. Zapis nie jest jeszcze wdrożony.
+- Playlista będzie tworzona po osobnym kliknięciu zapisu, nie automatycznie przy
+  generowaniu wyniku. Początkowo planujemy playlisty prywatne.
 - `key`, `mode`, `timeSignature` i `loudness` nie są kryteriami pierwszej wersji generatora.
 - Progi speechiness i liveness ograniczają pomiary, nie gwarantują braku wokalu
   ani braku wykonania koncertowego.
