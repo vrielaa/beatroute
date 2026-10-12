@@ -1,5 +1,6 @@
 import { defaultReccoBeatsGateway } from "./reccobeats.gateway.js";
 import { mapReccoBeatsAudioFeatures } from "./reccobeats.mapper.js";
+import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 import type { ReccoBeatsGateway } from "./reccobeats.gateway.js";
 import type {
   TrackAudioFeatures,
@@ -72,9 +73,13 @@ function createReccoBeatsService({
    * Pobiera cechy audio dla wielu utworów Spotify.
    * Brak dopasowania albo błąd pojedynczego zapytania zapisuje w wyniku danego
    * utworu, nie przerywając przetwarzania pozostałych elementów.
+   * Jeśli nie udał się żaden odczyt i wystąpił błąd inny niż brak danych 404,
+   * przekazuje oryginalny wyjątek zamiast przedstawiać awarię jako pusty zbiór.
+   * Zachowuje dzięki temu status, kategorię i Retry-After dla warstwy HTTP.
    *
    * @param spotifyTrackIds - Identyfikatory utworów Spotify do przetworzenia.
    * @returns Wynik dla każdego identyfikatora: cechy audio albo opis błędu.
+   * @throws Gdy wyszukiwanie nie działa lub wszystkie odczyty cech zawiodły wskutek awarii.
    */
   async function getManyTrackAudioFeaturesBySpotifyIds(
     spotifyTrackIds: string[]
@@ -83,6 +88,7 @@ function createReccoBeatsService({
       await reccoBeatsGateway.findTracksBySpotifyIds(spotifyTrackIds);
 
     const idMap = new Map();
+    const requestErrors: unknown[] = [];
 
     for (const track of tracks) {
       const spotifyId = getSpotifyIdFromHref(track?.href);
@@ -112,6 +118,15 @@ function createReccoBeatsService({
             ...audio,
           };
         } catch (error) {
+          const missingMeasurements =
+            error instanceof ReccoBeatsApiError &&
+            error.upstreamStatus === 404 &&
+            error.category === "upstream-error";
+
+          if (!missingMeasurements) {
+            requestErrors.push(error);
+          }
+
           console.error(
             "[ReccoBeats service] audio fetch error for",
             spotifyId,
@@ -125,6 +140,13 @@ function createReccoBeatsService({
         }
       })
     );
+
+    if (
+      requestErrors.length > 0 &&
+      results.every((result) => "error" in result)
+    ) {
+      throw requestErrors[0];
+    }
 
     return results;
   }

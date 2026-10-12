@@ -1,7 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ReccoBeatsGateway } from "./reccobeats.gateway.js";
 import { createReccoBeatsService } from "./reccobeats.service.js";
+import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("ReccoBeats service", () => {
   it("finds a track by Spotify ID and returns its normalized features", async () => {
@@ -97,6 +100,92 @@ describe("ReccoBeats service", () => {
     await expect(
       service.getManyTrackAudioFeaturesBySpotifyIds(["spotify1"])
     ).rejects.toBe(requestError);
+    expect(gateway.getTrackAudioFeatures).not.toHaveBeenCalled();
+  });
+
+  it.each([429, 500, 502, 503, 504])(
+    "propagates the original HTTP %s failure when every audio request fails",
+    async (status) => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { service, gateway } = createService();
+      const requestError = new ReccoBeatsApiError(
+        "API unavailable",
+        status,
+        null,
+        {
+          retryAfterSeconds: status === 429 ? 30 : null,
+        }
+      );
+      vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+        createTrack("recco1", "spotify1"),
+        createTrack("recco2", "spotify2"),
+      ]);
+      vi.mocked(gateway.getTrackAudioFeatures).mockRejectedValue(requestError);
+
+      await expect(
+        service.getManyTrackAudioFeaturesBySpotifyIds(["spotify1", "spotify2"])
+      ).rejects.toBe(requestError);
+      expect(gateway.getTrackAudioFeatures).toHaveBeenCalledTimes(2);
+    }
+  );
+
+  it("does not hide an outage when other IDs are not present in the catalog", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { service, gateway } = createService();
+    const requestError = new ReccoBeatsApiError("API unavailable", 503, null);
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+      createTrack("recco1", "spotify1"),
+    ]);
+    vi.mocked(gateway.getTrackAudioFeatures).mockRejectedValue(requestError);
+
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds(["missing", "spotify1"])
+    ).rejects.toBe(requestError);
+  });
+
+  it("retains per-track failures for unavailable measurements with status 404", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { service, gateway } = createService();
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+      createTrack("recco1", "spotify1"),
+    ]);
+    vi.mocked(gateway.getTrackAudioFeatures).mockRejectedValue(
+      new ReccoBeatsApiError("Measurements not found", 404, null)
+    );
+
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds(["spotify1", "missing"])
+    ).resolves.toEqual([
+      { spotifyId: "spotify1", error: "Measurements not found" },
+      { spotifyId: "missing", error: "ReccoBeats track not found" },
+    ]);
+  });
+
+  it("propagates an invalid 404 response rather than treating it as known missing measurements", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { service, gateway } = createService();
+    const requestError = new ReccoBeatsApiError("Not JSON", 404, null, {
+      category: "invalid-response",
+    });
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+      createTrack("recco1", "spotify1"),
+    ]);
+    vi.mocked(gateway.getTrackAudioFeatures).mockRejectedValue(requestError);
+
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds(["spotify1"])
+    ).rejects.toBe(requestError);
+  });
+
+  it("reports an entirely unmatched catalog without inventing an API failure", async () => {
+    const { service, gateway } = createService();
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([]);
+
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds(["missing"])
+    ).resolves.toEqual([
+      { spotifyId: "missing", error: "ReccoBeats track not found" },
+    ]);
     expect(gateway.getTrackAudioFeatures).not.toHaveBeenCalled();
   });
 });
