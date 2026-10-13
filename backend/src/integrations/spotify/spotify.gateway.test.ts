@@ -406,6 +406,301 @@ describe("Spotify playlist creation", () => {
   });
 });
 
+describe("Adding Spotify playlist tracks", () => {
+  it("appends track URIs in input order and returns the 201 snapshot response", async () => {
+    const snapshot = { snapshot_id: "updated-snapshot" };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(snapshot, { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+    const trackIds = ["track-3", "track-1", "track-2"];
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", trackIds)
+    ).resolves.toEqual(snapshot);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://spotify.test/v1/playlists/playlist-id/items",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          Authorization: "Bearer access-token",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uris: [
+            "spotify:track:track-3",
+            "spotify:track:track-1",
+            "spotify:track:track-2",
+          ],
+        }),
+        signal: expect.any(AbortSignal),
+      })
+    );
+    expect(trackIds).toEqual(["track-3", "track-1", "track-2"]);
+  });
+
+  it("encodes the playlist ID in the endpoint path", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ snapshot_id: "updated-snapshot" }, { status: 201 })
+      );
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+
+    await gateway.addTracksToPlaylist("access-token", "playlist/id", [
+      "track-1",
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://spotify.test/v1/playlists/playlist%2Fid/items",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it.each([1, 100])("accepts a batch containing %i tracks", async (count) => {
+    const snapshot = { snapshot_id: "updated-snapshot" };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(snapshot, { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+    const trackIds = Array.from(
+      { length: count },
+      (_, index) => `track-${index}`
+    );
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", trackIds)
+    ).resolves.toEqual(snapshot);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://spotify.test/v1/playlists/playlist-id/items",
+      expect.objectContaining({
+        body: JSON.stringify({
+          uris: trackIds.map((trackId) => `spotify:track:${trackId}`),
+        }),
+      })
+    );
+  });
+
+  it.each([0, 101])(
+    "rejects a batch containing %i tracks before calling Spotify",
+    async (count) => {
+      const fetchMock = vi.fn();
+      const gateway = createSpotifyGateway({
+        fetchImpl: fetchMock,
+        apiRoot: "https://spotify.test/v1",
+      });
+      const trackIds = Array.from(
+        { length: count },
+        (_, index) => `track-${index}`
+      );
+
+      const request = gateway.addTracksToPlaylist(
+        "access-token",
+        "playlist-id",
+        trackIds
+      );
+
+      await expect(request).rejects.toBeInstanceOf(RangeError);
+      await expect(request).rejects.toThrow(
+        "Jedno żądanie dodania utworów musi zawierać od 1 do 100 identyfikatorów"
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it("adds tracks through the injected scheduler", async () => {
+    const snapshot = { snapshot_id: "updated-snapshot" };
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(snapshot, { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      scheduler,
+    });
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", ["track-1"])
+    ).resolves.toEqual(snapshot);
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      status: 401,
+      category: "authentication",
+      message: "Invalid access token",
+    },
+    { status: 403, category: "authorization", message: "Insufficient scope" },
+    { status: 429, category: "rate-limited", message: "Too many requests" },
+    { status: 503, category: "unavailable", message: "Service unavailable" },
+  ])(
+    "preserves HTTP $status errors without retrying the addition of tracks",
+    async ({ status, category, message }) => {
+      const errorData = { error: { message } };
+      const fetchMock = vi.fn().mockResolvedValue(
+        jsonResponse(errorData, {
+          status,
+          headers: status === 429 ? { "Retry-After": "30" } : undefined,
+        })
+      );
+      const gateway = createSpotifyGateway({
+        fetchImpl: fetchMock,
+        apiRoot: "https://spotify.test/v1",
+        requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+      });
+
+      const request = gateway.addTracksToPlaylist(
+        "access-token",
+        "playlist-id",
+        ["track-1"]
+      );
+
+      await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+      await expect(request).rejects.toMatchObject({
+        status,
+        upstreamStatus: status,
+        category,
+        message,
+        data: errorData,
+        retryAfterSeconds: status === 429 ? 30 : null,
+      });
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("pauses the scheduler on Retry-After without repeating the addition of tracks", async () => {
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { message: "Too many requests" } },
+          { status: 429, headers: { "Retry-After": "30" } }
+        )
+      );
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      scheduler,
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", ["track-1"])
+    ).rejects.toMatchObject({
+      category: "rate-limited",
+      retryAfterSeconds: 30,
+    });
+
+    expect(pauseSpy).toHaveBeenCalledWith(30_000);
+    expect(scheduleSpy).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("uses the track-specific message when Spotify does not provide one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({}, { status: 403 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", ["track-1"])
+    ).rejects.toMatchObject({
+      message: "Nie udało się dodać utworów do playlisty na Spotify",
+      category: "authorization",
+      upstreamStatus: 403,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry the addition of tracks after a network failure", async () => {
+    const connectionError = new TypeError("fetch failed");
+    const fetchMock = vi.fn().mockRejectedValue(connectionError);
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    const request = gateway.addTracksToPlaylist("access-token", "playlist-id", [
+      "track-1",
+    ]);
+
+    await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+    await expect(request).rejects.toMatchObject({
+      category: "network",
+      upstreamStatus: 502,
+      data: connectionError,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry the addition of tracks after a timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const fetchMock = vi.fn().mockRejectedValue(timeoutError);
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    await expect(
+      gateway.addTracksToPlaylist("access-token", "playlist-id", ["track-1"])
+    ).rejects.toMatchObject({
+      category: "timeout",
+      upstreamStatus: 504,
+      data: timeoutError,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a non-JSON response without repeating the addition of tracks", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response("not JSON", { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    const request = gateway.addTracksToPlaylist("access-token", "playlist-id", [
+      "track-1",
+    ]);
+
+    await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+    await expect(request).rejects.toMatchObject({
+      category: "invalid-response",
+      upstreamStatus: 201,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
 function jsonResponse(data: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status: 200,

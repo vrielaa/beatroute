@@ -146,13 +146,14 @@ type SpotifyApiConfiguration = {
 };
 
 /**
- * Udostępnia odczyty danych Spotify i tworzenie prywatnych playlist.
+ * Udostępnia odczyty danych Spotify, tworzenie playlist i dodawanie utworów.
  *
  * @property getSpotifyTrackById - Pobiera pojedynczy utwór po identyfikatorze.
  * @property getCurrentUserTopTracks - Pobiera najczęściej słuchane utwory użytkownika.
  * @property getCurrentUserTopArtists - Pobiera najczęściej słuchanych artystów użytkownika.
  * @property getCurrentUserProfile - Pobiera profil zalogowanego użytkownika.
  * @property createPlaylist - Tworzy pustą, prywatną playlistę na koncie użytkownika.
+ * @property addTracksToPlaylist - Dopisuje od 1 do 100 utworów do istniejącej playlisty w podanej kolejności.
  */
 type SpotifyGateway = {
   getSpotifyTrackById(
@@ -174,6 +175,11 @@ type SpotifyGateway = {
     accessToken: string,
     name: string
   ): Promise<SpotifyPlaylistApiResponse>;
+  addTracksToPlaylist(
+    accessToken: string,
+    playlistId: string,
+    trackIds: string[]
+  ): Promise<SpotifyPlaylistSnapshotApiResponse>;
 };
 
 /** Skrócone dane utworu zwracane przez endpoint łączący Spotify z Last.fm. */
@@ -208,6 +214,15 @@ type SpotifyPlaylistApiResponse = {
   };
 };
 
+/**
+ * Opisuje wersję playlisty zwróconą przez Spotify po zmianie jej zawartości.
+ *
+ * @property snapshot_id - Identyfikator wersji playlisty po dodaniu utworów.
+ */
+type SpotifyPlaylistSnapshotApiResponse = {
+  snapshot_id: string;
+};
+
 export type {
   SpotifyTimeRange,
   SpotifyExternalUrls,
@@ -226,4 +241,5 @@ export type {
   SpotifyGateway,
   SpotifyTrackSummary,
   SpotifyPlaylistApiResponse,
+  SpotifyPlaylistSnapshotApiResponse,
 };

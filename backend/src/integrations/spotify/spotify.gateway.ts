@@ -3,6 +3,7 @@ import type {
   SpotifyApiConfiguration,
   SpotifyGateway,
   SpotifyPlaylistApiResponse,
+  SpotifyPlaylistSnapshotApiResponse,
   SpotifyTopArtistsApiResponse,
   SpotifyTopItemsSelection,
   SpotifyTopTracksApiResponse,
@@ -28,7 +29,7 @@ const spotifyRequestScheduler = createRequestScheduler({
  * Tworzy gateway wykonujący autoryzowane zapytania do Spotify Web API.
  *
  * @param configuration - Transport, bazowy adres API, polityka żądań i scheduler.
- * @returns Operacje odczytu danych Spotify i tworzenia prywatnych playlist.
+ * @returns Operacje odczytu danych Spotify, tworzenia playlist i dodawania utworów.
  */
 function createSpotifyGateway({
   fetchImpl = globalThis.fetch,
@@ -190,12 +191,46 @@ function createSpotifyGateway({
     );
   }
 
+  /**
+   * Dopisuje jedną partię od 1 do 100 utworów na końcu istniejącej playlisty.
+   * Zamienia identyfikatory utworów na URI Spotify i zachowuje ich kolejność.
+   * Zapis POST nie jest automatycznie ponawiany, aby uniknąć dodania duplikatów.
+   *
+   * @param accessToken - Token użytkownika z uprawnieniem do modyfikacji playlisty.
+   * @param playlistId - Identyfikator playlisty, do której dopisywane są utwory.
+   * @param trackIds - Identyfikatory utworów w docelowej kolejności.
+   * @returns Odpowiedź Spotify zawierająca identyfikator nowej wersji playlisty.
+   * @throws {RangeError} Gdy partia jest pusta albo zawiera więcej niż 100 utworów.
+   */
+  async function addTracksToPlaylist(
+    accessToken: string,
+    playlistId: string,
+    trackIds: string[]
+  ): Promise<SpotifyPlaylistSnapshotApiResponse> {
+    if (trackIds.length === 0 || trackIds.length > 100) {
+      throw new RangeError(
+        "Jedno żądanie dodania utworów musi zawierać od 1 do 100 identyfikatorów"
+      );
+    }
+
+    const uris = trackIds.map((trackId) => `spotify:track:${trackId}`);
+
+    return request(
+      `/playlists/${encodeURIComponent(playlistId)}/items`,
+      accessToken,
+      "Nie udało się dodać utworów do playlisty na Spotify",
+      "POST",
+      { uris }
+    );
+  }
+
   return {
     getSpotifyTrackById,
     getCurrentUserTopTracks,
     getCurrentUserTopArtists,
     getCurrentUserProfile,
     createPlaylist,
+    addTracksToPlaylist,
   };
 }
 
