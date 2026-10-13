@@ -1,13 +1,16 @@
-import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
+import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import type {
   GeneratedPlaylist,
   PlaylistGeneratorRequest,
   PlaylistTrackIdsFile,
+  PlaylistToSave,
   PreparedPlaylistDataset,
+  SavedPlaylist,
 } from './playlist-generator.models';
 
 describe('PlaylistGeneratorApiService', () => {
@@ -16,7 +19,10 @@ describe('PlaylistGeneratorApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([rateLimitRetryInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(PlaylistGeneratorApiService);
     http = TestBed.inject(HttpTestingController);
@@ -117,6 +123,170 @@ describe('PlaylistGeneratorApiService', () => {
       subscription.unsubscribe();
 
       expect(request.cancelled).toBe(true);
+    });
+  });
+
+  describe('savePlaylist', () => {
+    const url = '/api/playlist-generator/save';
+
+    it('does not send a save request before subscription', () => {
+      service.savePlaylist(createSelection());
+
+      http.expectNone(url);
+    });
+
+    it('posts only the name and selected IDs in order and sends the session cookie', () => {
+      const playlist = {
+        ...createSelection(),
+        accessToken: 'body-token',
+        public: true,
+        playlistId: 'existing-playlist',
+        dataset: createRequest().dataset,
+      };
+      service.savePlaylist(playlist).subscribe();
+
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.urlWithParams).toBe(url);
+      expect(request.request.body).toEqual(createSelection());
+      expect(request.request.withCredentials).toBe(true);
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush(createSavedPlaylist(), { status: 201, statusText: 'Created' });
+      http.expectNone('/api/playlist-generator/prepare-dataset');
+      http.expectNone('/api/playlist-generator/generate');
+    });
+
+    it('captures the selection without retaining the caller’s mutable ID array', () => {
+      const playlist = createSelection();
+      const original = structuredClone(playlist);
+      const result = service.savePlaylist(playlist);
+
+      playlist.name = 'Changed name';
+      playlist.trackIds.reverse();
+      result.subscribe();
+
+      const request = http.expectOne(url);
+      expect(request.request.body).toEqual(original);
+      expect(request.request.body.trackIds).not.toBe(playlist.trackIds);
+      request.flush(createSavedPlaylist(), { status: 201, statusText: 'Created' });
+    });
+
+    it('passes a complete 201 save response through unchanged', () => {
+      const response = createSavedPlaylist();
+      const next = vi.fn();
+      const error = vi.fn();
+      const complete = vi.fn();
+      service.savePlaylist(createSelection()).subscribe({ next, error, complete });
+
+      http.expectOne(url).flush(response, { status: 201, statusText: 'Created' });
+
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+      expect(error).not.toHaveBeenCalled();
+      expect(complete).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      { status: 400, code: 'VALIDATION_ERROR' },
+      { status: 401, code: 'SPOTIFY_AUTH_REQUIRED' },
+      { status: 403, code: 'SPOTIFY_PLAYLIST_PERMISSION_REQUIRED' },
+      { status: 413, code: 'PAYLOAD_TOO_LARGE' },
+      { status: 429, code: 'SPOTIFY_API_ERROR' },
+      { status: 500, code: 'INTERNAL_SERVER_ERROR' },
+      { status: 502, code: 'SPOTIFY_API_ERROR' },
+      { status: 503, code: 'SPOTIFY_API_ERROR' },
+      { status: 504, code: 'SPOTIFY_API_ERROR' },
+    ])('passes HTTP $status through without retrying the POST', ({ status, code }) => {
+      const response = { error: { code, message: 'Nie udało się zapisać playlisty' } };
+      const next = vi.fn();
+      const error = vi.fn();
+      const complete = vi.fn();
+      service.savePlaylist(createSelection()).subscribe({ next, error, complete });
+
+      http.expectOne(url).flush(response, {
+        status,
+        statusText: 'Save failed',
+        headers: { 'Retry-After': '30' },
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(complete).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledOnce();
+      const failure: HttpErrorResponse = error.mock.calls[0][0];
+      expect(failure).toBeInstanceOf(HttpErrorResponse);
+      expect(failure.status).toBe(status);
+      expect(failure.error).toEqual(response);
+      expect(failure.headers.get('Retry-After')).toBe('30');
+      http.expectNone(url);
+    });
+
+    it.each([0, 100])(
+      'preserves partial-save progress with %i confirmations as an error, not success',
+      (confirmedTrackCount) => {
+        const response = {
+          error: {
+            code: 'PLAYLIST_SAVE_INCOMPLETE',
+            message: 'Sprawdź utworzoną playlistę przed ponownym zapisem.',
+            details: {
+              progress: {
+                id: 'new-playlist-id',
+                name: 'Na siłownię',
+                spotifyUrl: 'https://open.spotify.com/playlist/new-playlist-id',
+                confirmedTrackCount,
+                requestedTrackCount: 250,
+              },
+              retryAfterSeconds: 30,
+            },
+          },
+        };
+        const next = vi.fn();
+        const error = vi.fn();
+        const playlist = {
+          name: 'Na siłownię',
+          trackIds: Array.from({ length: 250 }, (_, index) => index.toString(36).padStart(22, '0')),
+        };
+        service.savePlaylist(playlist).subscribe({ next, error });
+
+        http.expectOne(url).flush(response, {
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: { 'Retry-After': '30' },
+        });
+
+        expect(next).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledOnce();
+        const failure: HttpErrorResponse = error.mock.calls[0][0];
+        expect(failure.error).toEqual(response);
+        expect(failure.headers.get('Retry-After')).toBe('30');
+        http.expectNone(url);
+      }
+    );
+
+    it('passes a network error through without starting another save', () => {
+      const next = vi.fn();
+      const error = vi.fn();
+      service.savePlaylist(createSelection()).subscribe({ next, error });
+
+      http.expectOne(url).error(new ProgressEvent('error'));
+
+      expect(next).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledOnce();
+      expect(error.mock.calls[0][0]).toBeInstanceOf(HttpErrorResponse);
+      expect(error.mock.calls[0][0].status).toBe(0);
+      http.expectNone(url);
+    });
+
+    it('cancels the HTTP subscription without sending another save request', () => {
+      const next = vi.fn();
+      const error = vi.fn();
+      const subscription = service.savePlaylist(createSelection()).subscribe({ next, error });
+      const request = http.expectOne(url);
+
+      subscription.unsubscribe();
+
+      expect(request.cancelled).toBe(true);
+      expect(next).not.toHaveBeenCalled();
+      expect(error).not.toHaveBeenCalled();
+      http.expectNone(url);
     });
   });
 
@@ -241,6 +411,22 @@ describe('PlaylistGeneratorApiService', () => {
     }
   );
 });
+
+function createSelection(): PlaylistToSave {
+  return {
+    name: 'Na siłownię',
+    trackIds: ['4U4LEUWV8sFtos5PdjfDA7', '3sNVsP50132BTNlImLx70i'],
+  };
+}
+
+function createSavedPlaylist(): SavedPlaylist {
+  return {
+    id: 'new-playlist-id',
+    name: 'Na siłownię',
+    spotifyUrl: 'https://open.spotify.com/playlist/new-playlist-id',
+    trackCount: 2,
+  };
+}
 
 function createRequest(): PlaylistGeneratorRequest {
   const track = {

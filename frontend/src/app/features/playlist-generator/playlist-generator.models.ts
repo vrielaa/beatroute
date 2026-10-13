@@ -268,6 +268,36 @@ type GeneratedPlaylist = {
 };
 
 /**
+ * Nazwa i wybór utworów przekazywane do zapisu nowej, prywatnej playlisty Spotify.
+ * Nie zawiera kryteriów, pomiarów, tokenu ani identyfikatora docelowej playlisty.
+ * Backend niezależnie sprawdza nazwę, identyfikatory i uprawnienia sesji.
+ *
+ * @property name - Nazwa playlisty; po przycięciu musi zawierać od 1 do 100 znaków.
+ * @property trackIds - Od 1 do 500 unikalnych, 22-znakowych Spotify ID.
+ * Kolejność jest kolejnością zapisu; wybór Top N i ręczny przekazują ID według rankingu.
+ */
+type PlaylistToSave = {
+  name: string;
+  trackIds: string[];
+};
+
+/**
+ * Potwierdzenie pełnego zapisu playlisty, zwracane przez backend ze statusem 201.
+ * Nie opisuje częściowej awarii; ta trafia do kanału błędów żądania HTTP.
+ *
+ * @property id - Identyfikator nowo utworzonej playlisty Spotify.
+ * @property name - Nazwa utworzonej playlisty zwrócona przez Spotify.
+ * @property spotifyUrl - Odnośnik do playlisty umożliwiający jej otwarcie w Spotify.
+ * @property trackCount - Liczba wybranych utworów, których dodanie potwierdzono po wszystkich partiach.
+ */
+type SavedPlaylist = {
+  id: string;
+  name: string;
+  spotifyUrl: string;
+  trackCount: number;
+};
+
+/**
  * Sposób wyboru dopuszczonych utworów z gotowego rankingu do zapisu w Spotify.
  * top oznacza pierwsze N pozycji; manual oznacza konkretne utwory zaznaczone przez użytkownika.
  * Żaden tryb nie zmienia ocen, kolejności rankingu ani powodów odrzucenia.
@@ -326,6 +356,8 @@ export type {
   PlaylistTrackRejectionReason,
   RejectedPlaylistTrack,
   GeneratedPlaylist,
+  PlaylistToSave,
+  SavedPlaylist,
   PlaylistSelectionMode,
   PlaylistSelectionFormValues,
   PlaylistGeneratorRequest,

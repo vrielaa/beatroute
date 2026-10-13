@@ -5,7 +5,9 @@ import type {
   GeneratedPlaylist,
   PlaylistGeneratorRequest,
   PlaylistTrackIdsFile,
+  PlaylistToSave,
   PreparedPlaylistDataset,
+  SavedPlaylist,
 } from './playlist-generator.models';
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +43,26 @@ class PlaylistGeneratorApiService {
     return this.http.post<GeneratedPlaylist>('/api/playlist-generator/generate', request, {
       withCredentials: true,
     });
+  }
+
+  /**
+   * Wysyła nazwę i kopię wybranych ID do zapisu nowej, prywatnej playlisty Spotify.
+   * Wymaga sesji z playlist-modify-private, przesyłanej jako cookie, nie tokenu w body.
+   * Nie zmienia wyboru, nie pobiera pomiarów ani nie uruchamia generatora ponownie.
+   *
+   * Każda subskrypcja wykonuje osobny POST. Metoda nie ponawia zapisu i nie zamienia
+   * błędów na sukces: HttpErrorResponse zachowuje kod, dane częściowego zapisu
+   * oraz Retry-After. Anulowanie subskrypcji nie cofa już rozpoczętego zapisu w backendzie.
+   *
+   * @param playlist - Nazwa i Spotify ID w docelowej kolejności; dodatkowe pola są pomijane.
+   * @returns Dane playlisty dopiero po potwierdzeniu dodania wszystkich wybranych utworów.
+   */
+  public savePlaylist(playlist: PlaylistToSave): Observable<SavedPlaylist> {
+    return this.http.post<SavedPlaylist>(
+      '/api/playlist-generator/save',
+      { name: playlist.name, trackIds: [...playlist.trackIds] },
+      { withCredentials: true }
+    );
   }
 }
 
