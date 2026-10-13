@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, linkedSignal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import {
   disabled,
   form,
@@ -16,7 +24,7 @@ import type {
   PlaylistSelectionMode,
 } from '../playlist-generator.models';
 import {
-  selectManualTrackIds,
+  selectRankedTrackIds,
   selectTopTrackIds,
   validateTopTrackCount,
 } from '../playlist-track-selection';
@@ -39,6 +47,9 @@ import { PlaylistRejectedTracks } from './playlist-rejected-tracks/playlist-reje
 class PlaylistGeneratorResults {
   /** Wynik generowania; pusty ranking jest poprawnym wynikiem, nie błędem pobierania. */
   public readonly result = input.required<GeneratedPlaylist>();
+
+  /** Emituje kopię wybranych ID w kolejności rankingu; pusty wybór lub błędne N daje []. */
+  public readonly selectedTrackIdsChange = output<string[]>();
 
   /** Każdy nowy wynik przywraca tryb top i limit równy całej długości rankingu. */
   private readonly formValues = linkedSignal({
@@ -80,7 +91,7 @@ class PlaylistGeneratorResults {
     const { mode, topTrackCount } = this.formValues();
 
     if (mode === 'manual') {
-      return selectManualTrackIds(this.result(), this.manualTrackIds());
+      return selectRankedTrackIds(this.result(), this.manualTrackIds());
     }
 
     if (topTrackCount === null || this.form.topTrackCount().invalid()) {
@@ -95,6 +106,10 @@ class PlaylistGeneratorResults {
     const field = this.form.topTrackCount();
     return !field.disabled() && field.invalid() && (field.dirty() || field.touched());
   });
+
+  constructor() {
+    effect(() => this.selectedTrackIdsChange.emit([...this.selectedTrackIds()]));
+  }
 
   /**
    * Zmienia tryb bez ponownego generowania, zachowując N w formularzu.

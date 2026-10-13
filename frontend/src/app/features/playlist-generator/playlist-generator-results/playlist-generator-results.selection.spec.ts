@@ -1,16 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GeneratedPlaylist, PlaylistTrackEvaluation } from '../playlist-generator.models';
 import { PlaylistGeneratorResults } from './playlist-generator-results';
 
 describe('PlaylistGeneratorResults selection', () => {
   let fixture: ComponentFixture<PlaylistGeneratorResults>;
+  let selectedTrackIdsChange: ReturnType<typeof vi.fn<(trackIds: string[]) => void>>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PlaylistGeneratorResults],
     }).compileComponents();
     fixture = TestBed.createComponent(PlaylistGeneratorResults);
+    selectedTrackIdsChange = vi.fn();
+    fixture.componentInstance.selectedTrackIdsChange.subscribe(selectedTrackIdsChange);
   });
 
   it('starts in Top N with every accepted track selected and no validation error', () => {
@@ -25,6 +28,11 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getCountInput().step).toBe('1');
     expect(getText('.selection-count')).toBe('Wybrano 3 ze 3.');
     expect(fixture.nativeElement.querySelector('.selection-error')).toBeNull();
+    expect(selectedTrackIdsChange).toHaveBeenCalledExactlyOnceWith([
+      'track-1',
+      'track-2',
+      'track-3',
+    ]);
   });
 
   it('selects 50 of 100 without changing or hiding any ranking positions', () => {
@@ -35,6 +43,9 @@ describe('PlaylistGeneratorResults selection', () => {
     setTrackCount('50');
 
     expect(getText('.selection-count')).toBe('Wybrano 50 ze 100.');
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(
+      Array.from({ length: 50 }, (_, index) => `track-${index + 1}`)
+    );
     expect(getRankingNames()).toEqual(
       Array.from({ length: 100 }, (_, index) => `Utwór track-${index + 1}`)
     );
@@ -67,6 +78,7 @@ describe('PlaylistGeneratorResults selection', () => {
         'Liczba utworów musi być liczbą całkowitą od 1 do 3.'
       );
       expect(getText('.selection-count')).toBe('Wybrano 0 ze 3.');
+      expect(selectedTrackIdsChange).toHaveBeenLastCalledWith([]);
       expect(getRankingNames()).toHaveLength(3);
     }
   );
@@ -91,6 +103,7 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getCountInput().getAttribute('aria-invalid')).toBe('false');
     expect(fixture.nativeElement.querySelector('.selection-error')).toBeNull();
     expect(getCountInput().getAttribute('aria-describedby')).toBe('playlist-track-count-hint');
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(['track-1', 'track-2']);
   });
 
   it('preserves Top N selection when entering manual mode and disables the count field', () => {
@@ -105,6 +118,7 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getModeButton('Top N').getAttribute('aria-pressed')).toBe('false');
     expect(getModeButton('Ręcznie').getAttribute('aria-pressed')).toBe('true');
     expect(getText('.manual-selection-hint')).toContain('Zaznacz lub odznacz utwory poniżej.');
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(['track-1', 'track-2']);
   });
 
   it('restores the saved N when returning to Top N and allows it to be edited again', () => {
@@ -172,6 +186,7 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getCountInput().value).toBe('3');
     expect(getText('.selection-count')).toBe('Wybrano 3 ze 3.');
     expect(getRankingNames()).toEqual(['Utwór track-3', 'Utwór track-2', 'Utwór track-1']);
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(['track-3', 'track-2', 'track-1']);
 
     selectMode('Ręcznie');
 
@@ -221,6 +236,7 @@ describe('PlaylistGeneratorResults selection', () => {
 
     expect(fixture.nativeElement.querySelector('.playlist-selection')).toBeNull();
     expect(fixture.nativeElement.querySelector('.selection-count')).toBeNull();
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith([]);
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
 
     renderResult(createResult(2));
@@ -246,6 +262,23 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(result).toEqual(originalResult);
     expect(getRankingNames()).toHaveLength(3);
     expect(getText('.selection-count')).toBe('Wybrano 1 ze 3.');
+  });
+
+  it('emits a copy so a receiver cannot mutate the internal selection', () => {
+    renderResult(createResult(3));
+    const emittedIds = selectedTrackIdsChange.mock.calls.at(-1)?.[0];
+
+    if (!emittedIds) {
+      throw new Error('Komponent nie wyemitował wyboru utworów.');
+    }
+
+    emittedIds.length = 0;
+    fixture.detectChanges();
+
+    expect(getText('.selection-count')).toBe('Wybrano 3 ze 3.');
+    expect(getCountInput().value).toBe('3');
+    selectMode('Ręcznie');
+    expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(['track-1', 'track-2', 'track-3']);
   });
 
   function renderResult(result: GeneratedPlaylist): void {

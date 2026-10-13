@@ -50,7 +50,7 @@ function selectTopTrackIds(result: GeneratedPlaylist, trackCount: number): strin
 }
 
 /**
- * Porządkuje ręcznie wybrane identyfikatory według gotowego rankingu.
+ * Wybiera identyfikatory z gotowego rankingu i zachowuje kolejność jego pozycji.
  * Pomija nieznane i odrzucone utwory oraz powtórzenia w wyborze; nie zmienia wyniku.
  * Pusty wybór jest dozwolony podczas edycji, ale nie wystarczy do zapisu playlisty.
  *
@@ -58,7 +58,7 @@ function selectTopTrackIds(result: GeneratedPlaylist, trackCount: number): strin
  * @param selectedTrackIds - Identyfikatory zaznaczonych utworów, w dowolnej kolejności.
  * @returns Nowa tablica wybranych ID w kolejności rankingu, bez ID spoza rankedTracks.
  */
-function selectManualTrackIds(
+function selectRankedTrackIds(
   result: GeneratedPlaylist,
   selectedTrackIds: readonly string[]
 ): string[] {
@@ -69,4 +69,4 @@ function selectManualTrackIds(
     .map((evaluation) => evaluation.track.id);
 }
 
-export { validateTopTrackCount, selectTopTrackIds, selectManualTrackIds };
+export { validateTopTrackCount, selectTopTrackIds, selectRankedTrackIds };

@@ -147,6 +147,9 @@
   @if (generationError(); as error) {
     <p class="generation-error" role="alert">{{ error }}</p>
   } @else if (result(); as generatedPlaylist) {
-    <app-playlist-generator-results [result]="generatedPlaylist" />
+    <app-playlist-generator-results
+      [result]="generatedPlaylist"
+      (selectedTrackIdsChange)="updateSelectedTrackIds($event)"
+    />
   }
 </section>

@@ -396,8 +396,8 @@ więc pozostałe endpointy zachowują mniejszy limit. Endpoint nie wymaga sesji 
 nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na koncie Spotify.
 Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
 brak body, walidację i wynik generowania. Import ID i formularz są dostępne
-w UI; wybór Top N i ręczne checkboxy działają lokalnie. Przekazanie wyboru
-do zapisu na koncie Spotify i sam zapis pozostają do wdrożenia.
+w UI; wybór Top N i ręczne checkboxy działają lokalnie, a strona generatora
+przechowuje wybrane ID. Zapis na koncie Spotify pozostaje do wdrożenia.
 
 ## Wybór utworów do zapisu w Spotify
 
@@ -410,11 +410,13 @@ pierwszymi N pozycjami. Zapis w Spotify nie jest jeszcze dostępny.
 Frontendowy typ PlaylistSelectionMode w playlist-generator.models.ts opisuje
 dwa tryby: top („Top N”) i manual („Ręcznie”). Nie zmienia kontraktu generatora.
 W playlist-track-selection.ts są funkcje validateTopTrackCount, selectTopTrackIds
-i selectManualTrackIds. Ostatnia zachowuje kolejność rankingu oraz pomija duplikaty,
-nieznane i odrzucone ID. Wybór pozostaje w komponencie wyników — nie jest jeszcze
-przekazywany do zapisu. Testy sprawdzają walidację N, checkboxy, zmiany trybu,
-pusty wybór ręczny, reset dla nowego wyniku, zachowanie ocen i brak dodatkowych
-żądań HTTP podczas wybierania.
+i selectRankedTrackIds. Ostatnia zachowuje kolejność rankingu oraz pomija duplikaty,
+nieznane i odrzucone ID, niezależnie od trybu wyboru. Komponent wyników emituje
+selectedTrackIdsChange z kopią ID; strona generatora zapisuje je w selectedTrackIds
+i porządkuje względem aktualnego rankingu. Nie zapisuje jeszcze playlisty w Spotify.
+Usunięcie wyniku, także na początku ponownego generowania, od razu czyści tę listę.
+Testy sprawdzają przekazywanie ID, walidację N, checkboxy, zmiany trybu, pusty wybór,
+reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żądań HTTP.
 
 ### Wspólne zasady
 

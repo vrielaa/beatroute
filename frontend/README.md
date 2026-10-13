@@ -28,8 +28,8 @@ only the analysis request. A replacement file resets data and criteria; cancelli
 the picker does not. The cache lasts until the component is destroyed.
 
 The feature directory separates the page and API service, ID parser, criteria
-form, progress card and result components. Import, preparation/progress and
-generation have separate page-level test files. The progress card presents
+form, progress card and result components. Import, preparation/progress,
+generation and selection have separate page-level test files. The progress card presents
 actual API stages; it does not estimate processed tracks or advance on a timer.
 
 Results include a Signal Forms count field and Top N/manual mode buttons. Top N
@@ -39,8 +39,11 @@ tracks selected. Manual mode currently preserves that selection and disables N;
 the accepted-track checkboxes become editable. In Top N they only show the
 automatic choice and are disabled. Manual choices retain ranking order, including
 after re-selecting a track. Rejected tracks have no selection control.
-Selection remains local to the results component; passing it to the page and
-saving a Spotify playlist are subsequent steps.
+The results component emits a copy of the selected IDs via selectedTrackIdsChange.
+The page stores them in selectedTrackIds, restricted to the current accepted ranking
+and its order. Clearing a result also clears selection, including while another
+analysis is pending or after a criteria/file change. Cancelling the file picker
+preserves selection. Saving a Spotify playlist is still a subsequent step.
 
 The initial preparation requires a Spotify session and external APIs. The full
 synthetic dataset is an internal backend example, not a supported UI import.

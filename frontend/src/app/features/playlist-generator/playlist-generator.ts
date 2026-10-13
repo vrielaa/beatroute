@@ -20,6 +20,7 @@ import type {
 } from './playlist-generator.models';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
 import { parsePlaylistTrackIdsFile } from './playlist-track-ids.parser';
+import { selectRankedTrackIds } from './playlist-track-selection';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
 import { PlaylistGeneratorResults } from './playlist-generator-results/playlist-generator-results';
 import { PlaylistGenerationProgress } from './playlist-generation-progress/playlist-generation-progress';
@@ -44,6 +45,8 @@ class PlaylistGenerator {
   protected readonly importError = signal<string | null>(null);
   protected readonly criteria = signal<PlaylistCriteria | null>(null);
   protected readonly result = signal<GeneratedPlaylist | null>(null);
+  /** Bieżący wybór do przyszłego zapisu; tylko dopuszczone ID w kolejności aktualnego rankingu. */
+  protected readonly selectedTrackIds = signal<string[]>([]);
   protected readonly isGenerating = signal(false);
   protected readonly generationError = signal<string | null>(null);
   protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
@@ -68,10 +71,22 @@ class PlaylistGenerator {
     liveness: 'Wykonanie na żywo',
   };
 
-  /** Zapisuje kryteria i usuwa wynik, błąd oraz trwające żądanie dla poprzednich ustawień. */
+  /** Zapisuje kryteria i usuwa wynik, wybór, błąd oraz żądanie dla poprzednich ustawień. */
   protected updateCriteria(criteria: PlaylistCriteria | null): void {
     this.clearGeneration();
     this.criteria.set(criteria);
+  }
+
+  /**
+   * Przyjmuje wybór z komponentu wyników, bez generowania ani zapytań HTTP.
+   * Pomija nieznane i odrzucone ID, usuwa duplikaty oraz zachowuje kolejność rankingu.
+   * Bez aktualnego wyniku zachowuje pusty wybór, nie dane z usuniętego widoku.
+   *
+   * @param trackIds - Zaznaczone ID; pusta tablica oznacza brak wyboru lub niepoprawne N.
+   */
+  protected updateSelectedTrackIds(trackIds: string[]): void {
+    const result = this.result();
+    this.selectedTrackIds.set(result ? selectRankedTrackIds(result, trackIds) : []);
   }
 
   /**
@@ -139,7 +154,7 @@ class PlaylistGenerator {
    * Odczytuje plik z ID i sprawdza go lokalnie, bez wywołań API ani generowania.
    * Anulowanie wyboru nie zmienia stanu; podczas odczytu kolejne importy są
    * pomijane. Rozpoczęcie importu usuwa poprzedni zbiór, nazwę, kryteria i błędy,
-   * czyści wynik generowania oraz anuluje jego trwające żądanie.
+   * czyści wynik generowania i wybór utworów oraz anuluje jego trwające żądanie.
    * Błędy odczytu, składni JSON-a oraz struktury danych są wyświetlane osobno.
    * Po zakończeniu czyści input, umożliwiając ponowny wybór tego samego pliku.
    * Zastąpienie pliku anuluje poprzedni proces. Po udanym odczycie udostępnia
@@ -201,11 +216,12 @@ class PlaylistGenerator {
     }
   }
 
-  /** Anuluje żądanie generatora i czyści jego wynik, komunikat oraz stan oczekiwania. */
+  /** Anuluje żądanie generatora i czyści wynik, wybór utworów, komunikat oraz stan oczekiwania. */
   private clearGeneration(): void {
     this.generationSubscription?.unsubscribe();
     this.generationSubscription = null;
     this.result.set(null);
+    this.selectedTrackIds.set([]);
     this.generationError.set(null);
     this.isGenerating.set(false);
     this.generationStage.set(null);

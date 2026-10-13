@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GeneratedPlaylist, PlaylistTrackEvaluation } from './playlist-generator.models';
 import {
-  selectManualTrackIds,
+  selectRankedTrackIds,
   selectTopTrackIds,
   validateTopTrackCount,
 } from './playlist-track-selection';
@@ -149,9 +149,9 @@ describe('selectTopTrackIds', () => {
   });
 });
 
-describe('selectManualTrackIds', () => {
+describe('selectRankedTrackIds', () => {
   it('returns selected IDs in ranking order rather than the order of clicks', () => {
-    expect(selectManualTrackIds(createResult(4), ['track-4', 'track-1', 'track-3'])).toEqual([
+    expect(selectRankedTrackIds(createResult(4), ['track-4', 'track-1', 'track-3'])).toEqual([
       'track-1',
       'track-3',
       'track-4',
@@ -159,7 +159,7 @@ describe('selectManualTrackIds', () => {
   });
 
   it('ignores duplicates in the selection', () => {
-    expect(selectManualTrackIds(createResult(3), ['track-3', 'track-1', 'track-3'])).toEqual([
+    expect(selectRankedTrackIds(createResult(3), ['track-3', 'track-1', 'track-3'])).toEqual([
       'track-1',
       'track-3',
     ]);
@@ -174,15 +174,15 @@ describe('selectManualTrackIds', () => {
       },
     ];
 
-    expect(selectManualTrackIds(result, ['unknown', 'rejected', 'track-2'])).toEqual(['track-2']);
+    expect(selectRankedTrackIds(result, ['unknown', 'rejected', 'track-2'])).toEqual(['track-2']);
   });
 
   it('supports an empty selection while editing', () => {
-    expect(selectManualTrackIds(createResult(3), [])).toEqual([]);
+    expect(selectRankedTrackIds(createResult(3), [])).toEqual([]);
   });
 
   it('returns no IDs for an empty ranking even if earlier IDs remain in the selection', () => {
-    expect(selectManualTrackIds(createResult(0), ['track-1'])).toEqual([]);
+    expect(selectRankedTrackIds(createResult(0), ['track-1'])).toEqual([]);
   });
 
   it('keeps accepted zero-score and unscored tracks selectable', () => {
@@ -191,7 +191,7 @@ describe('selectManualTrackIds', () => {
       rejectedTracks: [],
     };
 
-    expect(selectManualTrackIds(result, ['unscored', 'zero'])).toEqual(['zero', 'unscored']);
+    expect(selectRankedTrackIds(result, ['unscored', 'zero'])).toEqual(['zero', 'unscored']);
   });
 
   it('does not recalculate tied scores or sort names', () => {
@@ -200,7 +200,7 @@ describe('selectManualTrackIds', () => {
       rejectedTracks: [],
     };
 
-    expect(selectManualTrackIds(result, ['alfa', 'zeta'])).toEqual(['zeta', 'alfa']);
+    expect(selectRankedTrackIds(result, ['alfa', 'zeta'])).toEqual(['zeta', 'alfa']);
   });
 
   it('uses the new ranking for the same selected IDs', () => {
@@ -208,11 +208,11 @@ describe('selectManualTrackIds', () => {
     const nextResult = createResult(3);
     nextResult.rankedTracks.reverse();
 
-    expect(selectManualTrackIds(firstResult, ['track-3', 'track-1'])).toEqual([
+    expect(selectRankedTrackIds(firstResult, ['track-3', 'track-1'])).toEqual([
       'track-1',
       'track-3',
     ]);
-    expect(selectManualTrackIds(nextResult, ['track-3', 'track-1'])).toEqual([
+    expect(selectRankedTrackIds(nextResult, ['track-3', 'track-1'])).toEqual([
       'track-3',
       'track-1',
     ]);
@@ -226,13 +226,13 @@ describe('selectManualTrackIds', () => {
     Object.freeze(result.rankedTracks);
     Object.freeze(result.rejectedTracks);
 
-    const orderedIds = selectManualTrackIds(result, selectedIds);
+    const orderedIds = selectRankedTrackIds(result, selectedIds);
     orderedIds.reverse();
     orderedIds.push('new-id');
 
     expect(selectedIds).toEqual(['track-3', 'track-1']);
     expect(result).toEqual(originalResult);
-    expect(selectManualTrackIds(result, selectedIds)).toEqual(['track-1', 'track-3']);
+    expect(selectRankedTrackIds(result, selectedIds)).toEqual(['track-1', 'track-3']);
   });
 });
 
