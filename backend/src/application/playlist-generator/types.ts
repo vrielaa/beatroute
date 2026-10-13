@@ -22,6 +22,22 @@ type PlaylistTrackIdsFile = {
 };
 
 /**
+ * Dane potrzebne do zapisania wybranych utworów jako nowej playlisty.
+ * Nie zawierają tokenu użytkownika, ocen dopasowania ani cech audio.
+ *
+ * @property name - Przycięta, niepusta nazwa playlisty, do 100 znaków.
+ * @property trackIds - Od 1 do 500 unikalnych identyfikatorów Spotify w kolejności
+ * wybranej przez użytkownika. Każdy ID ma 22 litery lub cyfry; wielkość liter ma znaczenie.
+ *
+ * @example
+ * { name: "Na siłownię", trackIds: ["3sNVsP50132BTNlImLx70i"] }
+ */
+type PlaylistToSave = {
+  name: string;
+  trackIds: string[];
+};
+
+/**
  * Minimalne metadane wymagane od źródła katalogu utworów.
  * Pełna odpowiedź Spotify może zawierać więcej pól, ale przygotowanie zbioru
  * potrzebuje tylko nazwy utworu i nazw wykonawców.
@@ -96,6 +112,7 @@ type PlaylistDatasetDependencies = {
 
 export type {
   PlaylistTrackIdsFile,
+  PlaylistToSave,
   PlaylistSourceTrack,
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
