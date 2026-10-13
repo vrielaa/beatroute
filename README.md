@@ -135,8 +135,10 @@ Only the Spotify-ID file source is currently available. Saved Spotify tracks and
 user-owned/collaborated playlists are planned sources, not implemented options.
 The planned output is a new private Spotify playlist, not a JSON export. Top N
 and manual track selection are implemented, and the page keeps selected IDs
-in ranking order. The backend and frontend API service can save a selection, but
-the name form, save button and success/partial-failure presentation are not implemented yet.
+in ranking order. The backend and frontend API service can save a selection.
+`PlaylistSaveForm` provides a tested Signal Forms name field and save button, but
+is not yet mounted on the page or connected to the API. Success and partial-failure
+presentation are not implemented yet.
 Importing IDs is not an offline mode: the first preparation requires Spotify,
 ReccoBeats and a working backend. The pure generator can be tested separately
 with the synthetic dataset.

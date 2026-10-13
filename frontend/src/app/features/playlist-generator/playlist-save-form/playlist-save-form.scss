@@ -1,0 +1,65 @@
+:host {
+  display: block;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+}
+
+form,
+.save-name-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+form {
+  gap: 1.2rem;
+}
+
+label {
+  font-weight: var(--font-weight-semibold);
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+button {
+  justify-self: start;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+button:enabled:hover {
+  background: var(--color-accent-hover);
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+input:disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-hint {
+  color: var(--color-text-secondary);
+}
+
+.save-error {
+  color: var(--color-danger);
+}

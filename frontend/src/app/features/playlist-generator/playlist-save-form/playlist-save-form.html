@@ -1,0 +1,52 @@
+<form
+  novalidate
+  aria-labelledby="playlist-save-heading"
+  [attr.aria-busy]="isSaving()"
+  (submit)="requestSave($event)"
+>
+  <header>
+    <h2 id="playlist-save-heading">Zapis playlisty w Spotify</h2>
+    <p class="save-hint">
+      Wybrane utwory zostaną zapisane jako nowa, prywatna playlista. Zapis zachowa kolejność
+      rankingu i nie zmieni istniejących playlist.
+    </p>
+  </header>
+
+  <div class="save-name-field">
+    <label for="playlist-save-name">Nazwa playlisty</label>
+    <input
+      id="playlist-save-name"
+      type="text"
+      autocomplete="off"
+      [formField]="form.name"
+      [attr.aria-invalid]="isNameErrorVisible()"
+      [attr.aria-describedby]="
+        isNameErrorVisible()
+          ? 'playlist-save-name-hint playlist-save-name-error'
+          : 'playlist-save-name-hint'
+      "
+    />
+    <p id="playlist-save-name-hint" class="save-hint">
+      Od 1 do 100 znaków po pominięciu spacji na początku i końcu nazwy.
+    </p>
+    @if (isNameErrorVisible()) {
+      <div id="playlist-save-name-error">
+        @for (error of form.name().errors(); track error.kind) {
+          <p class="save-error" role="alert">{{ error.message }}</p>
+        }
+      </div>
+    }
+  </div>
+
+  <p class="save-selection-count" role="status">
+    Wybrano utworów: <strong>{{ selectedTrackCount() }}</strong
+    >.
+  </p>
+  @if (selectedTrackCount() === 0) {
+    <p class="save-hint">Wybierz co najmniej jeden utwór, aby zapisać playlistę.</p>
+  }
+
+  <button id="playlist-save" type="submit" [disabled]="!canSave()">
+    {{ isSaving() ? 'Zapisywanie playlisty…' : 'Zapisz w Spotify' }}
+  </button>
+</form>
