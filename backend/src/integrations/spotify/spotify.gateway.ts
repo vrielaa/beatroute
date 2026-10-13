@@ -2,6 +2,7 @@ import { SpotifyApiError } from "./spotify-api.error.js";
 import type {
   SpotifyApiConfiguration,
   SpotifyGateway,
+  SpotifyPlaylistApiResponse,
   SpotifyTopArtistsApiResponse,
   SpotifyTopItemsSelection,
   SpotifyTopTracksApiResponse,
@@ -26,8 +27,8 @@ const spotifyRequestScheduler = createRequestScheduler({
 /**
  * Tworzy gateway wykonujący autoryzowane zapytania do Spotify Web API.
  *
- * @param configuration - Implementacja `fetch` i opcjonalny bazowy adres API.
- * @returns Operacje pobierające utwory, artystów i profil użytkownika.
+ * @param configuration - Transport, bazowy adres API, polityka żądań i scheduler.
+ * @returns Operacje odczytu danych Spotify i tworzenia prywatnych playlist.
  */
 function createSpotifyGateway({
   fetchImpl = globalThis.fetch,
@@ -167,11 +168,34 @@ function createSpotifyGateway({
     );
   }
 
+  /**
+   * Tworzy pustą, prywatną playlistę na koncie zalogowanego użytkownika.
+   * Wymaga tokenu użytkownika z uprawnieniem `playlist-modify-private`.
+   * Zapis POST nie jest automatycznie ponawiany, aby uniknąć tworzenia duplikatów.
+   *
+   * @param accessToken - Token dostępu uzyskany po autoryzacji użytkownika.
+   * @param name - Nazwa tworzonej playlisty.
+   * @returns Odpowiedź Spotify zawierająca dane utworzonej playlisty.
+   */
+  async function createPlaylist(
+    accessToken: string,
+    name: string
+  ): Promise<SpotifyPlaylistApiResponse> {
+    return request(
+      "/me/playlists",
+      accessToken,
+      "Nie udało się utworzyć playlisty na Spotify",
+      "POST",
+      { name, public: false }
+    );
+  }
+
   return {
     getSpotifyTrackById,
     getCurrentUserTopTracks,
     getCurrentUserTopArtists,
     getCurrentUserProfile,
+    createPlaylist,
   };
 }
 

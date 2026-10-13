@@ -145,27 +145,35 @@ type SpotifyApiConfiguration = {
   scheduler?: RequestScheduler;
 };
 
-/** Operacje odczytu danych udostępniane przez gateway Spotify. */
+/**
+ * Udostępnia odczyty danych Spotify i tworzenie prywatnych playlist.
+ *
+ * @property getSpotifyTrackById - Pobiera pojedynczy utwór po identyfikatorze.
+ * @property getCurrentUserTopTracks - Pobiera najczęściej słuchane utwory użytkownika.
+ * @property getCurrentUserTopArtists - Pobiera najczęściej słuchanych artystów użytkownika.
+ * @property getCurrentUserProfile - Pobiera profil zalogowanego użytkownika.
+ * @property createPlaylist - Tworzy pustą, prywatną playlistę na koncie użytkownika.
+ */
 type SpotifyGateway = {
-  /** Pobiera pojedynczy utwór po jego identyfikatorze. */
   getSpotifyTrackById(
     spotifyTrackId: string,
     accessToken: string
   ): Promise<SpotifyTrackApiResponse>;
-  /** Pobiera najczęściej słuchane utwory użytkownika. */
   getCurrentUserTopTracks(
     accessToken: string,
     selection: SpotifyTopItemsSelection
   ): Promise<SpotifyTopTracksApiResponse>;
-  /** Pobiera najczęściej słuchanych artystów użytkownika. */
   getCurrentUserTopArtists(
     accessToken: string,
     selection: SpotifyTopItemsSelection
   ): Promise<SpotifyTopArtistsApiResponse>;
-  /** Pobiera profil aktualnie zalogowanego użytkownika. */
   getCurrentUserProfile(
     accessToken: string
   ): Promise<SpotifyUserProfileApiResponse>;
+  createPlaylist(
+    accessToken: string,
+    name: string
+  ): Promise<SpotifyPlaylistApiResponse>;
 };
 
 /** Skrócone dane utworu zwracane przez endpoint łączący Spotify z Last.fm. */
@@ -182,6 +190,22 @@ type SpotifyTrackSummary = {
   durationMs: number | null;
   /** Publiczny adres utworu w Spotify. */
   spotifyUrl: string | null;
+};
+
+/**
+ * Opisuje pola odpowiedzi Spotify potrzebne po utworzeniu playlisty.
+ *
+ * @property id - Identyfikator playlisty używany podczas dodawania utworów.
+ * @property name - Nazwa playlisty zwrócona przez Spotify.
+ * @property external_urls - Odnośniki pozwalające otworzyć playlistę w Spotify.
+ * @property external_urls.spotify - Adres playlisty w aplikacji lub witrynie Spotify.
+ */
+type SpotifyPlaylistApiResponse = {
+  id: string;
+  name: string;
+  external_urls: {
+    spotify: string;
+  };
 };
 
 export type {
@@ -201,4 +225,5 @@ export type {
   SpotifyApiConfiguration,
   SpotifyGateway,
   SpotifyTrackSummary,
+  SpotifyPlaylistApiResponse,
 };

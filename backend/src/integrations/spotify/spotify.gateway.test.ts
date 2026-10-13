@@ -236,6 +236,176 @@ describe("Spotify gateway", () => {
   });
 });
 
+describe("Spotify playlist creation", () => {
+  it("creates a private playlist with a JSON body and returns the 201 response", async () => {
+    const playlist = createSpotifyPlaylist();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(playlist, { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+
+    await expect(
+      gateway.createPlaylist("access-token", playlist.name)
+    ).resolves.toEqual(playlist);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://spotify.test/v1/me/playlists",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          Authorization: "Bearer access-token",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: playlist.name, public: false }),
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
+
+  it("creates a playlist through the injected scheduler", async () => {
+    const playlist = createSpotifyPlaylist();
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(playlist, { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      scheduler,
+    });
+
+    await expect(
+      gateway.createPlaylist("access-token", playlist.name)
+    ).resolves.toEqual(playlist);
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      status: 401,
+      category: "authentication",
+      message: "Invalid access token",
+    },
+    { status: 403, category: "authorization", message: "Insufficient scope" },
+    { status: 429, category: "rate-limited", message: "Too many requests" },
+    { status: 503, category: "unavailable", message: "Service unavailable" },
+  ])(
+    "preserves HTTP $status errors without retrying playlist creation",
+    async ({ status, category, message }) => {
+      const errorData = { error: { message } };
+      const response = jsonResponse(errorData, {
+        status,
+        headers: status === 429 ? { "Retry-After": "30" } : undefined,
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const gateway = createSpotifyGateway({
+        fetchImpl: fetchMock,
+        apiRoot: "https://spotify.test/v1",
+        requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+      });
+
+      const request = gateway.createPlaylist("access-token", "Test playlist");
+
+      await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+      await expect(request).rejects.toMatchObject({
+        status,
+        upstreamStatus: status,
+        category,
+        message,
+        data: errorData,
+        retryAfterSeconds: status === 429 ? 30 : null,
+      });
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("uses the playlist-specific message when Spotify does not provide one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({}, { status: 403 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+    });
+
+    await expect(
+      gateway.createPlaylist("access-token", "Test playlist")
+    ).rejects.toMatchObject({
+      message: "Nie udało się utworzyć playlisty na Spotify",
+      category: "authorization",
+      upstreamStatus: 403,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry playlist creation after a network failure", async () => {
+    const connectionError = new TypeError("fetch failed");
+    const fetchMock = vi.fn().mockRejectedValue(connectionError);
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    const request = gateway.createPlaylist("access-token", "Test playlist");
+
+    await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+    await expect(request).rejects.toMatchObject({
+      category: "network",
+      upstreamStatus: 502,
+      data: connectionError,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry playlist creation after a timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const fetchMock = vi.fn().mockRejectedValue(timeoutError);
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    await expect(
+      gateway.createPlaylist("access-token", "Test playlist")
+    ).rejects.toMatchObject({
+      category: "timeout",
+      upstreamStatus: 504,
+      data: timeoutError,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a non-JSON response without repeating the POST request", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response("not JSON", { status: 201 }));
+    const gateway = createSpotifyGateway({
+      fetchImpl: fetchMock,
+      apiRoot: "https://spotify.test/v1",
+      requestPolicy: { maxAttempts: 3, baseRetryDelayMs: 0 },
+    });
+
+    const request = gateway.createPlaylist("access-token", "Test playlist");
+
+    await expect(request).rejects.toBeInstanceOf(SpotifyApiError);
+    await expect(request).rejects.toMatchObject({
+      category: "invalid-response",
+      upstreamStatus: 201,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
 function jsonResponse(data: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(data), {
     status: 200,
@@ -271,5 +441,16 @@ function createSpotifyPage() {
     offset: 0,
     previous: null,
     total: 0,
+  };
+}
+
+function createSpotifyPlaylist() {
+  return {
+    id: "playlist-id",
+    name: 'Na siłownię "BeatRoute"',
+    external_urls: {
+      spotify: "https://open.spotify.com/playlist/playlist-id",
+    },
+    public: false,
   };
 }
