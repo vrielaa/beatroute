@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPlaylistSaveService } from "./playlist-save.service.js";
+import { PartialPlaylistSaveError } from "./partial-playlist-save.error.js";
 import type { PlaylistSaveDependencies, PlaylistToSave } from "./types.js";
 
 const accessToken = "spotify-access-token";
@@ -201,9 +202,19 @@ describe("playlist saving", () => {
       const service = createPlaylistSaveService(dependencies);
       const playlist = createPlaylistToSave(500);
 
-      await expect(service.savePlaylist(playlist, accessToken)).rejects.toBe(
-        error
-      );
+      const result = service.savePlaylist(playlist, accessToken);
+
+      await expect(result).rejects.toBeInstanceOf(PartialPlaylistSaveError);
+      await expect(result).rejects.toMatchObject({
+        cause: error,
+        progress: {
+          id: "new-playlist-id",
+          name: "Nazwa zwrócona przez Spotify",
+          spotifyUrl: "https://open.spotify.com/playlist/new-playlist-id",
+          confirmedTrackCount: (failedBatch - 1) * 100,
+          requestedTrackCount: 500,
+        },
+      });
 
       expect(dependencies.createPlaylist).toHaveBeenCalledOnce();
       expect(dependencies.addTracksToPlaylist).toHaveBeenCalledTimes(
@@ -229,7 +240,10 @@ describe("playlist saving", () => {
     const error = new Error("Pending write failed");
 
     const result = service.savePlaylist(createPlaylistToSave(201), accessToken);
-    const rejection = expect(result).rejects.toBe(error);
+    const rejection = expect(result).rejects.toMatchObject({
+      cause: error,
+      progress: { confirmedTrackCount: 0, requestedTrackCount: 201 },
+    });
 
     await flushPromises();
     expect(dependencies.addTracksToPlaylist).toHaveBeenCalledOnce();
@@ -249,12 +263,120 @@ describe("playlist saving", () => {
     dependencies.addTracksToPlaylist.mockRejectedValueOnce(timeoutError);
     const service = createPlaylistSaveService(dependencies);
 
-    await expect(
-      service.savePlaylist(createPlaylistToSave(201), accessToken)
-    ).rejects.toBe(timeoutError);
+    const result = service.savePlaylist(createPlaylistToSave(201), accessToken);
+
+    await expect(result).rejects.toBeInstanceOf(PartialPlaylistSaveError);
+    await expect(result).rejects.toMatchObject({
+      cause: timeoutError,
+      progress: { confirmedTrackCount: 0, requestedTrackCount: 201 },
+    });
 
     expect(dependencies.createPlaylist).toHaveBeenCalledOnce();
     expect(dependencies.addTracksToPlaylist).toHaveBeenCalledOnce();
+  });
+
+  it("keeps confirmed tracks when the final partial batch has an unknown outcome", async () => {
+    const dependencies = createDependencies();
+    const pendingBatch = createDeferredPromise<void>();
+    dependencies.addTracksToPlaylist
+      .mockResolvedValueOnce({ snapshot_id: "first-snapshot" })
+      .mockReturnValueOnce(pendingBatch.promise);
+    const service = createPlaylistSaveService(dependencies);
+    const timeoutError = new Error("Response was not received");
+    timeoutError.name = "TimeoutError";
+    const playlist = createPlaylistToSave(150);
+    const original = structuredClone(playlist);
+
+    const result = service.savePlaylist(playlist, accessToken);
+    const rejection = expect(result).rejects.toMatchObject({
+      cause: timeoutError,
+      progress: {
+        id: "new-playlist-id",
+        name: "Nazwa zwrócona przez Spotify",
+        spotifyUrl: "https://open.spotify.com/playlist/new-playlist-id",
+        confirmedTrackCount: 100,
+        requestedTrackCount: 150,
+      },
+    });
+
+    await flushPromises();
+    expect(dependencies.addTracksToPlaylist).toHaveBeenCalledTimes(2);
+
+    pendingBatch.reject(timeoutError);
+    await rejection;
+
+    expect(dependencies.createPlaylist).toHaveBeenCalledOnce();
+    expect(dependencies.addTracksToPlaylist).toHaveBeenCalledTimes(2);
+    expect(playlist).toEqual(original);
+  });
+
+  it("keeps progress separate for consecutive save operations", async () => {
+    const dependencies = createDependencies();
+    const service = createPlaylistSaveService(dependencies);
+
+    await expect(
+      service.savePlaylist(createPlaylistToSave(101), accessToken)
+    ).resolves.toMatchObject({ trackCount: 101 });
+
+    const error = new Error("Next playlist write failed");
+    dependencies.createPlaylist.mockResolvedValueOnce({
+      id: "another-playlist-id",
+      name: "Another playlist",
+      external_urls: {
+        spotify: "https://open.spotify.com/playlist/another-playlist-id",
+      },
+    });
+    dependencies.addTracksToPlaylist.mockRejectedValueOnce(error);
+
+    await expect(
+      service.savePlaylist(createPlaylistToSave(201), accessToken)
+    ).rejects.toMatchObject({
+      cause: error,
+      progress: {
+        id: "another-playlist-id",
+        name: "Another playlist",
+        spotifyUrl: "https://open.spotify.com/playlist/another-playlist-id",
+        confirmedTrackCount: 0,
+        requestedTrackCount: 201,
+      },
+    });
+
+    expect(dependencies.createPlaylist).toHaveBeenCalledTimes(2);
+    expect(dependencies.addTracksToPlaylist).toHaveBeenCalledTimes(3);
+  });
+
+  it("captures the original selection before asynchronous writes begin", async () => {
+    const dependencies = createDependencies();
+    const service = createPlaylistSaveService(dependencies);
+    const playlist = createPlaylistToSave(101);
+    const selectedTrackIds = [...playlist.trackIds];
+    const error = new Error("Second batch failed");
+    dependencies.addTracksToPlaylist
+      .mockResolvedValueOnce({ snapshot_id: "first-snapshot" })
+      .mockRejectedValueOnce(error);
+
+    const result = service.savePlaylist(playlist, accessToken);
+    playlist.trackIds.splice(0, playlist.trackIds.length, "A".repeat(22));
+
+    await expect(result).rejects.toMatchObject({
+      cause: error,
+      progress: { confirmedTrackCount: 100, requestedTrackCount: 101 },
+    });
+
+    expect(dependencies.createPlaylist).toHaveBeenCalledOnce();
+    expect(dependencies.addTracksToPlaylist).toHaveBeenCalledTimes(2);
+    expect(dependencies.addTracksToPlaylist).toHaveBeenNthCalledWith(
+      1,
+      accessToken,
+      "new-playlist-id",
+      selectedTrackIds.slice(0, 100)
+    );
+    expect(dependencies.addTracksToPlaylist).toHaveBeenNthCalledWith(
+      2,
+      accessToken,
+      "new-playlist-id",
+      selectedTrackIds.slice(100)
+    );
   });
 });
 

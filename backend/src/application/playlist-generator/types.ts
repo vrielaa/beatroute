@@ -57,6 +57,30 @@ type SavedPlaylist = {
 };
 
 /**
+ * Stan zapisu po utworzeniu playlisty, zachowany w razie błędu dodawania utworów.
+ * Liczba potwierdzonych utworów nie jest pewną liczbą wszystkich utworów w Spotify:
+ * niepotwierdzona partia mogła zostać zapisana przed utratą odpowiedzi.
+ * Nie zawiera tokenu, identyfikatorów utworów ani szczegółów błędu integracji.
+ *
+ * @property id - Identyfikator playlisty utworzonej przed wystąpieniem błędu.
+ * @property name - Nazwa utworzonej playlisty.
+ * @property spotifyUrl - Odnośnik umożliwiający sprawdzenie playlisty w Spotify.
+ * @property confirmedTrackCount - Liczba utworów z partii, których zapis potwierdzono.
+ * Nie obejmuje partii zakończonej błędem ani późniejszych, niewysłanych partii.
+ * @property requestedTrackCount - Liczba utworów wybranych na początku operacji.
+ *
+ * @example
+ * { id: "playlist-id", name: "Na siłownię", spotifyUrl: "https://open.spotify.com/playlist/playlist-id", confirmedTrackCount: 100, requestedTrackCount: 250 }
+ */
+type PlaylistSaveProgress = {
+  id: string;
+  name: string;
+  spotifyUrl: string;
+  confirmedTrackCount: number;
+  requestedTrackCount: number;
+};
+
+/**
  * Minimalne metadane wymagane od źródła katalogu utworów.
  * Pełna odpowiedź Spotify może zawierać więcej pól, ale przygotowanie zbioru
  * potrzebuje tylko nazwy utworu i nazw wykonawców.
@@ -159,6 +183,7 @@ export type {
   PlaylistTrackIdsFile,
   PlaylistToSave,
   SavedPlaylist,
+  PlaylistSaveProgress,
   PlaylistSourceTrack,
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
