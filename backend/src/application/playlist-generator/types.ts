@@ -38,6 +38,25 @@ type PlaylistToSave = {
 };
 
 /**
+ * Wynik pomyślnego zapisania nowej playlisty i wszystkich wybranych utworów.
+ * Nie opisuje częściowego zapisu ani stanu partii, której wyniku nie potwierdzono.
+ *
+ * @property id - Identyfikator utworzonej playlisty w Spotify.
+ * @property name - Nazwa playlisty zwrócona po jej utworzeniu.
+ * @property spotifyUrl - Odnośnik pozwalający otworzyć playlistę w Spotify.
+ * @property trackCount - Liczba utworów, których zapis potwierdzono we wszystkich partiach.
+ *
+ * @example
+ * { id: "playlist-id", name: "Na siłownię", spotifyUrl: "https://open.spotify.com/playlist/playlist-id", trackCount: 50 }
+ */
+type SavedPlaylist = {
+  id: string;
+  name: string;
+  spotifyUrl: string;
+  trackCount: number;
+};
+
+/**
  * Minimalne metadane wymagane od źródła katalogu utworów.
  * Pełna odpowiedź Spotify może zawierać więcej pól, ale przygotowanie zbioru
  * potrzebuje tylko nazwy utworu i nazw wykonawców.
@@ -110,12 +129,40 @@ type PlaylistDatasetDependencies = {
   ): Promise<TrackAudioFeaturesResult[]>;
 };
 
+/**
+ * Operacje zewnętrzne potrzebne do utworzenia playlisty i dodania wybranych utworów.
+ * Serwis otrzymuje funkcje jako zależności, bez produkcyjnego gatewaya lub konfiguracji.
+ *
+ * @property createPlaylist - Tworzy pustą, prywatną playlistę z tokenem użytkownika.
+ * Zwraca jej identyfikator, nazwę i odnośnik Spotify potrzebne do dalszego zapisu.
+ * @property addTracksToPlaylist - Dopisuje jedną partię od 1 do 100 ID w podanej kolejności.
+ * Zakończenie Promise potwierdza zapis partii; błąd przerywa operację.
+ * Treść odpowiedzi nie jest wykorzystywana przez serwis zapisu.
+ */
+type PlaylistSaveDependencies = {
+  createPlaylist(
+    accessToken: string,
+    name: string
+  ): Promise<{
+    id: string;
+    name: string;
+    external_urls: { spotify: string };
+  }>;
+  addTracksToPlaylist(
+    accessToken: string,
+    playlistId: string,
+    trackIds: string[]
+  ): Promise<unknown>;
+};
+
 export type {
   PlaylistTrackIdsFile,
   PlaylistToSave,
+  SavedPlaylist,
   PlaylistSourceTrack,
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
   PlaylistDatasetDependencies,
+  PlaylistSaveDependencies,
 };
