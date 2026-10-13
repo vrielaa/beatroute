@@ -238,15 +238,131 @@ describe("HTTP request policy", () => {
     expect(sleep).toHaveBeenCalledOnce();
   });
 
-  it("does not retry a POST request", async () => {
-    const response = new Response(null, { status: 503 });
+  it.each([429, 502, 503, 504])(
+    "does not retry a POST request after HTTP %i",
+    async (status) => {
+      const response = new Response(null, { status });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+        policy: { maxAttempts: 3 },
+      });
+
+      await expect(
+        request("https://api.test/resource", { method: "POST" })
+      ).resolves.toBe(response);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(sleep).not.toHaveBeenCalled();
+    }
+  );
+
+  it("preserves POST headers and body when using the scheduler", async () => {
+    const response = new Response(null, { status: 201 });
+    const fetchMock = vi.fn().mockResolvedValue(response);
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const controller = new AbortController();
+    const headers = {
+      Authorization: "Bearer access-token",
+      "Content-Type": "application/json",
+    };
+    const body = JSON.stringify({ name: "My playlist", public: false });
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+    });
+
+    await expect(
+      request("https://api.test/resource", {
+        method: "POST",
+        headers,
+        body,
+        signal: controller.signal,
+      })
+    ).resolves.toBe(response);
+
+    expect(scheduleSpy).toHaveBeenCalledOnce();
+    expect(scheduleSpy).toHaveBeenCalledWith(expect.any(Function), {
+      signal: controller.signal,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.test/resource",
+      expect.objectContaining({
+        method: "POST",
+        headers,
+        body,
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
+
+  it("pauses the scheduler on POST Retry-After without retrying the write", async () => {
+    const response = new Response(null, {
+      status: 429,
+      headers: { "Retry-After": "3" },
+    });
     const fetchMock = vi.fn().mockResolvedValue(response);
     const sleep = vi.fn(async () => undefined);
-    const request = createHttpRequestExecutor({ fetchImpl: fetchMock, sleep });
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const scheduleSpy = vi.spyOn(scheduler, "schedule");
+    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      sleep,
+      scheduler,
+      policy: { maxAttempts: 3 },
+    });
 
     await expect(
       request("https://api.test/resource", { method: "POST" })
     ).resolves.toBe(response);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(scheduleSpy).toHaveBeenCalledOnce();
+    expect(pauseSpy).toHaveBeenCalledWith(3_000);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("does not retry a POST request after a network failure", async () => {
+    const connectionError = new TypeError("fetch failed");
+    const fetchMock = vi.fn().mockRejectedValue(connectionError);
+    const sleep = vi.fn(async () => undefined);
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      sleep,
+      policy: { maxAttempts: 3 },
+    });
+
+    const result = request("https://api.test/resource", { method: "POST" });
+
+    await expect(result).rejects.toBeInstanceOf(HttpRequestExecutionError);
+    await expect(result).rejects.toMatchObject({
+      kind: "network",
+      originalCause: connectionError,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("does not retry a POST request after a timeout", async () => {
+    const timeoutError = new Error("request timed out");
+    timeoutError.name = "TimeoutError";
+    const fetchMock = vi.fn().mockRejectedValue(timeoutError);
+    const sleep = vi.fn(async () => undefined);
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      sleep,
+      policy: { maxAttempts: 3 },
+    });
+
+    await expect(
+      request("https://api.test/resource", { method: "POST" })
+    ).rejects.toMatchObject({
+      kind: "timeout",
+      originalCause: timeoutError,
+    });
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(sleep).not.toHaveBeenCalled();
   });

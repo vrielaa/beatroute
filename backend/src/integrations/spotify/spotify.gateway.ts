@@ -41,26 +41,42 @@ function createSpotifyGateway({
     scheduler,
   });
   /**
-   * Wykonuje pojedyncze zapytanie GET i mapuje nieudaną odpowiedź na
-   * `SpotifyApiError`.
+   * Wykonuje autoryzowane zapytanie GET albo POST do Spotify Web API.
+   * Korzysta ze wspólnego timeoutu i schedulera oraz mapuje błędy transportu
+   * i odpowiedzi API na `SpotifyApiError`. Polityka retry ponawia odczyty GET,
+   * ale nie ponawia zapisów POST.
    *
    * @param endpoint - Ścieżka zasobu względem bazowego adresu API.
    * @param accessToken - Token dostępu użytkownika Spotify.
    * @param fallbackErrorMessage - Komunikat używany, gdy API nie zwraca własnego.
+   * @param httpMethod - Metoda HTTP; domyślnie `GET`.
+   * @param body - Opcjonalne dane serializowane do JSON; bez nich żądanie
+   * nie ma body ani nagłówka `Content-Type: application/json`.
    * @returns Dane JSON odpowiedzi jako wskazany typ.
    */
   async function request<T>(
     endpoint: string,
     accessToken: string,
-    fallbackErrorMessage: string
+    fallbackErrorMessage: string,
+    httpMethod: "GET" | "POST" = "GET",
+    body?: unknown
   ): Promise<T> {
     let response: Response;
+    let jsonBody: string | undefined;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      jsonBody = JSON.stringify(body);
+    }
 
     try {
       response = await executeRequest(`${apiRoot}${endpoint}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        method: httpMethod,
+        headers,
+        body: jsonBody,
       });
     } catch (cause) {
       if (cause instanceof HttpRequestExecutionError) {
