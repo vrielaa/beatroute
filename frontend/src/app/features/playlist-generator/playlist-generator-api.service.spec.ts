@@ -261,6 +261,23 @@ describe('PlaylistGeneratorApiService', () => {
       }
     );
 
+    it.each([
+      {},
+      { ...createSavedPlaylist(), trackCount: 1 },
+      { ...createSavedPlaylist(), spotifyUrl: 'https://example.com/playlist/new-playlist-id' },
+    ])('rejects an invalid 201 confirmation without another POST: %j', (response) => {
+      const next = vi.fn();
+      const error = vi.fn();
+      service.savePlaylist(createSelection()).subscribe({ next, error });
+
+      http.expectOne(url).flush(response, { status: 201, statusText: 'Created' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledOnce();
+      expect(error.mock.calls[0][0]).toBeInstanceOf(Error);
+      http.expectNone(url);
+    });
+
     it('passes a network error through without starting another save', () => {
       const next = vi.fn();
       const error = vi.fn();

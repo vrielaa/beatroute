@@ -298,6 +298,25 @@ type SavedPlaylist = {
 };
 
 /**
+ * Postęp zapisu zachowany, gdy playlista już istnieje, ale dodawanie utworów zawiodło.
+ * Niepotwierdzona partia mogła zostać zapisana przed utratą odpowiedzi, więc liczniki
+ * nie określają dokładnej zawartości playlisty. Przed kolejnym zapisem trzeba ją sprawdzić.
+ *
+ * @property id - Identyfikator utworzonej playlisty.
+ * @property name - Nazwa utworzonej playlisty.
+ * @property spotifyUrl - Odnośnik do istniejącej playlisty w Spotify.
+ * @property confirmedTrackCount - Liczba utworów z potwierdzonych partii, również zero.
+ * @property requestedTrackCount - Liczba utworów wybranych na początku operacji, od 1 do 500.
+ */
+type PlaylistSaveProgress = {
+  id: string;
+  name: string;
+  spotifyUrl: string;
+  confirmedTrackCount: number;
+  requestedTrackCount: number;
+};
+
+/**
  * Sposób wyboru dopuszczonych utworów z gotowego rankingu do zapisu w Spotify.
  * top oznacza pierwsze N pozycji; manual oznacza konkretne utwory zaznaczone przez użytkownika.
  * Żaden tryb nie zmienia ocen, kolejności rankingu ani powodów odrzucenia.
@@ -358,6 +377,7 @@ export type {
   GeneratedPlaylist,
   PlaylistToSave,
   SavedPlaylist,
+  PlaylistSaveProgress,
   PlaylistSelectionMode,
   PlaylistSelectionFormValues,
   PlaylistGeneratorRequest,

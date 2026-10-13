@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
+import { map } from 'rxjs';
+import { parseSavedPlaylist } from './playlist-save-response';
 import type {
   GeneratedPlaylist,
   PlaylistGeneratorRequest,
@@ -53,16 +55,22 @@ class PlaylistGeneratorApiService {
    * Każda subskrypcja wykonuje osobny POST. Metoda nie ponawia zapisu i nie zamienia
    * błędów na sukces: HttpErrorResponse zachowuje kod, dane częściowego zapisu
    * oraz Retry-After. Anulowanie subskrypcji nie cofa już rozpoczętego zapisu w backendzie.
+   * Sprawdza dane odpowiedzi, link Spotify i liczbę potwierdzonych utworów;
+   * niepoprawne potwierdzenie również trafia do kanału błędów, bez ponowienia POST-a.
    *
    * @param playlist - Nazwa i Spotify ID w docelowej kolejności; dodatkowe pola są pomijane.
    * @returns Dane playlisty dopiero po potwierdzeniu dodania wszystkich wybranych utworów.
    */
   public savePlaylist(playlist: PlaylistToSave): Observable<SavedPlaylist> {
-    return this.http.post<SavedPlaylist>(
-      '/api/playlist-generator/save',
-      { name: playlist.name, trackIds: [...playlist.trackIds] },
-      { withCredentials: true }
-    );
+    const trackIds = [...playlist.trackIds];
+    const expectedTrackCount = trackIds.length;
+    return this.http
+      .post<unknown>(
+        '/api/playlist-generator/save',
+        { name: playlist.name, trackIds },
+        { withCredentials: true }
+      )
+      .pipe(map((response) => parseSavedPlaylist(response, expectedTrackCount)));
   }
 }
 
