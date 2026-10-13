@@ -257,6 +257,9 @@ function createFlow() {
     "/api/playlist-generator",
     createPlaylistGeneratorRouter({
       prepareDataset: datasetService.prepareDataset,
+      savePlaylist: vi
+        .fn()
+        .mockRejectedValue(new Error("Unexpected playlist save")),
       authorize: createEnsureSpotifyAccessToken({
         refresh: async () => {
           throw new Error("Unexpected refresh");

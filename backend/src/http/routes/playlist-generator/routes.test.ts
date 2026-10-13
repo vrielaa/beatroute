@@ -38,6 +38,36 @@ describe("playlist dataset preparation in the actual app", () => {
   });
 });
 
+describe("playlist saving in the actual app", () => {
+  it("mounts the save endpoint with Spotify authorization", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/save")
+      .send({ name: "Playlist", trackIds: ["3sNVsP50132BTNlImLx70i"] })
+      .expect(401, {
+        error: {
+          code: "SPOTIFY_AUTH_REQUIRED",
+          message: "Użytkownik nie jest zalogowany do Spotify",
+        },
+      });
+  });
+
+  it("applies the router parser limit before any save operation", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/save")
+      .send({
+        name: "Playlist",
+        trackIds: ["3sNVsP50132BTNlImLx70i"],
+        unused: "x".repeat(1024 * 1024),
+      })
+      .expect(413, {
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Treść żądania przekracza dozwolony rozmiar",
+        },
+      });
+  });
+});
+
 describe("POST /api/playlist-generator/generate", () => {
   it("filters and ranks supplied tracks without requiring a Spotify session", async () => {
     const first = createTrack("first", { energy: 0.625 });

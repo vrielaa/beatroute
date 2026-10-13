@@ -5,6 +5,112 @@ import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/d
 import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-generator/requirements.validator.js";
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "@http/routes/playlist-generator/track-ids.validator.js";
+import { parsePlaylistToSave } from "@http/routes/playlist-generator/save-playlist.validator.js";
+import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
+import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
+import { mapErrorToHttp } from "@http/error-handler.js";
+
+describe("playlist saving OpenAPI contract", () => {
+  const operation = document.paths["/api/playlist-generator/save"].post;
+  const schemas = document.components.schemas;
+
+  it("requires a session and documents the private-playlist permission", () => {
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(operation.description).toContain("playlist-modify-private");
+    expect(operation.description).toContain(
+      "Writes are not automatically retried"
+    );
+    expect(operation.requestBody.required).toBe(true);
+    expect(operation.requestBody.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/PlaylistToSave"
+    );
+  });
+
+  it("documents the same selection format accepted by the validator", () => {
+    expect(schemas.PlaylistToSave.required).toEqual(["name", "trackIds"]);
+    const ids = schemas.PlaylistToSave.properties.trackIds;
+    expect(ids.minItems).toBe(1);
+    expect(ids.maxItems).toBe(500);
+    expect(ids.uniqueItems).toBe(true);
+    const pattern = new RegExp(ids.items.pattern);
+    expect(pattern.test(" 3sNVsP50132BTNlImLx70i ")).toBe(true);
+    expect(pattern.test("spotify:track:3sNVsP50132BTNlImLx70i")).toBe(false);
+    const example = operation.requestBody.content["application/json"].example;
+    expect(parsePlaylistToSave(example)).toEqual(example);
+  });
+
+  it("documents 201 only for a complete save with all four public result fields", () => {
+    expect(
+      operation.responses["201"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/SavedPlaylist");
+    expect(schemas.SavedPlaylist.required).toEqual([
+      "id",
+      "name",
+      "spotifyUrl",
+      "trackCount",
+    ]);
+    expect(schemas.SavedPlaylist.properties.trackCount.minimum).toBe(1);
+    expect(schemas.SavedPlaylist.properties.trackCount.maximum).toBe(500);
+    const example =
+      operation.responses["201"].content["application/json"].example;
+    expect(example.trackCount).toBe(
+      operation.requestBody.content["application/json"].example.trackIds.length
+    );
+    expect(Object.keys(example).sort()).toEqual(
+      [...schemas.SavedPlaylist.required].sort()
+    );
+  });
+
+  it("documents shared errors, missing permission and an optional Retry-After header", () => {
+    expect(Object.keys(operation.responses).sort()).toEqual([
+      "201",
+      "400",
+      "401",
+      "403",
+      "413",
+      "429",
+      "500",
+      "502",
+      "503",
+      "504",
+      "default",
+    ]);
+    expect(operation.responses["403"].description).toContain(
+      "SPOTIFY_PLAYLIST_PERMISSION_REQUIRED"
+    );
+    expect(operation.responses["429"].headers["Retry-After"].schema).toEqual({
+      type: "integer",
+      minimum: 0,
+    });
+    for (const [status, response] of Object.entries(operation.responses)) {
+      if (status !== "201") {
+        expect(response.content["application/json"].schema.$ref).toBe(
+          "#/components/schemas/ErrorResponse"
+        );
+      }
+    }
+  });
+
+  it("provides a partial-save example matching the central error mapper", () => {
+    const example =
+      operation.responses["429"].content["application/json"].example;
+    const mapped = mapErrorToHttp(
+      new PartialPlaylistSaveError(
+        example.error.details.progress,
+        new SpotifyApiError("Rate limit", 429, null, {
+          retryAfterSeconds: example.error.details.retryAfterSeconds,
+        })
+      )
+    );
+
+    expect(mapped.status).toBe(429);
+    expect(mapped.body).toEqual(example);
+    expect(mapped.headers).toEqual({ "Retry-After": "30" });
+    expect(operation.description).toContain(
+      "an unconfirmed batch may already have been written"
+    );
+  });
+});
 
 describe("playlist dataset preparation OpenAPI contract", () => {
   const operation =

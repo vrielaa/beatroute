@@ -66,7 +66,7 @@ internal example for testing the generator endpoint without provider calls.
    Manual choices are ordered by ranking, not by clicks. The results component
    emits selected IDs to the page, which keeps them for the future save flow.
    Removing the result, including when starting a new analysis, clears that list.
-   Spotify saving is not available yet.
+   Saving from the UI is not available yet; the backend save endpoint is implemented.
 
 The progress card appears only after clicking Generate. Its three stages are
 data retrieval, analysis/ranking, and a ready result. The counter describes
@@ -112,7 +112,22 @@ Both endpoints have a 1 MiB JSON body limit; other endpoints retain 100 KiB.
 Vitest covers validation and domain logic. Supertest covers authentication, errors,
 parser limits and the preparation-to-generation flow with actual services and
 mocked provider boundaries. Angular tests cover import, forms, progress, retries,
-cancellation, cache reuse and presentation. Both endpoints are described in OpenAPI.
+cancellation, cache reuse and presentation. Preparation, generation and saving
+are described in OpenAPI.
+
+### Backend playlist saving
+
+`POST /api/playlist-generator/save` accepts `{ "name": "Playlist name", "trackIds": ["Spotify ID"] }`.
+It requires a Spotify session with `playlist-modify-private`; the token comes only
+from the session. The backend validates 1–500 unique IDs, creates a private
+playlist and adds them in order, in sequential batches of up to 100.
+It returns `201` with `id`, `name`, `spotifyUrl` and `trackCount` after all batches
+are confirmed. It does not fetch metadata or rerun ranking.
+
+Writes are not automatically retried. If adding tracks fails after creation,
+`PLAYLIST_SAVE_INCOMPLETE` includes the existing playlist and confirmed progress
+in `error.details.progress`. An unconfirmed batch may already have been written:
+check the playlist before another save, even when `Retry-After` is provided.
 
 ### Scope still planned
 
@@ -120,8 +135,8 @@ Only the Spotify-ID file source is currently available. Saved Spotify tracks and
 user-owned/collaborated playlists are planned sources, not implemented options.
 The planned output is a new private Spotify playlist, not a JSON export. Top N
 and manual track selection are implemented, and the page keeps selected IDs
-in ranking order. The Spotify save flow is still planned.
-The current app does not create a playlist on the user's account.
+in ranking order. The backend can save a selection, but the frontend API method,
+name form, save button and success/partial-failure presentation are not implemented yet.
 Importing IDs is not an offline mode: the first preparation requires Spotify,
 ReccoBeats and a working backend. The pure generator can be tested separately
 with the synthetic dataset.
@@ -151,10 +166,10 @@ Integration modules contain provider clients, adapters and mappers. Last.fm
 artist and track adapters combine fetching and mapping in one service each.
 Express routers validate requests and receive their services and middleware through
 explicit dependencies, which keeps the core logic independently testable.
-Production dependencies for Last.fm, track analysis and playlist preparation are assembled in
+Production dependencies for Last.fm, track analysis, playlist preparation and saving are assembled in
 `composition.ts` beside their routers.
 
-For playlists, `application/playlist-generator` prepares provider data;
+For playlists, `application/playlist-generator` prepares provider data and coordinates saving;
 `domain/playlist-generator` contains deterministic filtering and ranking.
 Routers handle authorization and input validation. The Angular page controls
 the process and cache; the progress and results components only present state.

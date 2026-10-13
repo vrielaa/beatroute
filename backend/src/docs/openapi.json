@@ -873,6 +873,146 @@
         }
       }
     },
+    "/api/playlist-generator/save": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "saveGeneratedPlaylist",
+        "summary": "Save selected tracks as a new private Spotify playlist",
+        "description": "Requires a Spotify session with playlist-modify-private. An expired token is refreshed before checking its granted permissions. Uses only the session token; accessToken, public, playlistId and extra body fields are ignored. Trims the name and IDs, rejects duplicate IDs after trimming and preserves selection order. Does not fetch track metadata, rerun generation or verify that the submitted IDs belonged to a previous ranking. Creates one new private playlist and writes sequential batches of up to 100 tracks. Returns 201 only after all batches are confirmed. Writes are not automatically retried and an incomplete playlist is not deleted. If creation fails, returns the shared integration error without playlist progress. If adding tracks fails after creation, the error code is PLAYLIST_SAVE_INCOMPLETE and details.progress contains id, name, spotifyUrl, confirmedTrackCount and requestedTrackCount. The confirmed count includes only successful batches; an unconfirmed batch may already have been written. Check the existing playlist before attempting another save, even when a Retry-After header is present. The current frontend does not yet invoke this endpoint.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "description": "A name and 1–500 unique raw Spotify track IDs in the desired playlist order. Maximum JSON body size is 1 MiB (1,048,576 bytes).",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlaylistToSave" },
+              "example": {
+                "name": "Na siłownię",
+                "trackIds": ["3sNVsP50132BTNlImLx70i", "4U4LEUWV8sFtos5PdjfDA7"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The private playlist was created and all selected tracks were confirmed as added.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SavedPlaylist" },
+                "example": {
+                  "id": "new-playlist-id",
+                  "name": "Na siłownię",
+                  "spotifyUrl": "https://open.spotify.com/playlist/new-playlist-id",
+                  "trackCount": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid name or selection (VALIDATION_ERROR), malformed JSON (INVALID_JSON), or a rejected Spotify request. No write is started for local validation failures.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing session (SPOTIFY_AUTH_REQUIRED), session requiring reauthorization (SPOTIFY_REAUTH_REQUIRED), or Spotify rejecting the token. A failure after creation includes PLAYLIST_SAVE_INCOMPLETE and playlist progress.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "The session lacks playlist-modify-private (SPOTIFY_PLAYLIST_PERMISSION_REQUIRED), or Spotify denies access. A failure after creation includes PLAYLIST_SAVE_INCOMPLETE and playlist progress.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds the 1 MiB limit. No write is started.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Spotify reached its request limit. Retry-After is included when available; it does not mean a write can be safely repeated. An already created playlist is returned in details.progress.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before further Spotify requests. Check any existing incomplete playlist before another save.",
+                "schema": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": {
+                    "code": "PLAYLIST_SAVE_INCOMPLETE",
+                    "message": "Nie potwierdzono zapisu wszystkich utworów. Sprawdź utworzoną playlistę przed ponownym zapisem.",
+                    "details": {
+                      "progress": {
+                        "id": "new-playlist-id",
+                        "name": "Na siłownię",
+                        "spotifyUrl": "https://open.spotify.com/playlist/new-playlist-id",
+                        "confirmedTrackCount": 100,
+                        "requestedTrackCount": 250
+                      },
+                      "retryAfterSeconds": 30
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application error or invalid OAuth request. After creation, an unexpected add failure returns PLAYLIST_SAVE_INCOMPLETE with progress. Diagnostic data is not exposed.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Spotify connection failure, invalid response or upstream error. A failure after creation includes PLAYLIST_SAVE_INCOMPLETE and progress.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Spotify is unavailable or its OAuth client is misconfigured. A failure after creation includes PLAYLIST_SAVE_INCOMPLETE and progress.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Spotify did not respond within the request timeout. A failure after creation includes PLAYLIST_SAVE_INCOMPLETE; the timed-out write may already have happened.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "default": {
+            "description": "Other Spotify request rejection using the shared error contract. After creation, PLAYLIST_SAVE_INCOMPLETE preserves playlist progress.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lastfm/me": {
       "get": {
         "tags": ["Last.fm"],
@@ -1539,6 +1679,43 @@
           }
         },
         "required": ["error"]
+      },
+      "PlaylistToSave": {
+        "type": "object",
+        "description": "Selection to save, not a generator dataset. Extra properties are ignored. Names and IDs are trimmed; duplicate IDs after trimming are rejected rather than removed.",
+        "required": ["name", "trackIds"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nonblank playlist name, 1–100 characters after trimming. The upper limit is an application rule, not a claimed Spotify limit."
+          },
+          "trackIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "uniqueItems": true,
+            "description": "Case-sensitive unique IDs in selection order. Duplicates are also checked after trimming.",
+            "items": {
+              "type": "string",
+              "pattern": "^\\s*[A-Za-z0-9]{22}\\s*$"
+            }
+          }
+        }
+      },
+      "SavedPlaylist": {
+        "type": "object",
+        "required": ["id", "name", "spotifyUrl", "trackCount"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "spotifyUrl": { "type": "string", "format": "uri" },
+          "trackCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Number of tracks confirmed as added after all batches completed."
+          }
+        }
       },
       "PlaylistUnitMeasurement": {
         "type": ["number", "null"],

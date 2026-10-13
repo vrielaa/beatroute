@@ -4,24 +4,28 @@ import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/d
 import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-generator/requirements.validator.js";
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "./track-ids.validator.js";
-import { playlistDatasetService } from "./composition.js";
+import { parsePlaylistToSave } from "./save-playlist.validator.js";
+import { playlistDatasetService, playlistSaveService } from "./composition.js";
+import { HttpError } from "@http/errors/http-error.js";
 import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import type { RequestHandler } from "express";
 
 /**
- * Operacja przygotowania zbioru oraz autoryzacja żądań korzystających z API.
- * Typ prepareDataset wynika z implementacji serwisu, bez osobnego typu całego serwisu.
+ * Operacje przygotowania zbioru i zapisu playlisty oraz autoryzacja żądań do API.
+ * Typy operacji wynikają z implementacji, bez osobnych typów całych serwisów.
  *
  * @property prepareDataset - Uzupełnia zwalidowane ID o metadane i cechy audio.
+ * @property savePlaylist - Zapisuje wybrane ID jako nową, prywatną playlistę.
  * @property authorize - Sprawdza i w razie potrzeby odnawia token w sesji Spotify.
  */
 type PlaylistGeneratorRouterDependencies = {
   prepareDataset: typeof playlistDatasetService.prepareDataset;
+  savePlaylist: typeof playlistSaveService.savePlaylist;
   authorize: RequestHandler;
 };
 
 /**
- * Tworzy router przygotowania danych i generowania playlisty.
+ * Tworzy router przygotowania danych, generowania i zapisu playlisty.
  * Endpoint POST /prepare-dataset wymaga sesji Spotify. Odczytuje z req.body:
  * - version: liczbową wersję formatu 1;
  * - spotifyTrackIds: od 1 do 500 identyfikatorów utworów Spotify.
@@ -38,14 +42,27 @@ type PlaylistGeneratorRouterDependencies = {
  * Brak body lub pola skutkuje błędem walidacji, obsługiwanym przez centralny middleware.
  * Zwraca JSON z rankedTracks i rejectedTracks; pusty ranking jest poprawnym wynikiem.
  * Samo generowanie nie wymaga sesji Spotify ani pobierania danych z API.
+ *
+ * Endpoint POST /save wymaga sesji i uprawnienia playlist-modify-private.
+ * Odczytuje dwa pola req.body:
+ * - name: nazwę nowej playlisty, od 1 do 100 znaków po przycięciu;
+ * - trackIds: od 1 do 500 unikalnych Spotify ID w kolejności wybranej przez użytkownika.
+ * Waliduje body i przekazuje token wyłącznie z sesji po wykonaniu authorize.
+ * Nie przyjmuje tokenu, ID docelowej playlisty ani ustawienia public z body.
+ * Nie przelicza rankingu ani nie sprawdza ponownie kryteriów generatora.
+ * Zwraca 201 z id, name, spotifyUrl i trackCount dopiero po potwierdzeniu zapisu.
+ * Błąd przerywa zapis bez ponawiania; po utworzeniu playlisty centralny middleware
+ * zwraca PLAYLIST_SAVE_INCOMPLETE z jej danymi i liczbą potwierdzonych utworów.
+ *
  * Parsowanie JSON-a i limit 1 MiB dla tego routera są skonfigurowane w app.ts,
  * przed parserem ogólnym.
  *
- * @param dependencies - Przygotowanie zbioru i middleware autoryzacji Spotify.
- * @returns Router Express obsługujący przygotowanie i analizę zbioru playlisty.
+ * @param dependencies - Przygotowanie zbioru, zapis playlisty i autoryzacja Spotify.
+ * @returns Router Express obsługujący przygotowanie, analizę i zapis playlisty.
  */
 function createPlaylistGeneratorRouter({
   prepareDataset,
+  savePlaylist,
   authorize,
 }: PlaylistGeneratorRouterDependencies): Router {
   const router = Router();
@@ -78,12 +95,34 @@ function createPlaylistGeneratorRouter({
     res.json(generatedPlaylist);
   });
 
+  router.post("/save", authorize, async (req, res) => {
+    const spotifySession = req.session.spotify!;
+    const grantedScopes = (spotifySession.scope ?? "").split(/\s+/);
+
+    if (!grantedScopes.includes("playlist-modify-private")) {
+      throw new HttpError(
+        403,
+        "SPOTIFY_PLAYLIST_PERMISSION_REQUIRED",
+        "Połącz ponownie konto Spotify i zezwól na zapisywanie prywatnych playlist"
+      );
+    }
+
+    const playlist = parsePlaylistToSave(req.body);
+    const savedPlaylist = await savePlaylist(
+      playlist,
+      spotifySession.accessToken
+    );
+
+    res.status(201).json(savedPlaylist);
+  });
+
   return router;
 }
 
 /** Router montowany w app.ts pod /api/playlist-generator. */
 const playlistGeneratorRouter = createPlaylistGeneratorRouter({
   prepareDataset: playlistDatasetService.prepareDataset,
+  savePlaylist: playlistSaveService.savePlaylist,
   authorize: ensureSpotifyAccessToken,
 });
 

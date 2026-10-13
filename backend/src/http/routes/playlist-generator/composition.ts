@@ -1,4 +1,5 @@
 import { createPlaylistDatasetService } from "@application/playlist-generator/playlist-dataset.service.js";
+import { createPlaylistSaveService } from "@application/playlist-generator/playlist-save.service.js";
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
 
@@ -9,4 +10,10 @@ const playlistDatasetService = createPlaylistDatasetService({
     reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds,
 });
 
-export { playlistDatasetService };
+/** Serwis zapisu prywatnych playlist korzystający z produkcyjnego gatewaya Spotify. */
+const playlistSaveService = createPlaylistSaveService({
+  createPlaylist: defaultSpotifyGateway.createPlaylist,
+  addTracksToPlaylist: defaultSpotifyGateway.addTracksToPlaylist,
+});
+
+export { playlistDatasetService, playlistSaveService };
