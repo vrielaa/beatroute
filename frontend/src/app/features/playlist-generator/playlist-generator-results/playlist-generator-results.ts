@@ -15,13 +15,17 @@ import type {
   PlaylistSelectionFormValues,
   PlaylistSelectionMode,
 } from '../playlist-generator.models';
-import { selectTopTrackIds, validateTopTrackCount } from '../playlist-track-selection';
+import {
+  selectManualTrackIds,
+  selectTopTrackIds,
+  validateTopTrackCount,
+} from '../playlist-track-selection';
 import { PlaylistRankedTrack } from './playlist-ranked-track/playlist-ranked-track';
 import { PlaylistRejectedTracks } from './playlist-rejected-tracks/playlist-rejected-tracks';
 
 /**
  * Łączy podsumowanie liczby utworów, ranking dopuszczonych utworów i listę odrzuceń.
- * Udostępnia wybór pierwszych N pozycji i przełączenie trybu wyboru.
+ * Udostępnia wybór pierwszych N pozycji oraz ręczne zaznaczanie dopuszczonych utworów.
  * Zachowuje pełny ranking, kolejność, oceny i odrzucenia otrzymane z backendu;
  * nie wykonuje obliczeń dopasowania, zapytań HTTP ani zapisu w Spotify.
  */
@@ -45,7 +49,7 @@ class PlaylistGeneratorResults {
     }),
   });
 
-  /** Punkt wyjścia dla wyboru ręcznego; poprzedni wynik nie zachowuje zaznaczeń. */
+  /** Ręczne zaznaczenia, resetowane przy nowym wyniku i przejęte z top przy zmianie trybu. */
   private readonly manualTrackIds = linkedSignal<GeneratedPlaylist, string[]>({
     source: this.result,
     computation: () => [],
@@ -67,7 +71,7 @@ class PlaylistGeneratorResults {
     });
   });
 
-  /** Niepoprawne N daje pusty wybór, nie przycięty limit ani poprzednie zaznaczenia. */
+  /** Wybrane ID w kolejności rankingu; niepoprawne N daje pusty wybór, nie przycięty limit. */
   protected readonly selectedTrackIds = computed(() => {
     if (this.result().rankedTracks.length === 0) {
       return [];
@@ -76,7 +80,7 @@ class PlaylistGeneratorResults {
     const { mode, topTrackCount } = this.formValues();
 
     if (mode === 'manual') {
-      return this.manualTrackIds();
+      return selectManualTrackIds(this.result(), this.manualTrackIds());
     }
 
     if (topTrackCount === null || this.form.topTrackCount().invalid()) {
@@ -107,6 +111,36 @@ class PlaylistGeneratorResults {
     }
 
     this.form.mode().value.set(mode);
+  }
+
+  /**
+   * Aktualizuje ręczny wybór na podstawie stanu checkboxa przy dopuszczonym utworze.
+   * Ignoruje zmiany w trybie top oraz ID spoza aktualnego rankingu.
+   * Powtórne zaznaczenie nie dodaje duplikatu; odznaczenie nie usuwa utworu z rankingu.
+   *
+   * @param trackId - Identyfikator utworu z rankedTracks, niezależny od value w DOM.
+   * @param isSelected - Stan checked odczytany z checkboxa w szablonie.
+   */
+  protected changeTrackSelection(trackId: string, isSelected: boolean): void {
+    const isAcceptedTrack = this.result().rankedTracks.some(
+      (evaluation) => evaluation.track.id === trackId
+    );
+
+    if (this.formValues().mode !== 'manual' || !isAcceptedTrack) {
+      return;
+    }
+
+    this.manualTrackIds.update((trackIds) => {
+      const selectedIds = new Set(trackIds);
+
+      if (isSelected) {
+        selectedIds.add(trackId);
+      } else {
+        selectedIds.delete(trackId);
+      }
+
+      return [...selectedIds];
+    });
   }
 }
 

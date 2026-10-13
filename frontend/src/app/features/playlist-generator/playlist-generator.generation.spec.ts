@@ -178,7 +178,7 @@ describe('PlaylistGenerator generation', () => {
     expect(getGenerateButton().disabled).toBe(false);
   });
 
-  it('changes the track count and mode locally without preparing or generating again', async () => {
+  it('changes the count, mode and manual choices without preparing or generating again', async () => {
     await importDataset();
     generate();
     const response: GeneratedPlaylist = {
@@ -214,6 +214,17 @@ describe('PlaylistGenerator generation', () => {
     fixture.detectChanges();
 
     expect(countInput.disabled).toBe(true);
+    expect(getResultText('.selection-count')).toBe('Wybrano 1 ze 2.');
+
+    const checkboxes: HTMLInputElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.track-selection-toggle input')
+    );
+    expect(checkboxes).toHaveLength(2);
+    checkboxes[0].click();
+    checkboxes[1].click();
+    fixture.detectChanges();
+
+    expect(checkboxes.map((checkbox) => checkbox.checked)).toEqual([false, true]);
     expect(getResultText('.selection-count')).toBe('Wybrano 1 ze 2.');
     expect(getResultElements('app-playlist-ranked-track')).toHaveLength(2);
     expect(getGenerateButton().disabled).toBe(false);

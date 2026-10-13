@@ -61,8 +61,10 @@ internal example for testing the generator endpoint without provider calls.
 5. Top N selects the first N accepted tracks locally, with a validated count and
    a selection counter. The full ranking and scores remain visible and unchanged.
    A new result resets the selection to all accepted tracks. Switching to manual
-   mode preserves the current selection and disables N; individual checkboxes
-   and Spotify saving are not available yet.
+   mode preserves the current selection and disables N. Accepted tracks have
+   checkboxes that are editable only in manual mode; switching back restores Top N.
+   Manual choices are ordered by ranking, not by clicks. Spotify saving is not
+   available yet.
 
 The progress card appears only after clicking Generate. Its three stages are
 data retrieval, analysis/ranking, and a ready result. The counter describes
@@ -115,8 +117,9 @@ cancellation, cache reuse and presentation. Both endpoints are described in Open
 Only the Spotify-ID file source is currently available. Saved Spotify tracks and
 user-owned/collaborated playlists are planned sources, not implemented options.
 The planned output is a new private Spotify playlist, not a JSON export. Top N
-selection is implemented; manual track checkboxes and Spotify saving are still
-planned. The current app does not create a playlist on the user's account.
+and manual track selection are implemented locally in the results component;
+passing that selection to a save flow and Spotify saving are still planned.
+The current app does not create a playlist on the user's account.
 Importing IDs is not an offline mode: the first preparation requires Spotify,
 ReccoBeats and a working backend. The pure generator can be tested separately
 with the synthetic dataset.

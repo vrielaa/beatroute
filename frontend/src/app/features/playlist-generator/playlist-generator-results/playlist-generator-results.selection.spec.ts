@@ -104,7 +104,7 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getCountInput().value).toBe('2');
     expect(getModeButton('Top N').getAttribute('aria-pressed')).toBe('false');
     expect(getModeButton('Ręcznie').getAttribute('aria-pressed')).toBe('true');
-    expect(getText('.manual-selection-hint')).toContain('Zachowano bieżący wybór.');
+    expect(getText('.manual-selection-hint')).toContain('Zaznacz lub odznacz utwory poniżej.');
   });
 
   it('restores the saved N when returning to Top N and allows it to be edited again', () => {

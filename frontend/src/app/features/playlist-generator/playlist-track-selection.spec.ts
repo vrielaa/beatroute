@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GeneratedPlaylist, PlaylistTrackEvaluation } from './playlist-generator.models';
-import { selectTopTrackIds, validateTopTrackCount } from './playlist-track-selection';
+import {
+  selectManualTrackIds,
+  selectTopTrackIds,
+  validateTopTrackCount,
+} from './playlist-track-selection';
 
 describe('validateTopTrackCount', () => {
   it.each([1, 2, 3])('accepts %s tracks within the available range', (trackCount) => {
@@ -142,6 +146,93 @@ describe('selectTopTrackIds', () => {
 
     expect(result).toEqual(originalResult);
     expect(selectTopTrackIds(result, 2)).toEqual(['track-1', 'track-2']);
+  });
+});
+
+describe('selectManualTrackIds', () => {
+  it('returns selected IDs in ranking order rather than the order of clicks', () => {
+    expect(selectManualTrackIds(createResult(4), ['track-4', 'track-1', 'track-3'])).toEqual([
+      'track-1',
+      'track-3',
+      'track-4',
+    ]);
+  });
+
+  it('ignores duplicates in the selection', () => {
+    expect(selectManualTrackIds(createResult(3), ['track-3', 'track-1', 'track-3'])).toEqual([
+      'track-1',
+      'track-3',
+    ]);
+  });
+
+  it('excludes unknown and rejected IDs without adding them to the ranking', () => {
+    const result = createResult(2);
+    result.rejectedTracks = [
+      {
+        track: createEvaluation('rejected').track,
+        reasons: [{ feature: 'tempo', code: 'outside-range' }],
+      },
+    ];
+
+    expect(selectManualTrackIds(result, ['unknown', 'rejected', 'track-2'])).toEqual(['track-2']);
+  });
+
+  it('supports an empty selection while editing', () => {
+    expect(selectManualTrackIds(createResult(3), [])).toEqual([]);
+  });
+
+  it('returns no IDs for an empty ranking even if earlier IDs remain in the selection', () => {
+    expect(selectManualTrackIds(createResult(0), ['track-1'])).toEqual([]);
+  });
+
+  it('keeps accepted zero-score and unscored tracks selectable', () => {
+    const result: GeneratedPlaylist = {
+      rankedTracks: [createEvaluation('zero', 0), createEvaluation('unscored', null)],
+      rejectedTracks: [],
+    };
+
+    expect(selectManualTrackIds(result, ['unscored', 'zero'])).toEqual(['zero', 'unscored']);
+  });
+
+  it('does not recalculate tied scores or sort names', () => {
+    const result: GeneratedPlaylist = {
+      rankedTracks: [createEvaluation('zeta', 0.5), createEvaluation('alfa', 0.5)],
+      rejectedTracks: [],
+    };
+
+    expect(selectManualTrackIds(result, ['alfa', 'zeta'])).toEqual(['zeta', 'alfa']);
+  });
+
+  it('uses the new ranking for the same selected IDs', () => {
+    const firstResult = createResult(3);
+    const nextResult = createResult(3);
+    nextResult.rankedTracks.reverse();
+
+    expect(selectManualTrackIds(firstResult, ['track-3', 'track-1'])).toEqual([
+      'track-1',
+      'track-3',
+    ]);
+    expect(selectManualTrackIds(nextResult, ['track-3', 'track-1'])).toEqual([
+      'track-3',
+      'track-1',
+    ]);
+  });
+
+  it('leaves frozen inputs intact and returns an independent array', () => {
+    const result = createResult(3);
+    const originalResult = structuredClone(result);
+    const selectedIds = Object.freeze(['track-3', 'track-1']);
+    Object.freeze(result);
+    Object.freeze(result.rankedTracks);
+    Object.freeze(result.rejectedTracks);
+
+    const orderedIds = selectManualTrackIds(result, selectedIds);
+    orderedIds.reverse();
+    orderedIds.push('new-id');
+
+    expect(selectedIds).toEqual(['track-3', 'track-1']);
+    expect(result).toEqual(originalResult);
+    expect(selectManualTrackIds(result, selectedIds)).toEqual(['track-1', 'track-3']);
   });
 });
 

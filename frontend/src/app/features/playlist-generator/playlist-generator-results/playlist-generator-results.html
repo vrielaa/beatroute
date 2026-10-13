@@ -63,7 +63,7 @@
         />
         <p id="playlist-track-count-hint" class="selection-hint">
           Top N wybiera pierwsze pozycje rankingu. Pełny ranking i oceny pozostają bez zmian. W
-          trybie ręcznym pole N jest nieaktywne.
+          trybie ręcznym pole N jest nieaktywne, a zaznaczenia zmienisz checkboxami przy utworach.
         </p>
         @if (isTrackCountErrorVisible()) {
           <div id="playlist-track-count-error" class="selection-error" role="alert">
@@ -80,8 +80,9 @@
 
       @if (form.mode().value() === 'manual') {
         <p class="manual-selection-hint selection-hint">
-          Zachowano bieżący wybór. Checkboxy do zmiany pojedynczych zaznaczeń zostaną dodane w
-          kolejnym etapie.
+          Zaznacz lub odznacz utwory poniżej. Kolejność wyboru pozostaje zgodna z rankingiem, nie z
+          kolejnością kliknięć. Możesz odznaczyć wszystkie utwory, ale pustego wyboru nie będzie
+          można zapisać w Spotify.
         </p>
       }
     </fieldset>
@@ -89,6 +90,17 @@
     <ol class="playlist-ranking" aria-label="Ranking dopuszczonych utworów">
       @for (evaluation of result().rankedTracks; track evaluation.track.id; let index = $index) {
         <li>
+          <label class="track-selection-toggle">
+            <input
+              #trackCheckbox
+              type="checkbox"
+              [value]="evaluation.track.id"
+              [checked]="selectedTrackIds().includes(evaluation.track.id)"
+              [disabled]="form.mode().value() !== 'manual'"
+              (change)="changeTrackSelection(evaluation.track.id, trackCheckbox.checked)"
+            />
+            <span>Uwzględnij w playliście: {{ evaluation.track.name }}</span>
+          </label>
           <app-playlist-ranked-track [evaluation]="evaluation" [position]="index + 1" />
         </li>
       }

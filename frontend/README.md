@@ -36,7 +36,11 @@ Results include a Signal Forms count field and Top N/manual mode buttons. Top N
 selects the first N accepted tracks without changing or requesting the ranking.
 The counter excludes rejected tracks. A new result restores Top N with all accepted
 tracks selected. Manual mode currently preserves that selection and disables N;
-individual checkboxes and saving a Spotify playlist are subsequent steps.
+the accepted-track checkboxes become editable. In Top N they only show the
+automatic choice and are disabled. Manual choices retain ranking order, including
+after re-selecting a track. Rejected tracks have no selection control.
+Selection remains local to the results component; passing it to the page and
+saving a Spotify playlist are subsequent steps.
 
 The initial preparation requires a Spotify session and external APIs. The full
 synthetic dataset is an internal backend example, not a supported UI import.
