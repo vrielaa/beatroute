@@ -1,9 +1,11 @@
+import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
 import { IntegrationApiError } from "@integrations/integration-api.error.js";
 import { SpotifyAuthApiError } from "@integrations/spotify/auth/api-error.js";
 import { RequestValidationError } from "./request-validation-error.js";
 import { createErrorResponse } from "./errors/error-response.js";
 import { HttpError } from "./errors/http-error.js";
 import { mapIntegrationError } from "./errors/integration-error.mapper.js";
+import { mapPartialPlaylistSaveError } from "./errors/playlist-save-error.mapper.js";
 import { mapSpotifyAuthError } from "./errors/spotify-auth-error.mapper.js";
 import { mapRequestBodyError } from "./errors/request-body-error.mapper.js";
 import type { MappedHttpError } from "./errors/types.js";
@@ -25,6 +27,9 @@ import type { NextFunction, Request, Response } from "express";
  *   odświeżaniem tokenu, limitem zapytań albo dostępnością Spotify;
  * - błędy zewnętrznych integracji (`IntegrationApiError`) – problemy podczas
  *   komunikacji ze Spotify Web API, Last.fm, ReccoBeats lub Soundcharts;
+ * - nieukończony zapis playlisty (`PartialPlaylistSaveError`) – playlista została
+ *   utworzona, ale nie potwierdzono dodania wszystkich utworów; odpowiedź zachowuje
+ *   jej dane i postęp, bez ujawniania technicznych szczegółów przyczyny;
  * - nieoczekiwane wyjątki – błędy nierozpoznane przez wcześniejsze warunki,
  *   zwracane klientowi jako ogólny błąd serwera.
  *
@@ -59,6 +64,10 @@ function mapErrorToHttp(error: unknown): MappedHttpError {
 
   if (error instanceof SpotifyAuthApiError) {
     return mapSpotifyAuthError(error);
+  }
+
+  if (error instanceof PartialPlaylistSaveError) {
+    return mapPartialPlaylistSaveError(error);
   }
 
   if (error instanceof IntegrationApiError) {
