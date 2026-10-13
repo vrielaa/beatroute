@@ -64,9 +64,13 @@ internal example for testing the generator endpoint without provider calls.
    mode preserves the current selection and disables N. Accepted tracks have
    checkboxes that are editable only in manual mode; switching back restores Top N.
    Manual choices are ordered by ranking, not by clicks. The results component
-   emits selected IDs to the page, which keeps them for the future save flow.
+   emits selected IDs to the page for the save flow.
    Removing the result, including when starting a new analysis, clears that list.
-   Saving from the UI is not available yet; the backend save endpoint is implemented.
+6. Enter a playlist name and click **Zapisz w Spotify** to save only the selection.
+   The Signal Forms name field requires 1–100 characters after trimming. A pending
+   save locks file import, criteria, selection and repeated submission; it does not
+   retrieve measurements or recalculate scores. Success shows the playlist link
+   and confirmed track count. Another save requires an explicit new action.
 
 The progress card appears only after clicking Generate. Its three stages are
 data retrieval, analysis/ranking, and a ready result. The counter describes
@@ -115,7 +119,7 @@ mocked provider boundaries. Angular tests cover import, forms, progress, retries
 cancellation, cache reuse and presentation. Preparation, generation and saving
 are described in OpenAPI.
 
-### Backend playlist saving
+### Playlist saving
 
 `POST /api/playlist-generator/save` accepts `{ "name": "Playlist name", "trackIds": ["Spotify ID"] }`.
 It requires a Spotify session with `playlist-modify-private`; the token comes only
@@ -128,17 +132,21 @@ Writes are not automatically retried. If adding tracks fails after creation,
 `PLAYLIST_SAVE_INCOMPLETE` includes the existing playlist and confirmed progress
 in `error.details.progress`. An unconfirmed batch may already have been written:
 check the playlist before another save, even when `Retry-After` is provided.
+The UI displays validated progress and a Spotify link for partial failures. It
+does not offer automatic resumption; an acknowledged new save creates another
+playlist. It validates complete confirmations and rejects unsafe or inconsistent
+links and counts before showing success. Connection failures and timeouts warn
+that the playlist may already exist. Leaving the view stops local waiting but
+does not undo a backend write, so wait for its response before navigating away.
 
 ### Scope still planned
 
 Only the Spotify-ID file source is currently available. Saved Spotify tracks and
 user-owned/collaborated playlists are planned sources, not implemented options.
-The planned output is a new private Spotify playlist, not a JSON export. Top N
-and manual track selection are implemented, and the page keeps selected IDs
-in ranking order. The backend and frontend API service can save a selection.
-`PlaylistSaveForm` provides a tested Signal Forms name field and save button, but
-is not yet mounted on the page or connected to the API. Success and partial-failure
-presentation are not implemented yet.
+The output is a new private Spotify playlist, not a JSON export. Top N and manual
+selection, the Signal Forms save form and complete/partial-save presentation are
+implemented. Saving requires a user session with `playlist-modify-private`;
+older sessions may need reconnecting through Spotify login to grant that scope.
 Importing IDs is not an offline mode: the first preparation requires Spotify,
 ReccoBeats and a working backend. The pure generator can be tested separately
 with the synthetic dataset.

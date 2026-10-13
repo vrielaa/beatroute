@@ -15,8 +15,10 @@ import type {
   PlaylistAudioFeatures,
   PlaylistCriteria,
   PlaylistGenerationStage,
+  PlaylistSaveProgress,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
+  SavedPlaylist,
 } from './playlist-generator.models';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
 import { parsePlaylistTrackIdsFile } from './playlist-track-ids.parser';
@@ -24,10 +26,20 @@ import { selectRankedTrackIds } from './playlist-track-selection';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
 import { PlaylistGeneratorResults } from './playlist-generator-results/playlist-generator-results';
 import { PlaylistGenerationProgress } from './playlist-generation-progress/playlist-generation-progress';
+import { PlaylistSaveForm } from './playlist-save-form/playlist-save-form';
+import {
+  getPlaylistSaveErrorMessage,
+  readPartialPlaylistSaveProgress,
+} from './playlist-save-response';
 
 @Component({
   selector: 'app-playlist-generator',
-  imports: [PlaylistCriteriaForm, PlaylistGeneratorResults, PlaylistGenerationProgress],
+  imports: [
+    PlaylistCriteriaForm,
+    PlaylistGeneratorResults,
+    PlaylistGenerationProgress,
+    PlaylistSaveForm,
+  ],
   templateUrl: './playlist-generator.html',
   styleUrl: './playlist-generator.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -45,11 +57,15 @@ class PlaylistGenerator {
   protected readonly importError = signal<string | null>(null);
   protected readonly criteria = signal<PlaylistCriteria | null>(null);
   protected readonly result = signal<GeneratedPlaylist | null>(null);
-  /** Bieżący wybór do przyszłego zapisu; tylko dopuszczone ID w kolejności aktualnego rankingu. */
+  /** Bieżący wybór do zapisu; tylko dopuszczone ID w kolejności aktualnego rankingu. */
   protected readonly selectedTrackIds = signal<string[]>([]);
   protected readonly isGenerating = signal(false);
   protected readonly generationError = signal<string | null>(null);
   protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
+  protected readonly isSaving = signal(false);
+  protected readonly savedPlaylist = signal<SavedPlaylist | null>(null);
+  protected readonly partialSaveProgress = signal<PlaylistSaveProgress | null>(null);
+  protected readonly saveError = signal<string | null>(null);
 
   protected readonly canGenerate = computed(
     () =>
@@ -57,7 +73,8 @@ class PlaylistGenerator {
       (this.dataset() === null || (this.dataset()?.tracks.length ?? 0) > 0) &&
       this.criteria() !== null &&
       !this.isReadingFile() &&
-      !this.isGenerating()
+      !this.isGenerating() &&
+      !this.isSaving()
   );
 
   protected readonly featureLabels: Record<keyof PlaylistAudioFeatures, string> = {
@@ -71,8 +88,15 @@ class PlaylistGenerator {
     liveness: 'Wykonanie na żywo',
   };
 
-  /** Zapisuje kryteria i usuwa wynik, wybór, błąd oraz żądanie dla poprzednich ustawień. */
+  /**
+   * Zapisuje kryteria i czyści wynik, wybór, błędy oraz lokalne potwierdzenie poprzedniego zapisu.
+   * Ignoruje zmiany podczas zapisu w Spotify, aby zachować jego wynik i żądanie.
+   */
   protected updateCriteria(criteria: PlaylistCriteria | null): void {
+    if (this.isSaving()) {
+      return;
+    }
+
     this.clearGeneration();
     this.criteria.set(criteria);
   }
@@ -85,8 +109,68 @@ class PlaylistGenerator {
    * @param trackIds - Zaznaczone ID; pusta tablica oznacza brak wyboru lub niepoprawne N.
    */
   protected updateSelectedTrackIds(trackIds: string[]): void {
+    if (this.isSaving()) {
+      return;
+    }
+
     const result = this.result();
     this.selectedTrackIds.set(result ? selectRankedTrackIds(result, trackIds) : []);
+  }
+
+  /**
+   * Zapisuje kopię bieżącego wyboru dopiero po zgłoszeniu nazwy przez formularz.
+   * Blokuje brak wyniku, pusty wybór, niepoprawną nazwę, trwający zapis i ponowienie
+   * po otrzymaniu danych istniejącej playlisty. Nie pobiera danych i nie zmienia rankingu.
+   * Zachowuje sukces albo bezpieczny komunikat błędu wraz ze sprawdzonym postępem.
+   * Podczas zapisu nie pozwala usunąć wyniku ani anulować żądania zmianą ustawień.
+   * Zniszczenie widoku kończy oczekiwanie, ale nie cofa operacji rozpoczętej w backendzie.
+   *
+   * @param name - Nazwa zgłoszona przez formularz; wysyłana po przycięciu.
+   */
+  protected savePlaylist(name: string): void {
+    const playlistName = name.trim();
+    const trackIds = [...this.selectedTrackIds()];
+
+    if (
+      this.isSaving() ||
+      this.isGenerating() ||
+      this.isReadingFile() ||
+      !this.result() ||
+      trackIds.length === 0 ||
+      trackIds.length > 500 ||
+      !playlistName ||
+      playlistName.length > 100 ||
+      this.savedPlaylist() ||
+      this.partialSaveProgress()
+    ) {
+      return;
+    }
+
+    this.clearSaveResult();
+    this.isSaving.set(true);
+    this.playlistGeneratorApi
+      .savePlaylist({ name: playlistName, trackIds })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSaving.set(false))
+      )
+      .subscribe({
+        next: (saved) => this.savedPlaylist.set(saved),
+        error: (error: unknown) => {
+          const progress = readPartialPlaylistSaveProgress(error);
+          this.partialSaveProgress.set(
+            progress?.requestedTrackCount === trackIds.length ? progress : null
+          );
+          this.saveError.set(getPlaylistSaveErrorMessage(error));
+        },
+      });
+  }
+
+  /** Czyści potwierdzenie po świadomej decyzji o nowym zapisie, bez żądania HTTP i zmian w Spotify. */
+  protected startNewSave(): void {
+    if (!this.isSaving()) {
+      this.clearSaveResult();
+    }
   }
 
   /**
@@ -152,8 +236,8 @@ class PlaylistGenerator {
 
   /**
    * Odczytuje plik z ID i sprawdza go lokalnie, bez wywołań API ani generowania.
-   * Anulowanie wyboru nie zmienia stanu; podczas odczytu kolejne importy są
-   * pomijane. Rozpoczęcie importu usuwa poprzedni zbiór, nazwę, kryteria i błędy,
+   * Anulowanie wyboru nie zmienia stanu; podczas odczytu lub zapisu w Spotify
+   * kolejne importy są pomijane. Rozpoczęcie importu usuwa poprzedni zbiór, nazwę, kryteria i błędy,
    * czyści wynik generowania i wybór utworów oraz anuluje jego trwające żądanie.
    * Błędy odczytu, składni JSON-a oraz struktury danych są wyświetlane osobno.
    * Po zakończeniu czyści input, umożliwiając ponowny wybór tego samego pliku.
@@ -166,7 +250,7 @@ class PlaylistGenerator {
   protected async importDataset(event: Event): Promise<void> {
     const input = event.target;
 
-    if (!(input instanceof HTMLInputElement) || this.isReadingFile()) {
+    if (!(input instanceof HTMLInputElement) || this.isReadingFile() || this.isSaving()) {
       return;
     }
 
@@ -216,7 +300,7 @@ class PlaylistGenerator {
     }
   }
 
-  /** Anuluje żądanie generatora i czyści wynik, wybór utworów, komunikat oraz stan oczekiwania. */
+  /** Anuluje generowanie i czyści wynik, wybór oraz lokalne komunikaty, także poprzedniego zapisu. */
   private clearGeneration(): void {
     this.generationSubscription?.unsubscribe();
     this.generationSubscription = null;
@@ -225,6 +309,14 @@ class PlaylistGenerator {
     this.generationError.set(null);
     this.isGenerating.set(false);
     this.generationStage.set(null);
+    this.clearSaveResult();
+  }
+
+  /** Usuwa tylko lokalny wynik zapisu; nie usuwa ani nie modyfikuje playlisty w Spotify. */
+  private clearSaveResult(): void {
+    this.savedPlaylist.set(null);
+    this.partialSaveProgress.set(null);
+    this.saveError.set(null);
   }
 }
 

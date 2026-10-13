@@ -21,7 +21,7 @@
       hidden
       accept=".json,application/json"
       aria-describedby="playlist-dataset-format"
-      [disabled]="isReadingFile()"
+      [disabled]="isReadingFile() || isSaving()"
       (change)="importDataset($event)"
     />
     <div class="dataset-file-picker">
@@ -29,7 +29,7 @@
         id="playlist-choose-file"
         type="button"
         aria-describedby="playlist-selected-file playlist-dataset-format"
-        [disabled]="isReadingFile()"
+        [disabled]="isReadingFile() || isSaving()"
         (click)="datasetFileInput.click()"
       >
         {{ fileName() ? 'Zmień plik' : 'Wybierz plik' }}
@@ -117,7 +117,9 @@
 
 <!-- Śledzenie pliku odtwarza formularz po jego zmianie, nie po pobraniu danych. -->
 @for (importedFile of trackIdsFile() ? [trackIdsFile()] : []; track importedFile) {
-  <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
+  <fieldset class="playlist-control-lock" [disabled]="isSaving()" aria-label="Kryteria playlisty">
+    <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
+  </fieldset>
 }
 
 <section
@@ -147,9 +149,76 @@
   @if (generationError(); as error) {
     <p class="generation-error" role="alert">{{ error }}</p>
   } @else if (result(); as generatedPlaylist) {
-    <app-playlist-generator-results
-      [result]="generatedPlaylist"
-      (selectedTrackIdsChange)="updateSelectedTrackIds($event)"
-    />
+    <fieldset
+      class="playlist-control-lock"
+      [disabled]="isSaving()"
+      aria-label="Wyniki i wybór utworów"
+    >
+      <app-playlist-generator-results
+        [result]="generatedPlaylist"
+        (selectedTrackIdsChange)="updateSelectedTrackIds($event)"
+      />
+    </fieldset>
+
+    @if (generatedPlaylist.rankedTracks.length > 0) {
+      <section class="playlist-save" aria-label="Zapis playlisty" [attr.aria-busy]="isSaving()">
+        @if (!savedPlaylist() && !partialSaveProgress()) {
+          <app-playlist-save-form
+            [selectedTrackCount]="selectedTrackIds().length"
+            [isSaving]="isSaving()"
+            (saveRequested)="savePlaylist($event)"
+          />
+        }
+
+        @if (isSaving()) {
+          <p class="save-status" role="status">
+            Tworzenie prywatnej playlisty i dodawanie wybranych utworów… Nie zamykaj tego widoku do
+            otrzymania odpowiedzi.
+          </p>
+        }
+
+        @if (savedPlaylist(); as saved) {
+          <div class="save-success" role="status">
+            <h2>Playlista zapisana</h2>
+            <p>
+              <strong>{{ saved.name }}</strong> — potwierdzono dodanie
+              {{ saved.trackCount }} utworów.
+            </p>
+            <a [href]="saved.spotifyUrl" target="_blank" rel="noopener noreferrer"
+              >Otwórz playlistę w Spotify</a
+            >
+          </div>
+          <button class="save-new" type="button" (click)="startNewSave()">
+            Utwórz kolejną playlistę
+          </button>
+        }
+
+        @if (saveError(); as error) {
+          <p class="save-error" role="alert">{{ error }}</p>
+        }
+
+        @if (partialSaveProgress(); as progress) {
+          <div class="save-partial">
+            <h2>Zapis wymaga sprawdzenia</h2>
+            <p>
+              <strong>{{ progress.name }}</strong> — potwierdzono
+              {{ progress.confirmedTrackCount }} z {{ progress.requestedTrackCount }} wybranych
+              utworów.
+            </p>
+            <p>
+              Niepotwierdzona partia mogła również zostać zapisana. Nie usuwamy istniejącej
+              playlisty i nie ponawiamy zapisu automatycznie.
+            </p>
+            <a [href]="progress.spotifyUrl" target="_blank" rel="noopener noreferrer"
+              >Sprawdź playlistę w Spotify</a
+            >
+          </div>
+          <button class="save-new" type="button" (click)="startNewSave()">
+            Sprawdzono playlistę — rozpocznij nowy zapis
+          </button>
+          <p class="save-hint">Nowy zapis utworzy kolejną playlistę, nie uzupełni istniejącej.</p>
+        }
+      </section>
+    }
   }
 </section>
