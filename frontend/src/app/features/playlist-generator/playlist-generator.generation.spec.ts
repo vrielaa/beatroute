@@ -178,6 +178,48 @@ describe('PlaylistGenerator generation', () => {
     expect(getGenerateButton().disabled).toBe(false);
   });
 
+  it('changes the track count and mode locally without preparing or generating again', async () => {
+    await importDataset();
+    generate();
+    const response: GeneratedPlaylist = {
+      rankedTracks: createDataset().tracks.map((track) => ({
+        track,
+        overallMatch: null,
+        featureMatches: [],
+      })),
+      rejectedTracks: [],
+    };
+    http.expectOne('/api/playlist-generator/generate').flush(response);
+    fixture.detectChanges();
+
+    const countInput: HTMLInputElement | null = fixture.nativeElement.querySelector(
+      '#playlist-top-track-count'
+    );
+    const modeButtons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.selection-modes button')
+    );
+    const manualMode = modeButtons.find((button) => button.textContent.trim() === 'Ręcznie');
+
+    if (!countInput || !manualMode) {
+      throw new Error('Nie znaleziono kontrolek wyboru utworów.');
+    }
+
+    countInput.value = '1';
+    countInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(getResultText('.selection-count')).toBe('Wybrano 1 ze 2.');
+
+    manualMode.click();
+    fixture.detectChanges();
+
+    expect(countInput.disabled).toBe(true);
+    expect(getResultText('.selection-count')).toBe('Wybrano 1 ze 2.');
+    expect(getResultElements('app-playlist-ranked-track')).toHaveLength(2);
+    expect(getGenerateButton().disabled).toBe(false);
+    http.expectNone(() => true);
+  });
+
   it('displays zero preference match as an accepted track, preserving the returned ranking', async () => {
     const dataset = createDataset();
     dataset.tracks[0].audioFeatures.energy = 0.801;

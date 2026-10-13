@@ -27,6 +27,65 @@
       Żaden utwór nie spełnia aktywnych wymagań. Możesz zmienić kryteria i spróbować ponownie.
     </p>
   } @else {
+    <fieldset class="playlist-selection">
+      <legend>Wybór utworów do playlisty</legend>
+
+      <div class="selection-modes" role="group" aria-label="Sposób wyboru utworów">
+        <button
+          type="button"
+          [attr.aria-pressed]="form.mode().value() === 'top'"
+          (click)="changeSelectionMode('top')"
+        >
+          Top N
+        </button>
+        <button
+          type="button"
+          [attr.aria-pressed]="form.mode().value() === 'manual'"
+          (click)="changeSelectionMode('manual')"
+        >
+          Ręcznie
+        </button>
+      </div>
+
+      <div class="selection-count-field">
+        <label for="playlist-top-track-count">Liczba pierwszych utworów (N)</label>
+        <input
+          id="playlist-top-track-count"
+          type="number"
+          step="1"
+          [formField]="form.topTrackCount"
+          [attr.aria-invalid]="isTrackCountErrorVisible()"
+          [attr.aria-describedby]="
+            isTrackCountErrorVisible()
+              ? 'playlist-track-count-hint playlist-track-count-error'
+              : 'playlist-track-count-hint'
+          "
+        />
+        <p id="playlist-track-count-hint" class="selection-hint">
+          Top N wybiera pierwsze pozycje rankingu. Pełny ranking i oceny pozostają bez zmian. W
+          trybie ręcznym pole N jest nieaktywne.
+        </p>
+        @if (isTrackCountErrorVisible()) {
+          <div id="playlist-track-count-error" class="selection-error" role="alert">
+            @for (error of form.topTrackCount().errors(); track error.kind) {
+              <p>{{ error.message }}</p>
+            }
+          </div>
+        }
+      </div>
+
+      <p class="selection-count" role="status">
+        Wybrano {{ selectedTrackIds().length }} ze {{ result().rankedTracks.length }}.
+      </p>
+
+      @if (form.mode().value() === 'manual') {
+        <p class="manual-selection-hint selection-hint">
+          Zachowano bieżący wybór. Checkboxy do zmiany pojedynczych zaznaczeń zostaną dodane w
+          kolejnym etapie.
+        </p>
+      }
+    </fieldset>
+
     <ol class="playlist-ranking" aria-label="Ranking dopuszczonych utworów">
       @for (evaluation of result().rankedTracks; track evaluation.track.id; let index = $index) {
         <li>

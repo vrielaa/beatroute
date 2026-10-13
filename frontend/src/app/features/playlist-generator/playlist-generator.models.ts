@@ -280,6 +280,19 @@ type GeneratedPlaylist = {
 type PlaylistSelectionMode = 'top' | 'manual';
 
 /**
+ * Edytowane wartości formularza wyboru utworów z gotowego rankingu.
+ * Nie są częścią kryteriów generatora ani pliku wejściowego.
+ *
+ * @property mode - Automatyczny wybór pierwszych N pozycji albo wybór ręczny.
+ * @property topTrackCount - Liczba pierwszych pozycji albo null dla pustego pola;
+ * wymaga walidacji w trybie top, a w trybie manual jest zachowana, ale nieaktywna.
+ */
+type PlaylistSelectionFormValues = {
+  mode: PlaylistSelectionMode;
+  topTrackCount: number | null;
+};
+
+/**
  * Body żądania POST /api/playlist-generator/generate.
  * Nie zawiera tokenów dostawców; generator analizuje przesłane pomiary.
  *
@@ -314,5 +327,6 @@ export type {
   RejectedPlaylistTrack,
   GeneratedPlaylist,
   PlaylistSelectionMode,
+  PlaylistSelectionFormValues,
   PlaylistGeneratorRequest,
 };

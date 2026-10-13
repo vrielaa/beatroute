@@ -32,5 +32,11 @@ form, progress card and result components. Import, preparation/progress and
 generation have separate page-level test files. The progress card presents
 actual API stages; it does not estimate processed tracks or advance on a timer.
 
+Results include a Signal Forms count field and Top N/manual mode buttons. Top N
+selects the first N accepted tracks without changing or requesting the ranking.
+The counter excludes rejected tracks. A new result restores Top N with all accepted
+tracks selected. Manual mode currently preserves that selection and disables N;
+individual checkboxes and saving a Spotify playlist are subsequent steps.
+
 The initial preparation requires a Spotify session and external APIs. The full
 synthetic dataset is an internal backend example, not a supported UI import.

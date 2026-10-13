@@ -19,8 +19,71 @@
 }
 
 .results-explanation,
-.score-explanation {
+.score-explanation,
+.selection-hint {
   color: var(--color-text-secondary);
+}
+
+.playlist-selection,
+.selection-count-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.playlist-selection {
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.playlist-selection legend,
+.selection-count {
+  font-weight: var(--font-weight-semibold);
+}
+
+.selection-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.selection-modes button,
+.selection-count-field input {
+  padding: 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.selection-modes button {
+  cursor: pointer;
+}
+
+.selection-modes button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-surface-secondary);
+}
+
+.selection-count-field input {
+  width: min(100%, 12rem);
+  min-width: 0;
+}
+
+.selection-count-field input:disabled {
+  opacity: 0.5;
+}
+
+.selection-modes button:focus-visible,
+.selection-count-field input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.selection-error {
+  color: var(--color-danger);
 }
 
 .playlist-ranking {
