@@ -118,7 +118,7 @@ describe("parsePlaylistGeneratorPreferences", () => {
     const preferences = {
       ...createPreferences(),
       tempo: "high",
-      requirements: { tempoRange: { min: 120, max: 140 } },
+      requirements: { targetBpm: null, tempoRange: { min: 120, max: 140 } },
       unused: true,
     };
 

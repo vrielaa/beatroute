@@ -232,7 +232,7 @@ Preferencje odpowiadają na pytanie: „Który z dopuszczonych utworów pasuje b
 
 | Cecha            | Ustawienie                               | Działanie                        |
 | ---------------- | ---------------------------------------- | -------------------------------- |
-| tempo            | Liczbowy zakres BPM                      | Obowiązkowy filtr, jeśli aktywny |
+| tempo            | Zakres BPM albo konkretne BPM           | Obowiązkowy filtr, jeśli aktywny |
 | speechiness      | Opcjonalna maksymalna wartość            | Obowiązkowy filtr, jeśli aktywny |
 | liveness         | Opcjonalna maksymalna wartość            | Obowiązkowy filtr, jeśli aktywny |
 | energy           | Niska / średnia / wysoka / bez znaczenia | Preferencja rozmyta              |
@@ -242,6 +242,10 @@ Preferencje odpowiadają na pytanie: „Który z dopuszczonych utworów pasuje b
 | instrumentalness | Niska / średnia / wysoka / bez znaczenia | Preferencja rozmyta              |
 
 - Utwór musi spełnić wszystkie aktywne wymagania. Granice zakresów są włączone.
+- Ograniczenie BPM ma dwa wzajemnie wykluczające się tryby: zakres albo konkretne BPM.
+  Zakres używa oryginalnego pomiaru. Konkretne BPM porównuje wynik `Math.round(tempo)`:
+  część ułamkowa poniżej 0,5 jest zaokrąglana w dół, a od 0,5 w górę.
+  Pomiar 127,947 pasuje do 128 BPM, ale 128,5 już nie. Nie zmieniamy pomiaru w zbiorze.
 - Brak pomiaru potrzebnego do obowiązkowego wymagania uniemożliwia jego spełnienie.
 - Preferencje określają kolejność dopuszczonych utworów; same ich nie odrzucają.
 - „Bez znaczenia” wyłącza wpływ danej preferencji na ranking.
@@ -264,22 +268,41 @@ opisuje warunki filtrowania. Typ `TempoRange` opisuje dwie granice BPM:
 ```json
 {
   "tempoRange": { "min": 120, "max": 140 },
+  "targetBpm": null,
   "maxSpeechiness": 0.33,
   "maxLiveness": null
 }
 ```
 
 W tym przykładzie dopuszczamy BPM 120–140 i speechiness nie większe niż 0,33.
-Nie ograniczamy liveness. Wszystkie trzy pola muszą istnieć w znormalizowanym
+Nie ograniczamy liveness. Wszystkie cztery pola muszą istnieć w znormalizowanym
 modelu; null wyłącza warunek. Granice BPM są dodatnie i skończone, a minimum
 nie może przekraczać maksimum. Maksima speechiness i liveness należą do zakresu
 0–1. Ich granice są włączone; zero jest aktywnym ograniczeniem, nie wyłączeniem.
 Przy wszystkich warunkach ustawionych na null wymagania nie odrzucają utworów.
 
+Alternatywnie użytkownik może wybrać konkretne BPM:
+
+```json
+{
+  "tempoRange": null,
+  "targetBpm": 128,
+  "maxSpeechiness": 0.33,
+  "maxLiveness": null
+}
+```
+
+`targetBpm` musi być dodatnią liczbą całkowitą albo null. Nie zaokrąglamy wyboru
+użytkownika — zaokrąglenie dotyczy wyłącznie porównywanego pomiaru utworu.
+Walidator odrzuca jednocześnie aktywne `tempoRange` i `targetBpm`.
+W formularzu checkbox włącza ograniczenie, a dwusegmentowy przełącznik wybiera tryb.
+Pola nieaktywnego trybu zachowują wpisane wartości, ale nie blokują poprawności
+formularza i są wysyłane jako null. Wyłączenie checkboxa wyłącza oba ograniczenia.
+
 To osobny model, nie część pliku z utworami ani model preferencji rozmytych.
 Wymagania sprawdza funkcja `parsePlaylistGeneratorRequirements` w
 `backend/src/http/routes/playlist-generator/requirements.validator.ts`, pokryta
-testami w sąsiednim pliku. Wymaga obecności wszystkich trzech pól, odrzuca
+testami w sąsiednim pliku. Wymaga obecności wszystkich czterech pól, odrzuca
 niepoprawne wartości i zwraca nowy obiekt bez dodatkowych pól wejściowych.
 Sam walidator nie ocenia utworów. Jest podłączony do endpointu generatora,
 a wymagania użytkownik wybiera w formularzu frontendu.
@@ -300,6 +323,7 @@ Kody przyczyn mają następujące znaczenie:
 | ------------------- | ---------------------------- | --------------------------------------------- |
 | missing-measurement | tempo, speechiness, liveness | Brak pomiaru potrzebnego do aktywnego warunku |
 | outside-range       | tempo                        | Tempo poniżej minimum lub powyżej maksimum    |
+| tempo-mismatch      | tempo                        | Tempo po zaokrągleniu różni się od wybranego BPM |
 | above-maximum       | speechiness, liveness        | Pomiar większy niż ustawione maksimum         |
 
 Przykładowa przyczyna: `{ "feature": "tempo", "code": "outside-range" }`.

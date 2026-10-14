@@ -28,7 +28,7 @@ class PlaylistRejectedTracks {
    * Wybiera opis odrzucenia według kodu przyczyny i cechy wskazanej przez backend.
    * Nie podaje granic liczbowych, ponieważ powód odrzucenia nie zawiera kryteriów użytkownika.
    *
-   * @param reason - Brak pomiaru, tempo poza zakresem albo przekroczone maksimum speechiness lub liveness.
+   * @param reason - Brak pomiaru, niespełnione ograniczenie BPM albo przekroczone maksimum speechiness lub liveness.
    * @returns Komunikat przeznaczony do wyświetlenia w liście powodów odrzucenia.
    */
   protected getRejectionReasonMessage(reason: PlaylistTrackRejectionReason): string {
@@ -37,6 +37,8 @@ class PlaylistRejectedTracks {
         return `Brak pomiaru cechy „${this.featureLabels[reason.feature]}”.`;
       case 'outside-range':
         return 'Tempo (BPM) jest poza wybranym zakresem.';
+      case 'tempo-mismatch':
+        return 'Tempo po zaokrągleniu nie odpowiada wybranemu BPM.';
       case 'above-maximum':
         return `Pomiar cechy „${this.featureLabels[reason.feature]}” przekracza ustawione maksimum.`;
     }

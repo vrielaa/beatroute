@@ -354,7 +354,12 @@ describe('PlaylistGeneratorApiService', () => {
 
   it('preserves disabled requirements and preferences as explicit null values', () => {
     const body = createRequest();
-    body.requirements = { tempoRange: null, maxSpeechiness: null, maxLiveness: null };
+    body.requirements = {
+      targetBpm: null,
+      tempoRange: null,
+      maxSpeechiness: null,
+      maxLiveness: null,
+    };
     body.preferences = {
       energy: null,
       danceability: null,
@@ -368,6 +373,34 @@ describe('PlaylistGeneratorApiService', () => {
     const request = http.expectOne('/api/playlist-generator/generate');
     expect(request.request.body).toEqual(body);
     request.flush({ rankedTracks: [], rejectedTracks: [] });
+  });
+
+  it('sends target BPM and a null range without changing the criteria or returned reasons', () => {
+    const body = createRequest();
+    body.requirements = {
+      tempoRange: null,
+      targetBpm: 128,
+      maxSpeechiness: null,
+      maxLiveness: null,
+    };
+    const response: GeneratedPlaylist = {
+      rankedTracks: [],
+      rejectedTracks: [
+        {
+          track: body.dataset.tracks[0],
+          reasons: [{ feature: 'tempo', code: 'tempo-mismatch' }],
+        },
+      ],
+    };
+    const next = vi.fn();
+
+    service.generatePlaylist(body).subscribe(next);
+
+    const request = http.expectOne('/api/playlist-generator/generate');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.requirements).toEqual(body.requirements);
+    request.flush(response);
+    expect(next).toHaveBeenCalledExactlyOnceWith(response);
   });
 
   it('treats an empty ranking as a successful result', () => {
@@ -476,6 +509,7 @@ function createRequest(): PlaylistGeneratorRequest {
       ],
     },
     requirements: {
+      targetBpm: null,
       tempoRange: { min: 120, max: 140 },
       maxSpeechiness: 0.33,
       maxLiveness: null,

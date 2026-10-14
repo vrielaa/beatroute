@@ -94,7 +94,12 @@ describe('PlaylistGenerator generation', () => {
     expect(request.request.withCredentials).toBe(true);
     expect(request.request.body).toEqual({
       dataset,
-      requirements: { tempoRange: { min: 120, max: 140 }, maxSpeechiness: null, maxLiveness: null },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 120, max: 140 },
+        maxSpeechiness: null,
+        maxLiveness: null,
+      },
       preferences: {
         energy: 'high',
         danceability: null,
@@ -104,6 +109,50 @@ describe('PlaylistGenerator generation', () => {
       },
     });
     request.flush(createResult());
+  });
+
+  it('sends the target BPM without a range and reuses the dataset after switching modes', async () => {
+    await importDataset();
+    setTempoRange('120', '140');
+    generate();
+    http.expectOne('/api/playlist-generator/generate').flush(createResult());
+    fixture.detectChanges();
+    const buttons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.tempo-mode-switch button')
+    );
+    const targetButton = buttons.find((button) => button.textContent?.trim() === 'Konkretne BPM');
+    if (!targetButton) throw new Error('Nie znaleziono trybu konkretnego BPM');
+    targetButton.click();
+    fixture.detectChanges();
+    expect(getGenerateButton().disabled).toBe(true);
+    const input = getInput('playlist-target-bpm');
+    input.value = '128';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    http.expectNone(() => true);
+
+    generate();
+
+    const analysis = http.expectOne('/api/playlist-generator/generate');
+    expect(analysis.request.body.requirements).toEqual({
+      tempoRange: null,
+      targetBpm: 128,
+      maxSpeechiness: null,
+      maxLiveness: null,
+    });
+    http.expectNone('/api/playlist-generator/prepare-dataset');
+    const rejected = sourceDataset.tracks[1];
+    analysis.flush({
+      rankedTracks: [],
+      rejectedTracks: [
+        {
+          track: rejected,
+          reasons: [{ feature: 'tempo', code: 'tempo-mismatch' }],
+        },
+      ],
+    });
+    fixture.detectChanges();
+    expect(getText()).toContain('Tempo po zaokrągleniu nie odpowiada wybranemu BPM.');
   });
 
   it('shows loading and blocks a second generation while the request is pending', async () => {
@@ -466,7 +515,12 @@ describe('PlaylistGenerator generation', () => {
     expect(nextRequest.request.body.dataset).toBe(importedDataset);
     expect(nextRequest.request.body).toEqual({
       dataset,
-      requirements: { tempoRange: { min: 125, max: 135 }, maxSpeechiness: null, maxLiveness: null },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 125, max: 135 },
+        maxSpeechiness: null,
+        maxLiveness: null,
+      },
       preferences: {
         energy: 'low',
         danceability: null,
@@ -596,6 +650,7 @@ describe('PlaylistGenerator generation', () => {
     generate();
     const request = http.expectOne('/api/playlist-generator/generate');
     expect(request.request.body.requirements).toEqual({
+      targetBpm: null,
       tempoRange: null,
       maxSpeechiness: null,
       maxLiveness: null,

@@ -275,6 +275,7 @@ describe("playlist generator OpenAPI contract", () => {
   it("requires explicit requirements and five nullable preference levels", () => {
     expect(schemas.PlaylistRequirements.required).toEqual([
       "tempoRange",
+      "targetBpm",
       "maxSpeechiness",
       "maxLiveness",
     ]);
@@ -295,6 +296,27 @@ describe("playlist generator OpenAPI contract", () => {
       "high",
       null,
     ]);
+  });
+
+  it("documents target BPM rounding and forbids simultaneous BPM constraints", () => {
+    expect(schemas.PlaylistRequirements.properties.targetBpm.type).toEqual([
+      "integer",
+      "null",
+    ]);
+    expect(schemas.PlaylistRequirements.properties.targetBpm.minimum).toBe(1);
+    expect(schemas.PlaylistRequirements.description).toContain(
+      "Math.round(tempo)"
+    );
+    expect(schemas.PlaylistRequirements.not).toEqual({
+      properties: {
+        tempoRange: { type: "object" },
+        targetBpm: { type: "integer" },
+      },
+      required: ["tempoRange", "targetBpm"],
+    });
+    expect(
+      schemas.PlaylistTrackRejectionReason.oneOf[1].properties.code.enum
+    ).toEqual(["outside-range", "tempo-mismatch"]);
   });
 
   it("documents successful and error responses using the actual response groups", () => {

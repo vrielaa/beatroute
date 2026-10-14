@@ -9,6 +9,44 @@ import type {
 } from "./types.js";
 
 describe("generatePlaylist", () => {
+  it("filters rounded target BPM before ranking and preserves all original measurements", () => {
+    const accepted = createTrack("accepted", { tempo: 127.947, energy: 0.25 });
+    const rejected = createTrack("perfect-match-but-wrong-bpm", {
+      tempo: 128.5,
+      energy: 0.9,
+    });
+    const missing = createTrack("missing-tempo", { tempo: null, energy: 0.9 });
+    const dataset = createDataset([rejected, missing, accepted]);
+    const original = structuredClone(dataset);
+
+    const result = generatePlaylist(
+      dataset,
+      createRequirements({ tempoRange: null, targetBpm: 128 }),
+      createPreferences()
+    );
+
+    expect(result.rankedTracks).toEqual([
+      {
+        track: accepted,
+        overallMatch: 0,
+        featureMatches: [
+          { feature: "energy", level: "high", measurement: 0.25, match: 0 },
+        ],
+      },
+    ]);
+    expect(result.rejectedTracks).toEqual([
+      {
+        track: rejected,
+        reasons: [{ feature: "tempo", code: "tempo-mismatch" }],
+      },
+      {
+        track: missing,
+        reasons: [{ feature: "tempo", code: "missing-measurement" }],
+      },
+    ]);
+    expect(dataset).toEqual(original);
+  });
+
   it.each([
     { feature: "tempo", audioFeatures: { tempo: 110 }, code: "outside-range" },
     {
@@ -220,6 +258,7 @@ describe("generatePlaylist", () => {
       energy: null,
     });
     const requirements = createRequirements({
+      targetBpm: null,
       tempoRange: null,
       maxSpeechiness: null,
       maxLiveness: null,
@@ -381,6 +420,7 @@ function createRequirements(
   overrides: Partial<PlaylistRequirements> = {}
 ): PlaylistRequirements {
   return {
+    targetBpm: null,
     tempoRange: { min: 120, max: 140 },
     maxSpeechiness: 0.33,
     maxLiveness: 0.8,

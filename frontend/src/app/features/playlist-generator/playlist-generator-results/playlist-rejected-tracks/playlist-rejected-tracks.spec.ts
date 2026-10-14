@@ -49,6 +49,10 @@ describe('PlaylistRejectedTracks', () => {
       message: 'Tempo (BPM) jest poza wybranym zakresem.',
     },
     {
+      reason: { feature: 'tempo', code: 'tempo-mismatch' },
+      message: 'Tempo po zaokrągleniu nie odpowiada wybranemu BPM.',
+    },
+    {
       reason: { feature: 'speechiness', code: 'above-maximum' },
       message: 'Pomiar cechy „udział mowy (speechiness)” przekracza ustawione maksimum.',
     },

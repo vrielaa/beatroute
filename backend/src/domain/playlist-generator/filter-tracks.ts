@@ -8,7 +8,7 @@ import type {
 
 /**
  * Zbiera wszystkie przyczyny niespełnienia aktywnych wymagań przez jeden utwór.
- * Wyłączone warunki pomija, a brak pomiaru rozróżnia od przekroczenia granic.
+ * Wyłączone warunki pomija, a brak pomiaru rozróżnia od niespełnienia ograniczenia.
  * Pusta lista oznacza, że utwór spełnia wymagania.
  */
 function getTrackRejectionReasons(
@@ -26,6 +26,16 @@ function getTrackRejectionReasons(
       tempo > requirements.tempoRange.max
     ) {
       reasons.push({ feature: "tempo", code: "outside-range" });
+    }
+  }
+
+  if (requirements.targetBpm !== null) {
+    const tempo = track.audioFeatures.tempo;
+
+    if (tempo === null) {
+      reasons.push({ feature: "tempo", code: "missing-measurement" });
+    } else if (Math.round(tempo) !== requirements.targetBpm) {
+      reasons.push({ feature: "tempo", code: "tempo-mismatch" });
     }
   }
 
@@ -52,8 +62,10 @@ function getTrackRejectionReasons(
 
 /**
  * Dzieli wcześniej zwalidowane utwory na dopuszczone i odrzucone.
- * Każdy utwór musi spełnić wszystkie aktywne wymagania. Granice są włączone,
+ * Każdy utwór musi spełnić wszystkie aktywne wymagania. Granice zakresu są włączone,
  * null w wymaganiach wyłącza warunek, a zero pozostaje aktywnym maksimum.
+ * Konkretne BPM porównuje po Math.round: ułamki poniżej 0,5 w dół, od 0,5 w górę.
+ * Oryginalnych pomiarów nie zaokrągla ani nie zmienia. Zakres działa na surowym pomiarze.
  * Nie zmienia danych wejściowych, zachowuje kolejność w obu grupach i nie
  * wykonuje rankingu ani wywołań API. Zwracane utwory są referencjami wejściowymi.
  *

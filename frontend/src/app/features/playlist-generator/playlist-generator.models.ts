@@ -151,16 +151,20 @@ type TempoRange = {
  * Obowiązkowe warunki dopuszczenia utworu do wynikowej playlisty.
  * Wszystkie pola są obecne; null wyłącza warunek, a zero jest aktywnym maksimum.
  * Brak pomiaru potrzebnego do aktywnego warunku powoduje odrzucenie utworu.
+ * Zakres i konkretne BPM są alternatywami — najwyżej jedno z nich może być aktywne.
+ * Zakres używa oryginalnego pomiaru, a konkretne BPM pomiaru zaokrąglonego przez Math.round.
  *
  * @property tempoRange - Zakres BPM albo null bez ograniczenia tempa.
+ * @property targetBpm - Dodatnie, całkowite BPM albo null bez tego ograniczenia.
  * @property maxSpeechiness - Maksymalny pomiar udziału mowy w zakresie 0–1 albo null.
  * @property maxLiveness - Maksymalny pomiar prawdopodobieństwa wykonania na żywo w zakresie 0–1 albo null.
  *
  * @example
- * { tempoRange: { min: 120, max: 140 }, maxSpeechiness: 0.33, maxLiveness: null }
+ * { tempoRange: { min: 120, max: 140 }, targetBpm: null, maxSpeechiness: 0.33, maxLiveness: null }
  */
 type PlaylistRequirements = {
   tempoRange: TempoRange | null;
+  targetBpm: number | null;
   maxSpeechiness: number | null;
   maxLiveness: number | null;
 };
@@ -244,6 +248,7 @@ type PlaylistTrackEvaluation = {
  *
  * @property feature - Cecha objęta niespełnionym wymaganiem.
  * @property code - missing-measurement: brak pomiaru; outside-range: tempo poza zakresem;
+ * tempo-mismatch: inne BPM po zaokrągleniu;
  * above-maximum: speechiness lub liveness większe niż dopuszczalne maksimum.
  *
  * @example
@@ -256,7 +261,7 @@ type PlaylistTrackRejectionReason =
     }
   | {
       feature: 'tempo';
-      code: 'outside-range';
+      code: 'outside-range' | 'tempo-mismatch';
     }
   | {
       feature: 'speechiness' | 'liveness';

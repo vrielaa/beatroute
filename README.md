@@ -98,8 +98,16 @@ but does not guarantee that already-started backend/provider work is stopped.
 
 ### Criteria and missing data
 
-- Requirements are an optional inclusive positive BPM range and optional maximum
-  speechiness/liveness values. Every active requirement must be satisfied.
+- BPM is optional and offers two mutually exclusive modes: an inclusive positive
+  range or one positive integer target. The range uses the original measurement.
+  The target compares `Math.round(tempo)`: fractions below 0.5 round down, fractions
+  from 0.5 round up. For example, 127.947 matches 128 BPM, but 128.5 does not.
+  Neither mode changes the stored measurement. The form retains both drafts while
+  sending only the active constraint; disabling BPM sends null for both fields.
+  The backend rejects requests enabling both constraints. All four requirement
+  fields (`tempoRange`, `targetBpm`, `maxSpeechiness`, `maxLiveness`) must be present.
+- Maximum speechiness/liveness values remain optional. Every active requirement
+  must be satisfied.
 - Preferences are energy, danceability, valence, acousticness and instrumentalness,
   each with low/medium/high or no preference. They affect order, not acceptance.
 - Fuzzy matches use equal weights and average only available measurements. A score

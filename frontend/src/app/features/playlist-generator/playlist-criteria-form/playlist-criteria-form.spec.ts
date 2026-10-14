@@ -64,7 +64,12 @@ describe('PlaylistCriteriaForm', () => {
 
     expect(criteriaChange).toHaveBeenLastCalledWith({
       ...createDefaultCriteria(),
-      requirements: { tempoRange: { min: 120, max: 140 }, maxSpeechiness: null, maxLiveness: null },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 120, max: 140 },
+        maxSpeechiness: null,
+        maxLiveness: null,
+      },
     });
   });
 
@@ -76,6 +81,7 @@ describe('PlaylistCriteriaForm', () => {
     expect(criteriaChange).toHaveBeenLastCalledWith({
       ...createDefaultCriteria(),
       requirements: {
+        targetBpm: null,
         tempoRange: { min: 128.5, max: 128.5 },
         maxSpeechiness: null,
         maxLiveness: null,
@@ -113,7 +119,12 @@ describe('PlaylistCriteriaForm', () => {
 
     expect(criteriaChange).toHaveBeenLastCalledWith({
       ...createDefaultCriteria(),
-      requirements: { tempoRange: { min: 140, max: 160 }, maxSpeechiness: null, maxLiveness: null },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 140, max: 160 },
+        maxSpeechiness: null,
+        maxLiveness: null,
+      },
     });
     expect(getText()).not.toContain('Minimum BPM nie może być większe niż maksimum BPM');
   });
@@ -144,7 +155,182 @@ describe('PlaylistCriteriaForm', () => {
     expect(getNumber('tempo-max').value).toBe('140');
     expect(criteriaChange).toHaveBeenLastCalledWith({
       ...createDefaultCriteria(),
-      requirements: { tempoRange: { min: 120, max: 140 }, maxSpeechiness: null, maxLiveness: null },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 120, max: 140 },
+        maxSpeechiness: null,
+        maxLiveness: null,
+      },
+    });
+  });
+
+  describe('BPM modes', () => {
+    it('shows the switch only after enabling BPM and defaults to the existing range mode', () => {
+      expect(fixture.nativeElement.querySelector('.tempo-mode-switch')).toBeNull();
+      setEnabled('tempo', true);
+
+      expect(getModeButton('range').type).toBe('button');
+      expect(getModeButton('range').getAttribute('aria-pressed')).toBe('true');
+      expect(getModeButton('target').getAttribute('aria-pressed')).toBe('false');
+      expect(fixture.nativeElement.querySelector('#playlist-target-bpm')).toBeNull();
+      expect(getNumber('tempo-min').disabled).toBe(false);
+      expect(getNumber('tempo-max').disabled).toBe(false);
+    });
+
+    it('switches to one enabled target input without requiring hidden range boundaries', () => {
+      setEnabled('tempo', true);
+      changeMode('target');
+
+      expect(getModeButton('range').getAttribute('aria-pressed')).toBe('false');
+      expect(getModeButton('target').getAttribute('aria-pressed')).toBe('true');
+      expect(fixture.nativeElement.querySelectorAll('input[type="number"]')).toHaveLength(1);
+      expect(getNumber('target-bpm').disabled).toBe(false);
+      expect(getNumber('target-bpm').getAttribute('step')).toBe('1');
+      expect(getNumber('target-bpm').getAttribute('min')).toBe('1');
+      expect(getNumber('target-bpm').closest('.tempo-target-field')).not.toBeNull();
+      expect(fixture.componentInstance['form'].tempoMin().disabled()).toBe(true);
+      expect(fixture.componentInstance['form'].tempoMax().disabled()).toBe(true);
+      expect(criteriaChange).toHaveBeenLastCalledWith(null);
+
+      setNumber('target-bpm', '128');
+
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: { ...createDefaultCriteria().requirements, targetBpm: 128 },
+      });
+      expect(getNumber('target-bpm').hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    it.each(['', '0', '-1', '128.1', '128.5', '1e309'])(
+      'rejects invalid target BPM %j without rounding the choice',
+      (value) => {
+        setEnabled('tempo', true);
+        changeMode('target');
+        setNumber('target-bpm', value);
+        getNumber('target-bpm').dispatchEvent(new Event('blur'));
+        fixture.detectChanges();
+
+        expect(criteriaChange).toHaveBeenLastCalledWith(null);
+        expect(getText()).toContain('Podaj dodatnią liczbę całkowitą dla BPM.');
+        expect(getNumber('target-bpm').getAttribute('aria-invalid')).toBe('true');
+      }
+    );
+
+    it('retains both drafts while sending only the active BPM constraint', () => {
+      setEnabled('tempo', true);
+      setNumber('tempo-min', '120.5');
+      setNumber('tempo-max', '140.25');
+      changeMode('target');
+      setNumber('target-bpm', '128');
+
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: { ...createDefaultCriteria().requirements, targetBpm: 128 },
+      });
+      changeMode('range');
+
+      expect(getNumber('tempo-min').value).toBe('120.5');
+      expect(getNumber('tempo-max').value).toBe('140.25');
+      expect(fixture.componentInstance['form'].targetBpm().disabled()).toBe(true);
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: {
+          ...createDefaultCriteria().requirements,
+          tempoRange: { min: 120.5, max: 140.25 },
+        },
+      });
+      changeMode('target');
+
+      expect(getNumber('target-bpm').value).toBe('128');
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: { ...createDefaultCriteria().requirements, targetBpm: 128 },
+      });
+    });
+
+    it('ignores invalid hidden values and restores their errors when returning to their mode', () => {
+      setEnabled('tempo', true);
+      setNumber('tempo-min', '140');
+      setNumber('tempo-max', '120');
+      expect(criteriaChange).toHaveBeenLastCalledWith(null);
+      changeMode('target');
+      setNumber('target-bpm', '128');
+
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: { ...createDefaultCriteria().requirements, targetBpm: 128 },
+      });
+      expect(getText()).not.toContain('Minimum BPM nie może być większe niż maksimum BPM');
+      changeMode('range');
+      expect(criteriaChange).toHaveBeenLastCalledWith(null);
+      expect(getText()).toContain('Minimum BPM nie może być większe niż maksimum BPM');
+      setNumber('tempo-max', '160');
+      changeMode('target');
+      setNumber('target-bpm', '128.5');
+      expect(criteriaChange).toHaveBeenLastCalledWith(null);
+      changeMode('range');
+
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: {
+          ...createDefaultCriteria().requirements,
+          tempoRange: { min: 140, max: 160 },
+        },
+      });
+      expect(getText()).not.toContain('Podaj dodatnią liczbę całkowitą dla BPM.');
+    });
+
+    it.each(['128', '128.5'])(
+      'disables both BPM constraints and restores target draft %s',
+      (value) => {
+        setEnabled('tempo', true);
+        changeMode('target');
+        setNumber('target-bpm', value);
+        setEnabled('tempo', false);
+
+        expect(criteriaChange).toHaveBeenLastCalledWith(createDefaultCriteria());
+        expect(fixture.nativeElement.querySelector('.tempo-mode-switch')).toBeNull();
+        expect(fixture.nativeElement.querySelector('#playlist-target-bpm')).toBeNull();
+        expect(fixture.componentInstance['form'].targetBpm().disabled()).toBe(true);
+        setEnabled('tempo', true);
+
+        expect(getNumber('target-bpm').value).toBe(value);
+        expect(getModeButton('target').getAttribute('aria-pressed')).toBe('true');
+        expect(criteriaChange).toHaveBeenLastCalledWith(
+          value === '128'
+            ? {
+                ...createDefaultCriteria(),
+                requirements: { ...createDefaultCriteria().requirements, targetBpm: 128 },
+              }
+            : null
+        );
+      }
+    );
+
+    it('does not emit new criteria when the active switch segment is clicked again', () => {
+      setEnabled('tempo', true);
+      setNumber('tempo-min', '120');
+      setNumber('tempo-max', '140');
+      criteriaChange.mockClear();
+
+      changeMode('range');
+
+      expect(criteriaChange).not.toHaveBeenCalled();
+    });
+
+    it('keeps the target mode independent from other requirements and preferences', () => {
+      setEnabled('tempo', true);
+      changeMode('target');
+      setNumber('target-bpm', '128');
+      setEnabled('speechiness', true);
+      setNumber('max-speechiness', '0');
+      setPreference('energy', 'Wysoka');
+
+      expect(criteriaChange).toHaveBeenLastCalledWith({
+        ...createDefaultCriteria(),
+        requirements: { tempoRange: null, targetBpm: 128, maxSpeechiness: 0, maxLiveness: null },
+        preferences: { ...createDefaultCriteria().preferences, energy: 'high' },
+      });
     });
   });
 
@@ -239,7 +425,12 @@ describe('PlaylistCriteriaForm', () => {
     setNumber('max-liveness', '1');
 
     expect(criteriaChange).toHaveBeenLastCalledWith({
-      requirements: { tempoRange: { min: 120, max: 140 }, maxSpeechiness: 0, maxLiveness: 1 },
+      requirements: {
+        targetBpm: null,
+        tempoRange: { min: 120, max: 140 },
+        maxSpeechiness: 0,
+        maxLiveness: 1,
+      },
       preferences: {
         energy: 'high',
         danceability: null,
@@ -260,6 +451,21 @@ describe('PlaylistCriteriaForm', () => {
       preferences: { ...createDefaultCriteria().preferences, danceability: 'low' },
     });
   });
+
+  function getModeButton(mode: 'range' | 'target'): HTMLButtonElement {
+    const label = mode === 'range' ? 'Zakres BPM' : 'Konkretne BPM';
+    const buttons = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('.tempo-mode-switch button')
+    );
+    const button = buttons.find((candidate) => candidate.textContent?.trim() === label);
+    if (!button) throw new Error(`Nie znaleziono przycisku trybu BPM: ${label}`);
+    return button;
+  }
+
+  function changeMode(mode: 'range' | 'target'): void {
+    getModeButton(mode).click();
+    fixture.detectChanges();
+  }
 
   function getText(): string {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
@@ -309,7 +515,7 @@ describe('PlaylistCriteriaForm', () => {
 
 function createDefaultCriteria(): PlaylistCriteria {
   return {
-    requirements: { tempoRange: null, maxSpeechiness: null, maxLiveness: null },
+    requirements: { targetBpm: null, tempoRange: null, maxSpeechiness: null, maxLiveness: null },
     preferences: {
       energy: null,
       danceability: null,

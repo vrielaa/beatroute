@@ -70,16 +70,20 @@ type TempoRange = {
  * Wszystkie pola są obecne; null wyłącza dany warunek. Utwór musi spełnić każdy
  * aktywny warunek. Brak potrzebnego pomiaru uniemożliwia spełnienie warunku.
  * Gdy wszystkie warunki są wyłączone, żaden utwór nie jest odrzucany na ich podstawie.
+ * Zakres i konkretne BPM są alternatywami — najwyżej jedno z nich może być aktywne.
+ * Zakres porównuje oryginalny pomiar, a konkretne BPM pomiar zaokrąglony przez Math.round.
  *
  * @property tempoRange - Dopuszczalny zakres BPM albo null bez ograniczenia tempa.
+ * @property targetBpm - Dodatnie, całkowite BPM albo null bez tego ograniczenia.
  * @property maxSpeechiness - Maksymalny pomiar udziału mowy w skali 0–1 albo null bez ograniczenia.
  * @property maxLiveness - Maksymalny pomiar prawdopodobieństwa wykonania na żywo w skali 0–1 albo null bez ograniczenia.
  *
  * @example
- * { tempoRange: { min: 120, max: 140 }, maxSpeechiness: 0.33, maxLiveness: null }
+ * { tempoRange: { min: 120, max: 140 }, targetBpm: null, maxSpeechiness: 0.33, maxLiveness: null }
  */
 type PlaylistRequirements = {
   tempoRange: TempoRange | null;
+  targetBpm: number | null;
   maxSpeechiness: number | null;
   maxLiveness: number | null;
 };
@@ -88,11 +92,13 @@ type PlaylistRequirements = {
  * Przyczyna niespełnienia jednego aktywnego wymagania przez utwór.
  * Brak pomiaru może dotyczyć każdej z trzech cech. Wyjście poza zakres dotyczy
  * tylko tempa, a przekroczenie maksimum tylko speechiness lub liveness.
+ * Niezgodność konkretnego BPM dotyczy pomiaru tempa po zaokrągleniu do liczby całkowitej.
  * Kod opisuje przyczynę, nie gotowy komunikat do wyświetlenia w interfejsie.
  *
  * @property feature - Cecha, której dotyczy niespełnione wymaganie.
  * @property code - missing-measurement: brak pomiaru; outside-range: tempo poza
- * dopuszczalnym zakresem; above-maximum: pomiar większy niż dopuszczalne maksimum.
+ * dopuszczalnym zakresem; tempo-mismatch: inne BPM po zaokrągleniu;
+ * above-maximum: pomiar większy niż dopuszczalne maksimum.
  *
  * @example
  * { feature: "tempo", code: "outside-range" }
@@ -104,7 +110,7 @@ type PlaylistTrackRejectionReason =
     }
   | {
       feature: "tempo";
-      code: "outside-range";
+      code: "outside-range" | "tempo-mismatch";
     }
   | {
       feature: "speechiness" | "liveness";

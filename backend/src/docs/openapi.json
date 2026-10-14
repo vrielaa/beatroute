@@ -762,6 +762,7 @@
                 },
                 "requirements": {
                   "tempoRange": { "min": 120, "max": 140 },
+                  "targetBpm": null,
                   "maxSpeechiness": 0.33,
                   "maxLiveness": null
                 },
@@ -1884,7 +1885,7 @@
       },
       "PlaylistTempoRange": {
         "type": "object",
-        "description": "Inclusive positive BPM bounds. Min must not exceed max; equal and fractional bounds are accepted. Extra fields are discarded.",
+        "description": "Inclusive positive BPM bounds compared against the original, unrounded measurement. Min must not exceed max; equal and fractional bounds are accepted. Extra fields are discarded.",
         "properties": {
           "min": { "type": "number", "exclusiveMinimum": 0 },
           "max": { "type": "number", "exclusiveMinimum": 0 }
@@ -1893,13 +1894,18 @@
       },
       "PlaylistRequirements": {
         "type": "object",
-        "description": "All fields are required. Null disables a condition; zero remains an active maximum. Every active requirement must be met, and a missing required measurement rejects the track. Extra fields are discarded.",
+        "description": "All four fields are required. Null disables a condition; zero remains an active maximum. At most one BPM constraint may be active: tempoRange or targetBpm, never both. The range compares the original measurement; targetBpm compares Math.round(tempo), rounding positive fractions below 0.5 down and fractions from 0.5 up. Measurements are not modified. Every active requirement must be met, and a missing required measurement rejects the track. Extra fields are discarded.",
         "properties": {
           "tempoRange": {
             "anyOf": [
               { "$ref": "#/components/schemas/PlaylistTempoRange" },
               { "type": "null" }
             ]
+          },
+          "targetBpm": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "Positive integer BPM compared to the rounded tempo measurement, or null to disable. The user's chosen value is not rounded or coerced."
           },
           "maxSpeechiness": {
             "$ref": "#/components/schemas/PlaylistUnitMeasurement"
@@ -1908,7 +1914,19 @@
             "$ref": "#/components/schemas/PlaylistUnitMeasurement"
           }
         },
-        "required": ["tempoRange", "maxSpeechiness", "maxLiveness"]
+        "required": [
+          "tempoRange",
+          "targetBpm",
+          "maxSpeechiness",
+          "maxLiveness"
+        ],
+        "not": {
+          "properties": {
+            "tempoRange": { "type": "object" },
+            "targetBpm": { "type": "integer" }
+          },
+          "required": ["tempoRange", "targetBpm"]
+        }
       },
       "PlaylistPreferenceLevel": {
         "type": "string",
@@ -2017,7 +2035,10 @@
             "type": "object",
             "properties": {
               "feature": { "type": "string", "const": "tempo" },
-              "code": { "type": "string", "const": "outside-range" }
+              "code": {
+                "type": "string",
+                "enum": ["outside-range", "tempo-mismatch"]
+              }
             },
             "required": ["feature", "code"]
           },

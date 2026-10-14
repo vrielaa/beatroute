@@ -13,19 +13,32 @@ describe("parsePlaylistGeneratorRequirements", () => {
   });
 
   it.each([
-    { tempoRange: null, maxSpeechiness: null, maxLiveness: null },
-    { tempoRange: null, maxSpeechiness: 0.33, maxLiveness: 0.8 },
     {
+      targetBpm: null,
+      tempoRange: null,
+      maxSpeechiness: null,
+      maxLiveness: null,
+    },
+    {
+      targetBpm: null,
+      tempoRange: null,
+      maxSpeechiness: 0.33,
+      maxLiveness: 0.8,
+    },
+    {
+      targetBpm: null,
       tempoRange: { min: 120, max: 140 },
       maxSpeechiness: null,
       maxLiveness: null,
     },
     {
+      targetBpm: null,
       tempoRange: { min: 120, max: 140 },
       maxSpeechiness: 0.33,
       maxLiveness: null,
     },
     {
+      targetBpm: null,
       tempoRange: { min: 120, max: 140 },
       maxSpeechiness: null,
       maxLiveness: 0.8,
@@ -52,6 +65,7 @@ describe("parsePlaylistGeneratorRequirements", () => {
     const requirements = {
       ...createRequirements(),
       preferences: { energy: "high" },
+      targetBpm: null,
       tempoRange: { min: 120, max: 140, unused: true },
     };
 
@@ -69,7 +83,7 @@ describe("parsePlaylistGeneratorRequirements", () => {
     }
   );
 
-  it.each(["tempoRange", "maxSpeechiness", "maxLiveness"])(
+  it.each(["tempoRange", "targetBpm", "maxSpeechiness", "maxLiveness"])(
     "rejects a missing %s field rather than treating it as disabled",
     (field) => {
       const requirements: Record<string, unknown> = { ...createRequirements() };
@@ -138,6 +152,7 @@ describe("parsePlaylistGeneratorRequirements", () => {
       expect(() =>
         parsePlaylistGeneratorRequirements({
           ...createRequirements(),
+          targetBpm: null,
           tempoRange: { min: 140, max: 120 },
         })
       ).toThrow(
@@ -156,6 +171,60 @@ describe("parsePlaylistGeneratorRequirements", () => {
           tempoRange,
         }).tempoRange
       ).toEqual(tempoRange);
+    });
+  });
+
+  describe("targetBpm", () => {
+    it.each([1, 128, 250])(
+      "accepts positive integer BPM %s with the range disabled",
+      (targetBpm) => {
+        const requirements = {
+          ...createRequirements(),
+          tempoRange: null,
+          targetBpm,
+        };
+
+        expect(parsePlaylistGeneratorRequirements(requirements)).toEqual(
+          requirements
+        );
+      }
+    );
+
+    it.each([
+      undefined,
+      "128",
+      "",
+      true,
+      [],
+      {},
+      0,
+      -1,
+      128.1,
+      128.5,
+      NaN,
+      Infinity,
+      -Infinity,
+    ])(
+      "rejects invalid BPM %s without coercing or rounding it",
+      (targetBpm) => {
+        expect(() =>
+          parsePlaylistGeneratorRequirements({
+            ...createRequirements(),
+            tempoRange: null,
+            targetBpm,
+          })
+        ).toThrow(RequestValidationError);
+      }
+    );
+
+    it("rejects simultaneously active range and target BPM without modifying the input", () => {
+      const requirements = { ...createRequirements(), targetBpm: 128 };
+      const original = structuredClone(requirements);
+
+      expect(() => parsePlaylistGeneratorRequirements(requirements)).toThrow(
+        "Wybierz zakres BPM albo konkretne BPM, nie oba jednocześnie"
+      );
+      expect(requirements).toEqual(original);
     });
   });
 
@@ -194,11 +263,13 @@ describe("parsePlaylistGeneratorRequirements", () => {
   it("preserves zero maximums as active conditions rather than converting them to null", () => {
     expect(
       parsePlaylistGeneratorRequirements({
+        targetBpm: null,
         tempoRange: null,
         maxSpeechiness: 0,
         maxLiveness: 0,
       })
     ).toEqual({
+      targetBpm: null,
       tempoRange: null,
       maxSpeechiness: 0,
       maxLiveness: 0,
@@ -208,6 +279,7 @@ describe("parsePlaylistGeneratorRequirements", () => {
 
 function createRequirements(): PlaylistRequirements {
   return {
+    targetBpm: null,
     tempoRange: { min: 120, max: 140 },
     maxSpeechiness: 0.33,
     maxLiveness: 0.8,

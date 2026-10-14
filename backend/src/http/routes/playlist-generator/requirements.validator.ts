@@ -6,9 +6,11 @@ import type {
 
 /**
  * Sprawdza obowiązkowe warunki filtrowania i zwraca ich znormalizowaną kopię.
- * Wymaga obecności wszystkich trzech pól. Null wyłącza dany warunek; liczba zero
+ * Wymaga obecności wszystkich czterech pól. Null wyłącza dany warunek; liczba zero
  * pozostaje aktywnym maksimum speechiness lub liveness. Granice BPM muszą być
  * dodatnie, skończone i uporządkowane, a maksima cech należeć do zakresu 0–1.
+ * Konkretne BPM musi być dodatnią liczbą całkowitą. Nie zaokrągla wyboru użytkownika
+ * i nie pozwala jednocześnie włączyć zakresu oraz konkretnego BPM.
  * Nie sprawdza utworów i nie ocenia preferencji rozmytych.
  *
  * @param value - Ustawienia użytkownika przed sprawdzeniem ich struktury i wartości.
@@ -29,6 +31,12 @@ function parsePlaylistGeneratorRequirements(
     );
   }
 
+  if (!("targetBpm" in requirements)) {
+    throw new RequestValidationError(
+      "Niepoprawne wymagania playlisty: brak pola targetBpm"
+    );
+  }
+
   if (!("maxSpeechiness" in requirements)) {
     throw new RequestValidationError(
       "Niepoprawne wymagania playlisty: brak pola maxSpeechiness"
@@ -42,14 +50,37 @@ function parsePlaylistGeneratorRequirements(
   }
 
   const tempoRange = validateTempoRange(requirements.tempoRange);
+  const targetBpm = validateTargetBpm(requirements.targetBpm);
   const maxSpeechiness = validateSpeechiness(requirements.maxSpeechiness);
   const maxLiveness = validateLiveness(requirements.maxLiveness);
 
+  if (tempoRange !== null && targetBpm !== null) {
+    throw new RequestValidationError(
+      "Wybierz zakres BPM albo konkretne BPM, nie oba jednocześnie"
+    );
+  }
+
   return {
     tempoRange,
+    targetBpm,
     maxSpeechiness,
     maxLiveness,
   };
+}
+
+/** Akceptuje dodatnie, całkowite BPM albo null; nie zaokrągla wartości z żądania. */
+function validateTargetBpm(value: unknown): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+    throw new RequestValidationError(
+      "Niepoprawne wymagania playlisty: targetBpm musi być dodatnią liczbą całkowitą albo null"
+    );
+  }
+
+  return value;
 }
 
 /** Zwraca obiekt do dalszego sprawdzenia; odrzuca null i tablice. */

@@ -51,6 +51,7 @@ describe("filterPlaylistTracks", () => {
   it("accepts exactly the tempo required by an equal-boundary range", () => {
     const track = createTrack("track-1", { tempo: 130 });
     const requirements = createRequirements({
+      targetBpm: null,
       tempoRange: { min: 130, max: 130 },
     });
 
@@ -64,6 +65,7 @@ describe("filterPlaylistTracks", () => {
     (tempo) => {
       const track = createTrack("track-1", { tempo });
       const requirements = createRequirements({
+        targetBpm: null,
         tempoRange: { min: 130, max: 130 },
       });
 
@@ -79,7 +81,10 @@ describe("filterPlaylistTracks", () => {
     "ignores tempo %s when its range is disabled",
     (tempo) => {
       const track = createTrack("track-1", { tempo });
-      const requirements = createRequirements({ tempoRange: null });
+      const requirements = createRequirements({
+        targetBpm: null,
+        tempoRange: null,
+      });
 
       expect(filterPlaylistTracks([track], requirements)).toEqual({
         acceptedTracks: [track],
@@ -87,6 +92,111 @@ describe("filterPlaylistTracks", () => {
       });
     }
   );
+
+  describe("target BPM", () => {
+    it.each([127.5, 127.947, 128, 128.1, 128.499])(
+      "accepts tempo %s after mathematical rounding to 128",
+      (tempo) => {
+        const track = createTrack("track-1", { tempo });
+        const requirements = createRequirements({
+          tempoRange: null,
+          targetBpm: 128,
+        });
+
+        expect(filterPlaylistTracks([track], requirements)).toEqual({
+          acceptedTracks: [track],
+          rejectedTracks: [],
+        });
+        expect(track.audioFeatures.tempo).toBe(tempo);
+      }
+    );
+
+    it.each([127.1, 127.499, 128.5, 128.9, 130.2])(
+      "rejects tempo %s when its rounded value differs from 128",
+      (tempo) => {
+        const track = createTrack("track-1", { tempo });
+        const requirements = createRequirements({
+          tempoRange: null,
+          targetBpm: 128,
+        });
+
+        expect(filterPlaylistTracks([track], requirements)).toEqual({
+          acceptedTracks: [],
+          rejectedTracks: [
+            { track, reasons: [{ feature: "tempo", code: "tempo-mismatch" }] },
+          ],
+        });
+        expect(track.audioFeatures.tempo).toBe(tempo);
+      }
+    );
+
+    it("distinguishes a missing measurement from a tempo mismatch", () => {
+      const track = createTrack("track-1", { tempo: null });
+
+      expect(
+        filterPlaylistTracks(
+          [track],
+          createRequirements({ tempoRange: null, targetBpm: 128 })
+        )
+      ).toEqual({
+        acceptedTracks: [],
+        rejectedTracks: [
+          {
+            track,
+            reasons: [{ feature: "tempo", code: "missing-measurement" }],
+          },
+        ],
+      });
+    });
+
+    it("uses the original measurement for a range and rounds only in target mode", () => {
+      const track = createTrack("track-1", { tempo: 127.947 });
+      const rangeResult = filterPlaylistTracks(
+        [track],
+        createRequirements({
+          tempoRange: { min: 128, max: 128 },
+          targetBpm: null,
+        })
+      );
+      const targetResult = filterPlaylistTracks(
+        [track],
+        createRequirements({
+          tempoRange: null,
+          targetBpm: 128,
+        })
+      );
+
+      expect(rangeResult.rejectedTracks[0].reasons).toEqual([
+        { feature: "tempo", code: "outside-range" },
+      ]);
+      expect(targetResult.acceptedTracks).toEqual([track]);
+      expect(track.audioFeatures.tempo).toBe(127.947);
+    });
+
+    it("keeps other active requirements when the target BPM matches", () => {
+      const track = createTrack("track-1", {
+        tempo: 127.947,
+        speechiness: 0.8,
+        liveness: 0.9,
+      });
+      const requirements = createRequirements({
+        tempoRange: null,
+        targetBpm: 128,
+      });
+
+      expect(
+        filterPlaylistTracks([track], requirements).rejectedTracks
+      ).toEqual([
+        {
+          track,
+          reasons: [
+            { feature: "speechiness", code: "above-maximum" },
+            { feature: "liveness", code: "above-maximum" },
+          ],
+        },
+      ]);
+    });
+  });
 
   describe("speechiness", () => {
     it.each([0, 0.33])(
@@ -312,6 +422,7 @@ describe("filterPlaylistTracks", () => {
       }),
     ];
     const requirements = createRequirements({
+      targetBpm: null,
       tempoRange: null,
       maxSpeechiness: null,
       maxLiveness: null,
@@ -425,6 +536,7 @@ function createRequirements(
   overrides: Partial<PlaylistRequirements> = {}
 ): PlaylistRequirements {
   return {
+    targetBpm: null,
     tempoRange: { min: 120, max: 140 },
     maxSpeechiness: 0.33,
     maxLiveness: 0.8,

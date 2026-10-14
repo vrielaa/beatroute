@@ -97,6 +97,7 @@ describe("Spotify ID file to playlist through actual services and HTTP", () => {
       .send({
         dataset: prepared.body.dataset,
         requirements: {
+          targetBpm: null,
           tempoRange: { min: 120, max: 140 },
           maxSpeechiness: null,
           maxLiveness: null,
@@ -131,6 +132,7 @@ describe("Spotify ID file to playlist through actual services and HTTP", () => {
       .send({
         dataset: prepared.body.dataset,
         requirements: {
+          targetBpm: null,
           tempoRange: null,
           maxSpeechiness: null,
           maxLiveness: null,

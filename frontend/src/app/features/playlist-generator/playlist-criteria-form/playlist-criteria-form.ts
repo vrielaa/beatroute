@@ -38,8 +38,10 @@ class PlaylistCriteriaForm {
 
   private readonly formValues = signal<PlaylistCriteriaFormValues>({
     tempoEnabled: false,
+    tempoMode: 'range',
     tempoMin: null,
     tempoMax: null,
+    targetBpm: null,
     speechinessEnabled: false,
     maxSpeechiness: null,
     livenessEnabled: false,
@@ -86,12 +88,28 @@ class PlaylistCriteriaForm {
     const state = field();
     return !state.disabled() && state.invalid() && (state.dirty() || state.touched());
   }
+
+  /** Zmienia aktywny sposób ograniczenia tempa, zachowując wpisane wartości. */
+  protected changeTempoMode(mode: 'range' | 'target'): void {
+    if (this.form.tempoMode().value() === mode) {
+      return;
+    }
+
+    this.form.tempoMode().value.set(mode);
+  }
 }
 
-/** Włącza pola BPM wraz z checkboxem i sprawdza dodatnie, uporządkowane granice zakresu. */
+/**
+ * Włącza wyłącznie pola wybranego trybu, reagując na checkbox i zmianę trybu.
+ * Zakres wymaga dodatnich, uporządkowanych granic; konkretne BPM dodatniej liczby całkowitej.
+ * Nieaktywne pola zachowują wartości, ale nie blokują poprawności formularza.
+ */
 function configureTempoFields(formFields: SchemaPathTree<PlaylistCriteriaFormValues>): void {
   for (const field of [formFields.tempoMin, formFields.tempoMax]) {
-    disabled(field, { when: ({ valueOf }) => !valueOf(formFields.tempoEnabled) });
+    disabled(field, {
+      when: ({ valueOf }) =>
+        !valueOf(formFields.tempoEnabled) || valueOf(formFields.tempoMode) !== 'range',
+    });
     required(field, { message: 'Podaj dodatnią, skończoną liczbę dla BPM.' });
     validate(field, ({ value }) => validatePositiveTempo(value()));
   }
@@ -99,6 +117,14 @@ function configureTempoFields(formFields: SchemaPathTree<PlaylistCriteriaFormVal
   validate(formFields.tempoMax, ({ value, valueOf }) =>
     validateTempoRangeOrder(valueOf(formFields.tempoMin), value())
   );
+
+  disabled(formFields.targetBpm, {
+    when: ({ valueOf }) =>
+      !valueOf(formFields.tempoEnabled) || valueOf(formFields.tempoMode) !== 'target',
+  });
+  required(formFields.targetBpm, { message: 'Podaj dodatnią liczbę całkowitą dla BPM.' });
+  min(formFields.targetBpm, 1, { message: 'Podaj dodatnią liczbę całkowitą dla BPM.' });
+  validate(formFields.targetBpm, ({ value }) => validateTargetBpm(value()));
 }
 
 /** Włącza maksimum speechiness wraz z checkboxem i wymaga skończonej liczby od 0 do 1. */
@@ -132,16 +158,24 @@ function configurePreferenceFields(formFields: SchemaPathTree<PlaylistCriteriaFo
   }
 }
 
-/** Buduje kryteria po walidacji formularza; nieaktywne wymagania i puste preferencje zamienia na null. */
+/**
+ * Buduje kryteria po walidacji formularza, wysyłając najwyżej jedno ograniczenie BPM.
+ * Wyłączony checkbox pomija oba tryby; ukryte wartości i puste preferencje zamienia na null.
+ */
 function buildPlaylistCriteria(values: PlaylistCriteriaFormValues): PlaylistCriteria {
+  const useTempoRange = values.tempoEnabled && values.tempoMode === 'range';
+  const useTargetBpm = values.tempoEnabled && values.tempoMode === 'target';
+  const targetBpm = useTargetBpm ? values.targetBpm : null;
+
   const tempoRange =
-    values.tempoEnabled && values.tempoMin !== null && values.tempoMax !== null
+    useTempoRange && values.tempoMin !== null && values.tempoMax !== null
       ? { min: values.tempoMin, max: values.tempoMax }
       : null;
 
   return {
     requirements: {
       tempoRange,
+      targetBpm,
       maxSpeechiness: values.speechinessEnabled ? values.maxSpeechiness : null,
       maxLiveness: values.livenessEnabled ? values.maxLiveness : null,
     },
@@ -161,6 +195,15 @@ function validatePositiveTempo(value: number | null): ValidationError | null {
     return null;
   }
   return { kind: 'positiveNumber', message: 'Podaj dodatnią, skończoną liczbę dla BPM.' };
+}
+
+/** Sprawdza całkowitość BPM bez zaokrąglania wyboru; null obsługuje required, a minimum reguła min. */
+function validateTargetBpm(value: number | null): ValidationError | null {
+  if (value === null || Number.isInteger(value)) {
+    return null;
+  }
+
+  return { kind: 'targetBpm', message: 'Podaj dodatnią liczbę całkowitą dla BPM.' };
 }
 
 /** Sprawdza skończoność pomiaru; null obsługuje required, a zakres reguły min i max. */

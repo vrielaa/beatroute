@@ -69,6 +69,104 @@ describe("playlist saving in the actual app", () => {
 });
 
 describe("POST /api/playlist-generator/generate", () => {
+  it("supports rounded target BPM alongside the existing range option", async () => {
+    const accepted = createTrack("accepted", { tempo: 127.947, energy: 0.25 });
+    const rejected = createTrack("rejected", { tempo: 128.5, energy: 0.9 });
+    const missing = createTrack("missing", { tempo: null });
+    const payload = createPayload([accepted, rejected, missing]);
+
+    const response = await request(createTestApp())
+      .post("/api/playlist-generator/generate")
+      .send({
+        ...payload,
+        requirements: {
+          ...payload.requirements,
+          tempoRange: null,
+          targetBpm: 128,
+        },
+      })
+      .expect(200);
+
+    expect(
+      response.body.rankedTracks.map(
+        (item: { track: { id: string } }) => item.track.id
+      )
+    ).toEqual(["accepted"]);
+    expect(response.body.rankedTracks[0].track.audioFeatures.tempo).toBe(
+      127.947
+    );
+    expect(response.body.rankedTracks[0].overallMatch).toBe(0);
+    expect(response.body.rejectedTracks).toEqual([
+      {
+        track: rejected,
+        reasons: [{ feature: "tempo", code: "tempo-mismatch" }],
+      },
+      {
+        track: missing,
+        reasons: [{ feature: "tempo", code: "missing-measurement" }],
+      },
+    ]);
+  });
+
+  it("returns 400 when a request enables both BPM constraints", async () => {
+    const payload = createPayload();
+
+    await request(createTestApp())
+      .post("/api/playlist-generator/generate")
+      .send({
+        ...payload,
+        requirements: { ...payload.requirements, targetBpm: 128 },
+      })
+      .expect(400, {
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            "Wybierz zakres BPM albo konkretne BPM, nie oba jednocześnie",
+        },
+      });
+  });
+
+  it.each([0, -1, 128.5, "128"])(
+    "returns 400 for invalid target BPM %s",
+    async (targetBpm) => {
+      const payload = createPayload();
+
+      await request(createTestApp())
+        .post("/api/playlist-generator/generate")
+        .send({
+          ...payload,
+          requirements: {
+            ...payload.requirements,
+            tempoRange: null,
+            targetBpm,
+          },
+        })
+        .expect(400, {
+          error: {
+            code: "VALIDATION_ERROR",
+            message:
+              "Niepoprawne wymagania playlisty: targetBpm musi być dodatnią liczbą całkowitą albo null",
+          },
+        });
+    }
+  );
+
+  it("requires explicit targetBpm even when the range is selected", async () => {
+    const payload = createPayload();
+    const requirements: Record<string, unknown> = { ...payload.requirements };
+    delete requirements.targetBpm;
+
+    await request(createTestApp())
+      .post("/api/playlist-generator/generate")
+      .send({ ...payload, requirements })
+      .expect(400, {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Niepoprawne wymagania playlisty: brak pola targetBpm",
+        },
+      });
+  });
+
   it("filters and ranks supplied tracks without requiring a Spotify session", async () => {
     const first = createTrack("first", { energy: 0.625 });
     const rejected = createTrack("rejected", { tempo: 100, energy: 0.9 });
@@ -455,6 +553,7 @@ function createPayload(tracks: PlaylistTrack[] = [createTrack("track-1")]) {
   return {
     dataset: { version: 1, tracks },
     requirements: {
+      targetBpm: null,
       tempoRange: { min: 120, max: 140 },
       maxSpeechiness: 0.33,
       maxLiveness: 0.8,

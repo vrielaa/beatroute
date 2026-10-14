@@ -11,41 +11,80 @@
     <div class="requirement">
       <label class="requirement-toggle" for="playlist-tempo-enabled">
         <input id="playlist-tempo-enabled" type="checkbox" [formField]="form.tempoEnabled" />
-        Ogranicz zakres BPM
+        Ogranicz BPM
       </label>
       @if (form.tempoEnabled().value()) {
-        <div class="tempo-fields">
-          <div class="criteria-field">
-            <label for="playlist-tempo-min">Minimum BPM</label>
-            <input
-              id="playlist-tempo-min"
-              type="number"
-              step="any"
-              [formField]="form.tempoMin"
-              [attr.aria-invalid]="isFieldErrorVisible(form.tempoMin)"
-            />
-            @if (isFieldErrorVisible(form.tempoMin)) {
-              @for (error of form.tempoMin().errors(); track error.kind) {
-                <p class="criteria-error" role="alert">{{ error.message }}</p>
-              }
-            }
-          </div>
-          <div class="criteria-field">
-            <label for="playlist-tempo-max">Maksimum BPM</label>
-            <input
-              id="playlist-tempo-max"
-              type="number"
-              step="any"
-              [formField]="form.tempoMax"
-              [attr.aria-invalid]="isFieldErrorVisible(form.tempoMax)"
-            />
-            @if (isFieldErrorVisible(form.tempoMax)) {
-              @for (error of form.tempoMax().errors(); track error.kind) {
-                <p class="criteria-error" role="alert">{{ error.message }}</p>
-              }
-            }
-          </div>
+        <div class="tempo-mode-switch" role="group" aria-label="Sposób ograniczenia BPM">
+          <button
+            type="button"
+            [class.is-active]="form.tempoMode().value() === 'range'"
+            [attr.aria-pressed]="form.tempoMode().value() === 'range'"
+            (click)="changeTempoMode('range')"
+          >
+            Zakres BPM
+          </button>
+
+          <button
+            type="button"
+            [class.is-active]="form.tempoMode().value() === 'target'"
+            [attr.aria-pressed]="form.tempoMode().value() === 'target'"
+            (click)="changeTempoMode('target')"
+          >
+            Konkretne BPM
+          </button>
         </div>
+
+        @if (form.tempoMode().value() === 'target') {
+          <div class="criteria-field tempo-target-field">
+            <label for="playlist-target-bpm">Docelowe BPM</label>
+            <input
+              id="playlist-target-bpm"
+              type="number"
+              step="1"
+              [formField]="form.targetBpm"
+              [attr.aria-invalid]="isFieldErrorVisible(form.targetBpm)"
+            />
+
+            @if (isFieldErrorVisible(form.targetBpm)) {
+              @for (error of form.targetBpm().errors(); track error.kind) {
+                <p class="criteria-error" role="alert">{{ error.message }}</p>
+              }
+            }
+          </div>
+        } @else {
+          <div class="tempo-fields">
+            <div class="criteria-field">
+              <label for="playlist-tempo-min">Minimum BPM</label>
+              <input
+                id="playlist-tempo-min"
+                type="number"
+                step="any"
+                [formField]="form.tempoMin"
+                [attr.aria-invalid]="isFieldErrorVisible(form.tempoMin)"
+              />
+              @if (isFieldErrorVisible(form.tempoMin)) {
+                @for (error of form.tempoMin().errors(); track error.kind) {
+                  <p class="criteria-error" role="alert">{{ error.message }}</p>
+                }
+              }
+            </div>
+            <div class="criteria-field">
+              <label for="playlist-tempo-max">Maksimum BPM</label>
+              <input
+                id="playlist-tempo-max"
+                type="number"
+                step="any"
+                [formField]="form.tempoMax"
+                [attr.aria-invalid]="isFieldErrorVisible(form.tempoMax)"
+              />
+              @if (isFieldErrorVisible(form.tempoMax)) {
+                @for (error of form.tempoMax().errors(); track error.kind) {
+                  <p class="criteria-error" role="alert">{{ error.message }}</p>
+                }
+              }
+            </div>
+          </div>
+        }
       }
     </div>
 
