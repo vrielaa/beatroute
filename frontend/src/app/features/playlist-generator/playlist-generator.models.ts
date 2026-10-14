@@ -108,6 +108,27 @@ type PreparedPlaylistDataset = {
 };
 
 /**
+ * Postęp przygotowania bieżącego pliku, liczony wyłącznie z zakończonych partii.
+ * Nie szacuje pracy wewnątrz trwającego żądania ani czasu pozostałego do końca.
+ * Przetworzone ID obejmują zarówno przygotowane, jak i pominięte utwory.
+ *
+ * @property processedTracks - Liczba ID z partii, których odpowiedzi już otrzymano.
+ * @property totalTracks - Liczba unikalnych ID w bieżącym pliku.
+ * @property preparedTracks - Liczba utworów z metadanymi i użytecznymi pomiarami.
+ * @property skippedTracks - Liczba utworów pominiętych podczas przygotowania danych.
+ * @property completedBatches - Liczba zakończonych partii, także z pustym zbiorem.
+ * @property totalBatches - Liczba partii potrzebnych do przygotowania całego pliku.
+ */
+type PlaylistPreparationProgress = {
+  processedTracks: number;
+  totalTracks: number;
+  preparedTracks: number;
+  skippedTracks: number;
+  completedBatches: number;
+  totalBatches: number;
+};
+
+/**
  * Etap procesu rozpoczętego przyciskiem generowania, nie licznik przetworzonych utworów.
  * preparation trwa do otrzymania metadanych i pomiarów; analysis obejmuje filtrowanie
  * oraz ranking; completed jest ustawiany dopiero po otrzymaniu wyniku generatora.
@@ -363,6 +384,7 @@ export type {
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
+  PlaylistPreparationProgress,
   PlaylistGenerationStage,
   TempoRange,
   PlaylistRequirements,
