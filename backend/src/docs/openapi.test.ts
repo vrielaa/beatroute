@@ -9,6 +9,41 @@ import { parsePlaylistToSave } from "@http/routes/playlist-generator/save-playli
 import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
 import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
 import { mapErrorToHttp } from "@http/error-handler.js";
+import { parsePlaylistResumeId } from "@http/routes/playlist-generator/save-playlist.validator.js";
+import { PlaylistSaveConflictError } from "@application/playlist-generator/playlist-save-conflict.error.js";
+
+describe("playlist resumption OpenAPI contract", () => {
+  const operation = document.paths["/api/playlist-generator/resume-save"].post;
+
+  it("requires both private playlist scopes and only accepts the playlist ID", () => {
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(operation.description).toContain("playlist-read-private");
+    expect(operation.description).toContain("playlist-modify-private");
+    const body = operation.requestBody.content["application/json"];
+    expect(body.schema.required).toEqual(["playlistId"]);
+    expect(parsePlaylistResumeId(body.example)).toBe(body.example.playlistId);
+    expect(Object.keys(body.schema.properties)).toEqual(["playlistId"]);
+  });
+
+  it("documents success without creating another playlist and the retained conflict state", () => {
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/SavedPlaylist");
+    expect(operation.description).toContain("without writing");
+    for (const code of [
+      "PLAYLIST_CONTENTS_CHANGED",
+      "PLAYLIST_SAVE_IN_PROGRESS",
+    ] as const) {
+      const mapped = mapErrorToHttp(new PlaylistSaveConflictError(code));
+      expect(mapped.status).toBe(409);
+      expect(mapped.body.error.code).toBe(code);
+      expect(operation.responses["409"].description).toContain(code);
+    }
+    expect(
+      operation.responses["429"].headers["Retry-After"].schema.minimum
+    ).toBe(0);
+  });
+});
 
 describe("playlist saving OpenAPI contract", () => {
   const operation = document.paths["/api/playlist-generator/save"].post;

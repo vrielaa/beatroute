@@ -181,6 +181,19 @@ Writes are not automatically retried. If adding tracks fails after creation,
 `PLAYLIST_SAVE_INCOMPLETE` includes the existing playlist and confirmed progress
 in `error.details.progress`. An unconfirmed batch may already have been written:
 check the playlist before another save, even when `Retry-After` is provided.
+The backend retains the original selected IDs and progress in the server session.
+`POST /api/playlist-generator/resume-save` accepts only `{ "playlistId": "Spotify playlist ID" }`
+and requires both `playlist-read-private` and `playlist-modify-private`. It reads
+the current contents, verifies their order against the original selection and
+appends only the missing suffix. A complete playlist returns success without a
+write. Changed contents return `409`; read failures preserve the pending save,
+and further write failures update its confirmed progress. It never creates a
+replacement playlist or automatically retries a POST. Snapshot checks protect
+the paginated read and an in-process lock prevents concurrent resumptions.
+Spotify does not offer a conditional append here: manual changes or delayed
+writes after verification remain an external race. Do not edit the playlist
+during saving. Pending data lives in the session, not a durable job system;
+server restart or session expiry can make resumption unavailable.
 The UI displays validated progress and a Spotify link for partial failures. It
 does not offer automatic resumption; an acknowledged new save creates another
 playlist. It validates complete confirmations and rejects unsafe or inconsistent
@@ -195,7 +208,7 @@ user-owned/collaborated playlists are planned sources, not implemented options.
 The output is a new private Spotify playlist, not a JSON export. Top N and manual
 selection, the Signal Forms save form and complete/partial-save presentation are
 implemented. Saving requires a user session with `playlist-modify-private`;
-older sessions may need reconnecting through Spotify login to grant that scope.
+older sessions may need reconnecting through Spotify login to grant both playlist scopes.
 Importing IDs is not an offline mode: the first preparation requires Spotify,
 ReccoBeats and a working backend. The pure generator can be tested separately
 with the synthetic dataset.

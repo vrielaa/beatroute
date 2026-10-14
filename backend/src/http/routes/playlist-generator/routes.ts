@@ -4,7 +4,12 @@ import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/d
 import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-generator/requirements.validator.js";
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "./track-ids.validator.js";
-import { parsePlaylistToSave } from "./save-playlist.validator.js";
+import {
+  parsePlaylistToSave,
+  parsePlaylistResumeId,
+} from "./save-playlist.validator.js";
+import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
+import { saveSession } from "@http/session.js";
 import { playlistDatasetService, playlistSaveService } from "./composition.js";
 import { HttpError } from "@http/errors/http-error.js";
 import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
@@ -16,11 +21,13 @@ import type { RequestHandler } from "express";
  *
  * @property prepareDataset - Uzupełnia zwalidowane ID o metadane i cechy audio.
  * @property savePlaylist - Zapisuje wybrane ID jako nową, prywatną playlistę.
+ * @property resumePlaylist - Sprawdza istniejącą playlistę i dopisuje brakującą końcówkę wyboru.
  * @property authorize - Sprawdza i w razie potrzeby odnawia token w sesji Spotify.
  */
 type PlaylistGeneratorRouterDependencies = {
   prepareDataset: typeof playlistDatasetService.prepareDataset;
   savePlaylist: typeof playlistSaveService.savePlaylist;
+  resumePlaylist: typeof playlistSaveService.resumePlaylist;
   authorize: RequestHandler;
 };
 
@@ -55,6 +62,13 @@ type PlaylistGeneratorRouterDependencies = {
  * Zwraca 201 z id, name, spotifyUrl i trackCount dopiero po potwierdzeniu zapisu.
  * Błąd przerywa zapis bez ponawiania; po utworzeniu playlisty centralny middleware
  * zwraca PLAYLIST_SAVE_INCOMPLETE z jej danymi i liczbą potwierdzonych utworów.
+ * Pierwotny wybór i postęp są wówczas zachowane w req.session.pendingPlaylistSave.
+ *
+ * Endpoint POST /resume-save wymaga sesji oraz uprawnień playlist-modify-private
+ * i playlist-read-private. Odczytuje z req.body wyłącznie playlistId i porównuje je
+ * z zapisem oczekującym w sesji. Utwory, kolejność i dane playlisty pochodzą z sesji,
+ * nie z żądania. Sukces zwraca 200 i usuwa stan oczekujący. Kolejny błąd zapisu
+ * aktualizuje postęp, a błąd odczytu lub konflikt pozostawia poprzedni stan.
  *
  * Parsowanie JSON-a i limit 1 MiB dla tego routera są skonfigurowane w app.ts,
  * przed parserem ogólnym.
@@ -65,6 +79,7 @@ type PlaylistGeneratorRouterDependencies = {
 function createPlaylistGeneratorRouter({
   prepareDataset,
   savePlaylist,
+  resumePlaylist,
   authorize,
 }: PlaylistGeneratorRouterDependencies): Router {
   const router = Router();
@@ -111,12 +126,69 @@ function createPlaylistGeneratorRouter({
     }
 
     const playlist = parsePlaylistToSave(req.body);
-    const savedPlaylist = await savePlaylist(
-      playlist,
-      spotifySession.accessToken
-    );
+    try {
+      const savedPlaylist = await savePlaylist(
+        playlist,
+        spotifySession.accessToken
+      );
+      delete req.session.pendingPlaylistSave;
+      await saveSession(req.session);
+      res.status(201).json(savedPlaylist);
+    } catch (error) {
+      if (error instanceof PartialPlaylistSaveError) {
+        req.session.pendingPlaylistSave = {
+          progress: { ...error.progress },
+          trackIds: [...playlist.trackIds],
+        };
+        await saveSession(req.session);
+      }
 
-    res.status(201).json(savedPlaylist);
+      throw error;
+    }
+  });
+
+  router.post("/resume-save", authorize, async (req, res) => {
+    const spotifySession = req.session.spotify!;
+    const grantedScopes = (spotifySession.scope ?? "").split(/\s+/);
+
+    if (
+      !grantedScopes.includes("playlist-modify-private") ||
+      !grantedScopes.includes("playlist-read-private")
+    ) {
+      throw new HttpError(
+        403,
+        "SPOTIFY_PLAYLIST_PERMISSION_REQUIRED",
+        "Połącz ponownie Spotify i zezwól na odczyt oraz zapis prywatnych playlist"
+      );
+    }
+
+    const playlistId = parsePlaylistResumeId(req.body);
+    const pending = req.session.pendingPlaylistSave;
+
+    if (!pending || pending.progress.id !== playlistId) {
+      throw new HttpError(
+        409,
+        "PLAYLIST_RESUME_UNAVAILABLE",
+        "Brak zapisu tej playlisty do wznowienia w bieżącej sesji"
+      );
+    }
+
+    try {
+      const saved = await resumePlaylist(pending, spotifySession.accessToken);
+      delete req.session.pendingPlaylistSave;
+      await saveSession(req.session);
+      res.json(saved);
+    } catch (error) {
+      if (error instanceof PartialPlaylistSaveError) {
+        req.session.pendingPlaylistSave = {
+          progress: { ...error.progress },
+          trackIds: [...pending.trackIds],
+        };
+        await saveSession(req.session);
+      }
+
+      throw error;
+    }
   });
 
   return router;
@@ -126,6 +198,7 @@ function createPlaylistGeneratorRouter({
 const playlistGeneratorRouter = createPlaylistGeneratorRouter({
   prepareDataset: playlistDatasetService.prepareDataset,
   savePlaylist: playlistSaveService.savePlaylist,
+  resumePlaylist: playlistSaveService.resumePlaylist,
   authorize: ensureSpotifyAccessToken,
 });
 

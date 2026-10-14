@@ -38,7 +38,7 @@ type PlaylistToSave = {
 };
 
 /**
- * Wynik pomyślnego zapisania nowej playlisty i wszystkich wybranych utworów.
+ * Wynik pomyślnego zapisu wszystkich wybranych utworów, nowego lub wznowionego.
  * Nie opisuje częściowego zapisu ani stanu partii, której wyniku nie potwierdzono.
  *
  * @property id - Identyfikator utworzonej playlisty w Spotify.
@@ -65,8 +65,9 @@ type SavedPlaylist = {
  * @property id - Identyfikator playlisty utworzonej przed wystąpieniem błędu.
  * @property name - Nazwa utworzonej playlisty.
  * @property spotifyUrl - Odnośnik umożliwiający sprawdzenie playlisty w Spotify.
- * @property confirmedTrackCount - Liczba utworów z partii, których zapis potwierdzono.
- * Nie obejmuje partii zakończonej błędem ani późniejszych, niewysłanych partii.
+ * @property confirmedTrackCount - Liczba utworów z potwierdzonych partii albo
+ * sprawdzonych podczas wznowienia w Spotify, powiększona o kolejne potwierdzone partie.
+ * Nie obejmuje pozycji, których obecności nadal nie można potwierdzić.
  * @property requestedTrackCount - Liczba utworów wybranych na początku operacji.
  *
  * @example
@@ -78,6 +79,18 @@ type PlaylistSaveProgress = {
   spotifyUrl: string;
   confirmedTrackCount: number;
   requestedTrackCount: number;
+};
+
+/**
+ * Pierwotny wybór potrzebny do wznowienia nieukończonego zapisu.
+ * Jest przechowywany w sesji backendu, nie odczytywany z żądania wznowienia.
+ *
+ * @property progress - Dane utworzonej playlisty i ostatni potwierdzony postęp.
+ * @property trackIds - Kopia ID wybranych przed pierwszym zapisem, w oryginalnej kolejności.
+ */
+type PendingPlaylistSave = {
+  progress: PlaylistSaveProgress;
+  trackIds: string[];
 };
 
 /**
@@ -174,6 +187,8 @@ type PlaylistDatasetDependencies = {
  * @property addTracksToPlaylist - Dopisuje jedną partię od 1 do 100 ID w podanej kolejności.
  * Zakończenie Promise potwierdza zapis partii; błąd przerywa operację.
  * Treść odpowiedzi nie jest wykorzystywana przez serwis zapisu.
+ * @property getPlaylistContents - Odczytuje wszystkie pozycje jednej wersji playlisty;
+ * null pozostaje na pozycji niedostępnego lub nieznanego utworu.
  */
 type PlaylistSaveDependencies = {
   createPlaylist(
@@ -189,6 +204,10 @@ type PlaylistSaveDependencies = {
     playlistId: string,
     trackIds: string[]
   ): Promise<unknown>;
+  getPlaylistContents(
+    accessToken: string,
+    playlistId: string
+  ): Promise<{ trackIds: (string | null)[]; snapshotId: string }>;
 };
 
 export type {
@@ -196,6 +215,7 @@ export type {
   PlaylistToSave,
   SavedPlaylist,
   PlaylistSaveProgress,
+  PendingPlaylistSave,
   PlaylistSourceTrack,
   PlaylistTrackMetadata,
   SkippedPlaylistTrack,

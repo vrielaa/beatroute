@@ -1,4 +1,5 @@
 import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
+import { PlaylistSaveConflictError } from "@application/playlist-generator/playlist-save-conflict.error.js";
 import { IntegrationApiError } from "@integrations/integration-api.error.js";
 import { SpotifyAuthApiError } from "@integrations/spotify/auth/api-error.js";
 import { RequestValidationError } from "./request-validation-error.js";
@@ -30,6 +31,8 @@ import type { NextFunction, Request, Response } from "express";
  * - nieukończony zapis playlisty (`PartialPlaylistSaveError`) – playlista została
  *   utworzona, ale nie potwierdzono dodania wszystkich utworów; odpowiedź zachowuje
  *   jej dane i postęp, bez ujawniania technicznych szczegółów przyczyny;
+ * - konflikt wznowienia (`PlaylistSaveConflictError`) – trwa zapis tej samej playlisty
+ *   albo jej zawartość nie odpowiada pierwotnemu wyborowi; zwraca 409 bez zapisu;
  * - nieoczekiwane wyjątki – błędy nierozpoznane przez wcześniejsze warunki,
  *   zwracane klientowi jako ogólny błąd serwera.
  *
@@ -68,6 +71,13 @@ function mapErrorToHttp(error: unknown): MappedHttpError {
 
   if (error instanceof PartialPlaylistSaveError) {
     return mapPartialPlaylistSaveError(error);
+  }
+
+  if (error instanceof PlaylistSaveConflictError) {
+    return {
+      status: 409,
+      body: createErrorResponse(error.code, error.message),
+    };
   }
 
   if (error instanceof IntegrationApiError) {

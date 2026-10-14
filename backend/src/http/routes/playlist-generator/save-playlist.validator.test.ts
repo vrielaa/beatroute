@@ -1,6 +1,35 @@
 import { describe, expect, it } from "vitest";
 import { RequestValidationError } from "@http/request-validation-error.js";
-import { parsePlaylistToSave } from "./save-playlist.validator.js";
+import {
+  parsePlaylistToSave,
+  parsePlaylistResumeId,
+} from "./save-playlist.validator.js";
+
+describe("parsePlaylistResumeId", () => {
+  it("trims the ID and ignores replacement tracks and tokens", () => {
+    expect(
+      parsePlaylistResumeId({
+        playlistId: ` ${"p".repeat(22)} `,
+        trackIds: [],
+        accessToken: "body-token",
+      })
+    ).toBe("p".repeat(22));
+  });
+
+  it.each([
+    undefined,
+    null,
+    [],
+    {},
+    { playlistId: 123 },
+    { playlistId: "" },
+    { playlistId: ["p".repeat(22)] },
+    { playlistId: "https://open.spotify.com/playlist/id" },
+    { playlistId: "p".repeat(23) },
+  ])("rejects invalid body %j", (body) => {
+    expect(() => parsePlaylistResumeId(body)).toThrow(RequestValidationError);
+  });
+});
 
 describe("parsePlaylistToSave", () => {
   const firstId = "3sNVsP50132BTNlImLx70i";

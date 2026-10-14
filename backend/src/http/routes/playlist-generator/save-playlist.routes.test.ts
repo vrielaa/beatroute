@@ -413,6 +413,10 @@ function createDependencies() {
     savePlaylist: vi
       .fn<Parameters<typeof createPlaylistGeneratorRouter>[0]["savePlaylist"]>()
       .mockResolvedValue(createSavedPlaylist()),
+    resumePlaylist:
+      vi.fn<
+        Parameters<typeof createPlaylistGeneratorRouter>[0]["resumePlaylist"]
+      >(),
     refresh,
     authorize: createEnsureSpotifyAccessToken({
       refresh,
@@ -497,6 +501,8 @@ function createSaveGateway() {
     addTracksToPlaylist: vi
       .fn<PlaylistSaveDependencies["addTracksToPlaylist"]>()
       .mockResolvedValue({ snapshot_id: "snapshot-id" }),
+    getPlaylistContents:
+      vi.fn<PlaylistSaveDependencies["getPlaylistContents"]>(),
   };
 }
 

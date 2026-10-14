@@ -20,6 +20,7 @@ describe("playlist saving", () => {
     const result = await service.savePlaylist(playlist, accessToken);
 
     expect(dependencies.createPlaylist).toHaveBeenCalledOnce();
+    expect(dependencies.getPlaylistContents).not.toHaveBeenCalled();
     expect(dependencies.createPlaylist).toHaveBeenCalledWith(
       accessToken,
       playlist.name
@@ -443,5 +444,7 @@ function createDependencies() {
     addTracksToPlaylist: vi
       .fn<PlaylistSaveDependencies["addTracksToPlaylist"]>()
       .mockResolvedValue({ snapshot_id: "updated-snapshot" }),
+    getPlaylistContents:
+      vi.fn<PlaylistSaveDependencies["getPlaylistContents"]>(),
   };
 }

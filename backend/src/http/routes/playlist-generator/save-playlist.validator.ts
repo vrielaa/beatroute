@@ -3,7 +3,7 @@ import { RequestValidationError } from "@http/request-validation-error.js";
 
 const MAX_PLAYLIST_NAME_LENGTH = 100;
 const MAX_TRACKS_LIMIT = 500;
-const SPOTIFY_TRACK_ID_PATTERN = /^[A-Za-z0-9]{22}$/;
+const SPOTIFY_ID_PATTERN = /^[A-Za-z0-9]{22}$/;
 
 /**
  * Sprawdza nazwę playlisty i identyfikatory utworów przeznaczonych do zapisu.
@@ -39,6 +39,32 @@ function parsePlaylistToSave(value: unknown): PlaylistToSave {
     name: parsePlaylistName(playlist["name"]),
     trackIds: parsePlaylistTrackIds(playlist["trackIds"]),
   };
+}
+
+/**
+ * Sprawdza ID playlisty wskazanej do wznowienia, bez przyjmowania nowej listy utworów.
+ *
+ * @param value - Body z polem playlistId; pozostałe pola są pomijane.
+ * @returns Przycięty identyfikator zawierający 22 litery lub cyfry.
+ * @throws RequestValidationError Gdy body lub identyfikator mają niepoprawny format.
+ */
+function parsePlaylistResumeId(value: unknown): string {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new RequestValidationError("Dane wznowienia muszą być obiektem");
+  }
+
+  const playlistId = (value as Record<string, unknown>)["playlistId"];
+
+  if (
+    typeof playlistId !== "string" ||
+    !SPOTIFY_ID_PATTERN.test(playlistId.trim())
+  ) {
+    throw new RequestValidationError(
+      "Pole playlistId musi zawierać 22 litery lub cyfry"
+    );
+  }
+
+  return playlistId.trim();
 }
 
 /** Przycina nazwę playlisty i sprawdza jej długość przed przekazaniem do zapisu. */
@@ -99,7 +125,7 @@ function parseSpotifyTrackId(value: unknown, index: number): string {
 
   const id = value.trim();
 
-  if (!SPOTIFY_TRACK_ID_PATTERN.test(id)) {
+  if (!SPOTIFY_ID_PATTERN.test(id)) {
     throw new RequestValidationError(
       `Pole trackIds[${index}] musi zawierać Spotify ID złożone z 22 liter lub cyfr`
     );
@@ -108,4 +134,4 @@ function parseSpotifyTrackId(value: unknown, index: number): string {
   return id;
 }
 
-export { parsePlaylistToSave };
+export { parsePlaylistToSave, parsePlaylistResumeId };

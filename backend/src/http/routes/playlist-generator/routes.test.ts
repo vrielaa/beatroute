@@ -39,6 +39,12 @@ describe("playlist dataset preparation in the actual app", () => {
 });
 
 describe("playlist saving in the actual app", () => {
+  it("mounts resume-save with Spotify authorization", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/resume-save")
+      .send({ playlistId: "p".repeat(22) })
+      .expect(401);
+  });
   it("mounts the save endpoint with Spotify authorization", async () => {
     await request(createTestApp())
       .post("/api/playlist-generator/save")

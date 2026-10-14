@@ -262,6 +262,7 @@ function createFlow() {
       savePlaylist: vi
         .fn()
         .mockRejectedValue(new Error("Unexpected playlist save")),
+      resumePlaylist: vi.fn(),
       authorize: createEnsureSpotifyAccessToken({
         refresh: async () => {
           throw new Error("Unexpected refresh");

@@ -1014,6 +1014,137 @@
         }
       }
     },
+    "/api/playlist-generator/resume-save": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "resumeGeneratedPlaylistSave",
+        "summary": "Resume an incomplete save to the same Spotify playlist",
+        "description": "Requires a Spotify session with playlist-read-private and playlist-modify-private. Accepts only playlistId; the original selection and playlist metadata come from pendingPlaylistSave in the server session. Refreshes an expired token before checking permissions. Reads all playlist pages and checks that the snapshot did not change during the read. The current contents must be an exact prefix of the original selection, with no missing items and no removal of previously confirmed tracks. Adds only the remaining suffix in ordered batches of up to 100. If all tracks are already present, returns success without writing. Does not create a playlist, change criteria, rerank or automatically retry POST requests. Returns 409 for changed contents, a concurrent resumption or no matching pending save in this session. Read failures preserve the pending save; write failures return PLAYLIST_SAVE_INCOMPLETE with updated progress. Success clears pending state. An in-process lock prevents simultaneous resumptions, but Spotify writes are not conditional on snapshot: edits or delayed writes after verification remain an external race. Do not edit the playlist while saving.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["playlistId"],
+                "properties": {
+                  "playlistId": {
+                    "type": "string",
+                    "pattern": "^\\s*[A-Za-z0-9]{22}\\s*$"
+                  }
+                }
+              },
+              "example": { "playlistId": "pppppppppppppppppppppp" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All original selected tracks are confirmed in the same playlist; pending state is cleared.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SavedPlaylist" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid resume ID or malformed JSON. No write starts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing Spotify session, reauthorization required or rejected token.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing playlist-read-private or playlist-modify-private (SPOTIFY_PLAYLIST_PERMISSION_REQUIRED), or Spotify denies access.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "PLAYLIST_CONTENTS_CHANGED, PLAYLIST_SAVE_IN_PROGRESS or PLAYLIST_RESUME_UNAVAILABLE. Pending state is retained; no new write starts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds the 1 MiB limit.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Spotify rate limit or local cooldown. A write failure includes PLAYLIST_SAVE_INCOMPLETE and updated progress.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before another user-requested resumption.",
+                "schema": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application or session-store error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Spotify network failure, invalid response or upstream error. Inconsistent reads do not start a write.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Spotify is unavailable or authentication is misconfigured.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Spotify request timed out; a timed-out write may have happened.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "default": {
+            "description": "Other Spotify rejection using the shared error contract.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lastfm/me": {
       "get": {
         "tags": ["Last.fm"],

@@ -14,6 +14,7 @@ const playlistDatasetService = createPlaylistDatasetService({
 const playlistSaveService = createPlaylistSaveService({
   createPlaylist: defaultSpotifyGateway.createPlaylist,
   addTracksToPlaylist: defaultSpotifyGateway.addTracksToPlaylist,
+  getPlaylistContents: defaultSpotifyGateway.getPlaylistContents,
 });
 
 export { playlistDatasetService, playlistSaveService };

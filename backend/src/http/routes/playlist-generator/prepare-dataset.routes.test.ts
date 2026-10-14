@@ -699,6 +699,10 @@ function createDependencies() {
     savePlaylist: vi
       .fn<Parameters<typeof createPlaylistGeneratorRouter>[0]["savePlaylist"]>()
       .mockRejectedValue(new Error("Unexpected playlist save")),
+    resumePlaylist:
+      vi.fn<
+        Parameters<typeof createPlaylistGeneratorRouter>[0]["resumePlaylist"]
+      >(),
     refresh,
     authorize: createEnsureSpotifyAccessToken({
       refresh,

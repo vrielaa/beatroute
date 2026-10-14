@@ -76,11 +76,16 @@ function createSpotifyAuthRouter({
     const tokenData = await authClient.exchangeAuthorizationCode(code);
 
     const lastfmSession = req.session.lastfm;
+    const pendingPlaylistSave = req.session.pendingPlaylistSave;
 
     await regenerate(req.session);
 
     if (lastfmSession) {
       req.session.lastfm = lastfmSession;
+    }
+
+    if (pendingPlaylistSave) {
+      req.session.pendingPlaylistSave = pendingPlaylistSave;
     }
 
     req.session.spotify = {

@@ -103,7 +103,17 @@ describe("Last.fm auth routes", () => {
     expect(dependencies.regenerate).not.toHaveBeenCalled();
   });
 
-  it("preserves Spotify login when connecting Last.fm", async () => {
+  it("preserves Spotify and the pending playlist save when connecting Last.fm", async () => {
+    const pendingPlaylistSave = {
+      progress: {
+        id: "p".repeat(22),
+        name: "Playlist",
+        spotifyUrl: `https://open.spotify.com/playlist/${"p".repeat(22)}`,
+        confirmedTrackCount: 0,
+        requestedTrackCount: 1,
+      },
+      trackIds: ["a".repeat(22)],
+    };
     const spotifySession = {
       accessToken: "spotify-access-token",
       refreshToken: "spotify-refresh-token",
@@ -120,6 +130,7 @@ describe("Last.fm auth routes", () => {
 
     app.post("/test/spotify-login", (req, res) => {
       req.session.spotify = spotifySession;
+      req.session.pendingPlaylistSave = pendingPlaylistSave;
       res.sendStatus(204);
     });
 
@@ -128,6 +139,7 @@ describe("Last.fm auth routes", () => {
         id: req.sessionID,
         spotify: req.session.spotify,
         lastfm: req.session.lastfm,
+        pendingPlaylistSave: req.session.pendingPlaylistSave,
         lastfmAuthState: req.session.lastfmAuthState,
       });
     });
@@ -152,6 +164,7 @@ describe("Last.fm auth routes", () => {
 
     expect(after.body.id).not.toBe(before.body.id);
     expect(after.body.spotify).toEqual(spotifySession);
+    expect(after.body.pendingPlaylistSave).toEqual(pendingPlaylistSave);
     expect(after.body.lastfm).toEqual({
       sessionKey: "lastfm-session-key",
       username: "lastfm-user",

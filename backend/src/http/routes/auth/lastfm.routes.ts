@@ -69,11 +69,16 @@ function createLastfmAuthRouter({
 
     const lastfmSession = await createSession(token);
     const spotifySession = req.session.spotify;
+    const pendingPlaylistSave = req.session.pendingPlaylistSave;
 
     await regenerate(req.session);
 
     if (spotifySession) {
       req.session.spotify = spotifySession;
+    }
+
+    if (pendingPlaylistSave) {
+      req.session.pendingPlaylistSave = pendingPlaylistSave;
     }
 
     req.session.lastfm = {
