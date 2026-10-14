@@ -63,6 +63,20 @@ class HttpRequestExecutionError extends Error {
 }
 
 /**
+ * Zachowuje status błędnej odpowiedzi HTTP, która spowodowała pauzę schedulera.
+ * Nie przechowuje treści odpowiedzi ani nagłówków i nie zastępuje odpowiedzi
+ * zwracanej po zakończeniu prób. Służy wyłącznie jako przyczyna błędu pauzy.
+ *
+ * @property status - Status odpowiedzi otrzymanej przed rozpoczęciem pauzy.
+ */
+class HttpResponseError extends Error {
+  constructor(public readonly status: number) {
+    super(`External API responded with HTTP ${status}`);
+    this.name = "HttpResponseError";
+  }
+}
+
+/**
  * Tworzy wykonawcę żądań stosującego wspólny timeout i politykę retry.
  * Automatyczne ponowienia dotyczą wyłącznie metod `GET` i `HEAD`. Odpowiedź
  * HTTP po ostatniej próbie jest zwracana klientowi integracji do dalszego
@@ -113,7 +127,9 @@ function createHttpRequestExecutor({
         );
 
         if (scheduler && !response.ok && retryAfterSeconds !== null) {
-          scheduler.pauseFor(retryAfterSeconds * 1_000);
+          scheduler.pauseFor(retryAfterSeconds * 1_000, {
+            cause: new HttpResponseError(response.status),
+          });
         }
 
         if (
@@ -290,6 +306,7 @@ function wait(delayMs: number): Promise<void> {
 export {
   DEFAULT_HTTP_REQUEST_POLICY,
   HttpRequestExecutionError,
+  HttpResponseError,
   createHttpRequestExecutor,
   parseRetryAfterSeconds,
 };

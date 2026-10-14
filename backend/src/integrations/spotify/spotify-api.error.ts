@@ -1,21 +1,28 @@
 import { IntegrationApiError } from "../integration-api.error.js";
 import type { IntegrationErrorCategory } from "../integration-api.error.js";
 
-/** Dodatkowe informacje opisujące błąd Spotify Web API. */
+/**
+ * Dodatkowe informacje opisujące błąd Spotify Web API.
+ *
+ * @property category - Znaczenie błędu niezależne od konkretnego API.
+ * @property retryAfterSeconds - Czas oczekiwania przekazany w nagłówku
+ * `Retry-After` albo pozostały czas lokalnej pauzy.
+ * @property upstreamStatus - Status odpowiedzi źródłowej; domyślnie `status`.
+ * Jawne `null` oznacza odmowę lokalną, bez nowej odpowiedzi Spotify.
+ */
 type SpotifyApiErrorOptions = {
-  /** Znaczenie błędu niezależne od konkretnego API. */
   category?: IntegrationErrorCategory;
-  /** Czas oczekiwania przekazany w nagłówku `Retry-After`. */
   retryAfterSeconds?: number | null;
+  upstreamStatus?: number | null;
 };
 
-/** Błąd odpowiedzi otrzymanej ze Spotify Web API. */
+/** Błąd odpowiedzi Spotify Web API, transportu albo lokalnej pauzy zapytań. */
 class SpotifyApiError extends IntegrationApiError {
   /**
    * @param message - Czytelny opis niepowodzenia.
-   * @param status - Status odpowiedzi Spotify albo status zastępczy transportu.
+   * @param status - Status odpowiedzi Spotify albo status zastępczy transportu lub pauzy.
    * @param data - Dane odpowiedzi lub pierwotna przyczyna błędu transportu.
-   * @param options - Kategoria błędu i opcjonalny czas ponowienia.
+   * @param options - Kategoria, czas ponowienia i opcjonalny status źródłowy.
    */
   constructor(
     message: string,
@@ -25,7 +32,8 @@ class SpotifyApiError extends IntegrationApiError {
   ) {
     super("spotify", message, {
       category: options.category ?? classifySpotifyError(status),
-      upstreamStatus: status,
+      upstreamStatus:
+        options.upstreamStatus === undefined ? status : options.upstreamStatus,
       retryAfterSeconds: options.retryAfterSeconds,
       details: data,
     });

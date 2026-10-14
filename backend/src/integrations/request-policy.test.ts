@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HttpRequestExecutionError,
+  HttpResponseError,
   createHttpRequestExecutor,
 } from "./request-policy.js";
 import {
@@ -391,9 +392,44 @@ describe("HTTP request policy", () => {
     ).resolves.toBe(response);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(scheduleSpy).toHaveBeenCalledOnce();
-    expect(pauseSpy).toHaveBeenCalledWith(3_000);
+    expect(pauseSpy).toHaveBeenCalledWith(3_000, {
+      cause: expect.objectContaining({ status: 429 }),
+    });
     expect(sleep).not.toHaveBeenCalled();
   });
+
+  it.each([429, 503])(
+    "preserves HTTP %s as the cause of a scheduler pause",
+    async (status) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      const response = new Response("private-response-data", {
+        status,
+        headers: { "Retry-After": "60" },
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const scheduler = createRequestScheduler({
+        maxConcurrentRequests: 1,
+        pauseBehavior: "reject",
+      });
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        scheduler,
+      });
+
+      await expect(request("https://api.test/resource")).resolves.toBe(
+        response
+      );
+
+      const result = request("https://api.test/another-resource");
+      await expect(result).rejects.toMatchObject({
+        remainingPauseMs: 60_000,
+        cause: expect.any(HttpResponseError),
+      });
+      await expect(result).rejects.toMatchObject({ cause: { status } });
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
+  );
 
   it("does not retry a POST request after a network failure", async () => {
     const connectionError = new TypeError("fetch failed");

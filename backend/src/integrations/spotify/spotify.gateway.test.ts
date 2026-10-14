@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SpotifyApiError } from "./spotify-api.error.js";
 import { createSpotifyGateway } from "./spotify.gateway.js";
 import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 describe("Spotify gateway", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   it("fetches a track using an encoded ID and bearer token", async () => {
     const track = createSpotifyTrack();
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(track));
@@ -181,6 +186,238 @@ describe("Spotify gateway", () => {
       retryAfterSeconds: 30,
     });
   });
+
+  it("returns a rate-limit response without automatically retrying the read", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { message: "Too many requests" } },
+          { status: 429, headers: { "Retry-After": "1" } }
+        )
+      );
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock });
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      category: "rate-limited",
+      upstreamStatus: 429,
+      retryAfterSeconds: 1,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects another user's read during the shared cooldown without fetching", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { message: "Too many requests", privateData: "secret" } },
+          { status: 429, headers: { "Retry-After": "300" } }
+        )
+      );
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 5,
+      pauseBehavior: "reject",
+    });
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+
+    await expect(
+      gateway.getSpotifyTrackById("track-1", "first-token")
+    ).rejects.toMatchObject({
+      upstreamStatus: 429,
+      retryAfterSeconds: 300,
+    });
+    await vi.advanceTimersByTimeAsync(1_234);
+
+    const result = gateway.getCurrentUserProfile("second-token");
+    await expect(result).rejects.toBeInstanceOf(SpotifyApiError);
+    await expect(result).rejects.toMatchObject({
+      integration: "spotify",
+      category: "rate-limited",
+      status: 429,
+      upstreamStatus: null,
+      retryAfterSeconds: 299,
+      data: null,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects queued reads immediately after a rate-limit response", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { message: "Too many requests" } },
+          { status: 429, headers: { "Retry-After": "300" } }
+        )
+      );
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+    const firstResult = gateway.getSpotifyTrackById("track-1", "access-token");
+    const secondResult = gateway.getSpotifyTrackById("track-2", "access-token");
+    const thirdResult = gateway.getCurrentUserProfile("access-token");
+
+    await Promise.all([
+      expect(firstResult).rejects.toMatchObject({ upstreamStatus: 429 }),
+      expect(secondResult).rejects.toMatchObject({
+        category: "rate-limited",
+        upstreamStatus: null,
+        retryAfterSeconds: 300,
+      }),
+      expect(thirdResult).rejects.toMatchObject({
+        category: "rate-limited",
+        upstreamStatus: null,
+      }),
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("allows an already running read to finish during a rate-limit cooldown", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const profile = { id: "user-id", display_name: "Gabriela" };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { error: { message: "Too many requests" } },
+          { status: 429, headers: { "Retry-After": "300" } }
+        )
+      )
+      .mockResolvedValueOnce(jsonResponse(profile));
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 2,
+      pauseBehavior: "reject",
+    });
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+    const firstResult = gateway.getSpotifyTrackById("track-1", "access-token");
+    const secondResult = gateway.getCurrentUserProfile("access-token");
+
+    await Promise.all([
+      expect(firstResult).rejects.toMatchObject({ category: "rate-limited" }),
+      expect(secondResult).resolves.toEqual(profile),
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows new reads after the cooldown expires", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const profile = { id: "user-id", display_name: "Gabriela" };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { error: { message: "Too many requests" } },
+          { status: 429, headers: { "Retry-After": "1" } }
+        )
+      )
+      .mockResolvedValueOnce(jsonResponse(profile));
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      upstreamStatus: 429,
+    });
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      upstreamStatus: null,
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).resolves.toEqual(profile);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves an availability pause without presenting it as a rate limit", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { message: "Service unavailable" } },
+          { status: 503, headers: { "Retry-After": "300" } }
+        )
+      );
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      upstreamStatus: 503,
+    });
+    await expect(
+      gateway.getCurrentUserProfile("access-token")
+    ).rejects.toMatchObject({
+      category: "unavailable",
+      status: 503,
+      upstreamStatus: null,
+      retryAfterSeconds: 300,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it.each(["create", "add"])(
+    "does not send a %s playlist write during a cooldown",
+    async (operation) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(
+            { error: { message: "Too many requests" } },
+            { status: 429, headers: { "Retry-After": "300" } }
+          )
+        );
+      const scheduler = createRequestScheduler({
+        maxConcurrentRequests: 1,
+        pauseBehavior: "reject",
+      });
+      const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+
+      await expect(
+        gateway.getCurrentUserProfile("access-token")
+      ).rejects.toMatchObject({
+        upstreamStatus: 429,
+      });
+      const result =
+        operation === "create"
+          ? gateway.createPlaylist("access-token", "Playlist")
+          : gateway.addTracksToPlaylist("access-token", "playlist-id", [
+              "track-1",
+            ]);
+
+      await expect(result).rejects.toMatchObject({
+        category: "rate-limited",
+        upstreamStatus: null,
+        retryAfterSeconds: 300,
+      });
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
+  );
 
   it("classifies an exhausted request timeout", async () => {
     const timeoutError = new Error("request timed out");
@@ -612,7 +849,9 @@ describe("Adding Spotify playlist tracks", () => {
       retryAfterSeconds: 30,
     });
 
-    expect(pauseSpy).toHaveBeenCalledWith(30_000);
+    expect(pauseSpy).toHaveBeenCalledWith(30_000, {
+      cause: expect.objectContaining({ status: 429 }),
+    });
     expect(scheduleSpy).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledOnce();
   });

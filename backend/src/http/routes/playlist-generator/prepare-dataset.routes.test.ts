@@ -12,6 +12,8 @@ import { SpotifyReauthorizationRequiredError } from "@application/auth/spotify-r
 import { errorHandler } from "@http/error-handler.js";
 import { createEnsureSpotifyAccessToken } from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
+import { createSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
+import { createRequestScheduler } from "@integrations/request-scheduler.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import { createPlaylistGeneratorRouter } from "./routes.js";
 
@@ -419,6 +421,77 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
         retryAfterSeconds: 30,
       });
       expect(response.text).not.toContain("private-data");
+    }
+  );
+
+  it.each([429, 503])(
+    "returns the remaining HTTP %s cooldown without another provider call",
+    async (status) => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const clock = vi.spyOn(Date, "now").mockReturnValue(currentTimeMs);
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "Provider failure",
+              privateData: "private-response-data",
+            },
+          }),
+          {
+            status,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "300",
+            },
+          }
+        )
+      );
+      const scheduler = createRequestScheduler({
+        maxConcurrentRequests: 5,
+        pauseBehavior: "reject",
+      });
+      const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
+      const getAudioFeaturesBySpotifyIds = vi.fn();
+      const service = createPlaylistDatasetService({
+        getSpotifyTrackById: gateway.getSpotifyTrackById,
+        getAudioFeaturesBySpotifyIds,
+      });
+      const browser = request.agent(
+        createTestApp({
+          ...createDependencies(),
+          prepareDataset: service.prepareDataset,
+        })
+      );
+      await browser
+        .post("/test/spotify-login")
+        .send(createSpotifySession())
+        .expect(204);
+
+      const firstResponse = await browser
+        .post(endpoint)
+        .send(createFile())
+        .expect(status);
+      expect(firstResponse.headers["retry-after"]).toBe("300");
+      expect(firstResponse.body.error.details.upstreamStatus).toBe(status);
+      clock.mockReturnValue(currentTimeMs + 3_123);
+
+      const nextResponse = await browser
+        .post(endpoint)
+        .send(createFile())
+        .expect(status);
+
+      expect(nextResponse.headers["retry-after"]).toBe("297");
+      expect(nextResponse.body.error.code).toBe("SPOTIFY_API_ERROR");
+      expect(nextResponse.body.error.details).toEqual({
+        integration: "spotify",
+        upstreamStatus: null,
+        retryAfterSeconds: 297,
+      });
+      expect(nextResponse.text).not.toContain("private-response-data");
+      expect(nextResponse.text).not.toContain("session-access-token");
+      expect(nextResponse.body.dataset).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(getAudioFeaturesBySpotifyIds).not.toHaveBeenCalled();
     }
   );
 

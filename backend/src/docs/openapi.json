@@ -676,7 +676,7 @@
             }
           },
           "429": {
-            "description": "An integration reached its request limit. Retry-After is included when supplied by the upstream service.",
+            "description": "An integration reached its request limit, or a local Spotify cooldown rejected the operation without sending a new provider request. Retry-After contains the upstream delay or remaining cooldown when available. Local rejections report upstreamStatus: null.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds before retrying, when available.",
@@ -941,7 +941,7 @@
             }
           },
           "429": {
-            "description": "Spotify reached its request limit. Retry-After is included when available; it does not mean a write can be safely repeated. An already created playlist is returned in details.progress.",
+            "description": "Spotify reached its request limit, or a local cooldown prevented sending the write. Retry-After contains the upstream delay or remaining cooldown when available; it does not mean a write can be safely repeated. An already created playlist is returned in details.progress.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before further Spotify requests. Check any existing incomplete playlist before another save.",

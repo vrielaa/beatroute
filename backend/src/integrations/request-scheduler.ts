@@ -39,14 +39,15 @@ type ScheduledRequestOptions = {
  * @property schedule - Zwraca wynik operacji albo błąd wykonania, anulowania
  * lub odrzucenia podczas pauzy. Kolejkuje operacje oczekujące na wolny limit.
  * @property pauseFor - Wstrzymuje rozpoczynanie operacji i stosuje wybrany
- * tryb pauzy wobec kolejki. Nie anuluje operacji, które już się wykonują.
+ * tryb pauzy wobec kolejki. Może zachować przyczynę pauzy jako `cause` błędu.
+ * Nie anuluje operacji, które już się wykonują.
  */
 type RequestScheduler = {
   schedule<T>(
     operation: () => Promise<T>,
     options?: ScheduledRequestOptions
   ): Promise<T>;
-  pauseFor(delayMs: number): void;
+  pauseFor(delayMs: number, options?: ErrorOptions): void;
 };
 
 /**
@@ -72,10 +73,14 @@ type QueuedRequest = {
  *
  * @property remainingPauseMs - Pozostały czas pauzy w milisekundach w chwili
  * utworzenia błędu; wartość nie aktualizuje się po przekazaniu wywołującemu.
+ * @property cause - Opcjonalna przyczyna zapisana podczas wywołania `pauseFor`.
  */
 class RequestSchedulerPausedError extends Error {
-  constructor(public readonly remainingPauseMs: number) {
-    super("Request scheduler is paused");
+  constructor(
+    public readonly remainingPauseMs: number,
+    options?: ErrorOptions
+  ) {
+    super("Request scheduler is paused", options);
     this.name = "RequestSchedulerPausedError";
   }
 }
@@ -101,6 +106,7 @@ function createRequestScheduler({
   const requestStartTimes: number[] = [];
   let activeRequests = 0;
   let pausedUntilMs = 0;
+  let pauseCause: unknown;
   let wakeUpTimer: ReturnType<typeof setTimeout> | null = null;
   let wakeUpAtMs = 0;
 
@@ -136,12 +142,18 @@ function createRequestScheduler({
     });
   }
 
-  function pauseFor(delayMs: number): void {
+  function pauseFor(delayMs: number, { cause }: ErrorOptions = {}): void {
     if (!Number.isFinite(delayMs) || delayMs < 0) {
       throw new RangeError("Request scheduler pause cannot be negative");
     }
 
-    pausedUntilMs = Math.max(pausedUntilMs, Date.now() + delayMs);
+    const nextPauseUntilMs = Date.now() + delayMs;
+
+    if (nextPauseUntilMs >= pausedUntilMs) {
+      pausedUntilMs = nextPauseUntilMs;
+      pauseCause = cause;
+    }
+
     processQueue();
   }
 
@@ -154,7 +166,7 @@ function createRequestScheduler({
     const pauseError = getCurrentPauseError();
 
     if (pauseError) {
-      rejectQueuedRequests(pauseError.remainingPauseMs);
+      rejectQueuedRequests(pauseError);
       clearWakeUpTimer();
       return;
     }
@@ -226,15 +238,19 @@ function createRequestScheduler({
     const remainingPauseMs = pausedUntilMs - Date.now();
 
     return remainingPauseMs > 0
-      ? new RequestSchedulerPausedError(remainingPauseMs)
+      ? new RequestSchedulerPausedError(remainingPauseMs, { cause: pauseCause })
       : null;
   }
 
   /** Opróżnia kolejkę, usuwa listenery anulowania i kończy operacje błędem pauzy. */
-  function rejectQueuedRequests(remainingPauseMs: number): void {
+  function rejectQueuedRequests(pauseError: RequestSchedulerPausedError): void {
     for (const request of queue.splice(0)) {
       removeAbortListener(request);
-      request.reject(new RequestSchedulerPausedError(remainingPauseMs));
+      request.reject(
+        new RequestSchedulerPausedError(pauseError.remainingPauseMs, {
+          cause: pauseError.cause,
+        })
+      );
     }
   }
 

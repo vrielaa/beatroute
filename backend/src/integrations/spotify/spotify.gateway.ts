@@ -13,16 +13,22 @@ import type {
 
 import {
   HttpRequestExecutionError,
+  HttpResponseError,
   createHttpRequestExecutor,
   parseRetryAfterSeconds,
 } from "@integrations/request-policy.js";
-import { createRequestScheduler } from "@integrations/request-scheduler.js";
+import {
+  createRequestScheduler,
+  RequestSchedulerPausedError,
+} from "@integrations/request-scheduler.js";
 
 const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
+const SPOTIFY_RETRYABLE_STATUSES = [502, 503, 504];
 
-/** Wspólny scheduler wszystkich produkcyjnych zapytań do Spotify Web API. */
+/** Wspólny scheduler Spotify odrzucający nowe i oczekujące operacje podczas pauzy. */
 const spotifyRequestScheduler = createRequestScheduler({
   maxConcurrentRequests: 5,
+  pauseBehavior: "reject",
 });
 
 /**
@@ -39,14 +45,15 @@ function createSpotifyGateway({
 }: SpotifyApiConfiguration = {}): SpotifyGateway {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
-    policy: requestPolicy,
+    policy: { retryableStatuses: SPOTIFY_RETRYABLE_STATUSES, ...requestPolicy },
     scheduler,
   });
   /**
    * Wykonuje autoryzowane zapytanie GET albo POST do Spotify Web API.
    * Korzysta ze wspólnego timeoutu i schedulera oraz mapuje błędy transportu
-   * i odpowiedzi API na `SpotifyApiError`. Polityka retry ponawia odczyty GET,
-   * ale nie ponawia zapisów POST.
+   * i odpowiedzi API na `SpotifyApiError`. Domyślna polityka ponawia przejściowe
+   * błędy odczytów GET, ale nie ponawia `429` ani zapisów POST. Podczas pauzy
+   * zwraca jej przyczynę i pozostały czas, bez wysyłania nowego żądania.
    *
    * @param endpoint - Ścieżka zasobu względem bazowego adresu API.
    * @param accessToken - Token dostępu użytkownika Spotify.
@@ -81,6 +88,23 @@ function createSpotifyGateway({
         body: jsonBody,
       });
     } catch (cause) {
+      if (cause instanceof RequestSchedulerPausedError) {
+        const pauseStatus =
+          cause.cause instanceof HttpResponseError ? cause.cause.status : 503;
+
+        throw new SpotifyApiError(
+          pauseStatus === 429
+            ? "Zapytania do Spotify są wstrzymane po przekroczeniu limitu"
+            : "Zapytania do Spotify są czasowo wstrzymane",
+          pauseStatus,
+          null,
+          {
+            upstreamStatus: null,
+            retryAfterSeconds: Math.ceil(cause.remainingPauseMs / 1_000),
+          }
+        );
+      }
+
       if (cause instanceof HttpRequestExecutionError) {
         throw new SpotifyApiError(
           cause.kind === "timeout"

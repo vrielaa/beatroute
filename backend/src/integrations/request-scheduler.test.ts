@@ -329,6 +329,61 @@ describe("request scheduler", () => {
     expect(operation).not.toHaveBeenCalled();
   });
 
+  it("preserves the pause cause for queued and new rejected requests", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const active = createDeferredPromise<void>();
+    const activeResult = scheduler.schedule(() => active.promise);
+    const queuedResult = scheduler.schedule(async () => "queued-result");
+    const cause = new Error("pause reason");
+    const rejection = expect(queuedResult).rejects.toMatchObject({ cause });
+
+    await flushPromises();
+    scheduler.pauseFor(5_000, { cause });
+
+    await rejection;
+    await expect(
+      scheduler.schedule(async () => "new-result")
+    ).rejects.toMatchObject({
+      remainingPauseMs: 5_000,
+      cause,
+    });
+
+    active.resolve();
+    await activeResult;
+  });
+
+  it("keeps the cause of the longest pause until a later pause extends it", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const firstCause = new Error("long pause");
+    const secondCause = new Error("short pause");
+    const operation = async () => "done";
+
+    scheduler.pauseFor(10_000, { cause: firstCause });
+    scheduler.pauseFor(1_000, { cause: secondCause });
+
+    await expect(scheduler.schedule(operation)).rejects.toMatchObject({
+      remainingPauseMs: 10_000,
+      cause: firstCause,
+    });
+
+    scheduler.pauseFor(20_000, { cause: secondCause });
+
+    await expect(scheduler.schedule(operation)).rejects.toMatchObject({
+      remainingPauseMs: 20_000,
+      cause: secondCause,
+    });
+  });
+
   it("keeps normal concurrency queueing when rejection mode is enabled", async () => {
     const scheduler = createRequestScheduler({
       maxConcurrentRequests: 1,

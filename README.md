@@ -112,6 +112,18 @@ to be prepared. Expected missing measurements (404) are reported as missing data
 Generate can retry after an error without selecting the file again; a failed
 analysis does not discard data already prepared successfully.
 
+Spotify Web API requests share an in-memory cooldown. A `429` stops new provider
+calls for the duration of `Retry-After`; the read itself is not automatically
+retried. Queued and new operations fail promptly with the remaining delay, while
+already-running operations may finish. A pause caused by `503` remains an
+availability error, not a rate-limit error. Local refusals report
+`upstreamStatus: null` because no new Spotify response was received. The browser
+respects `Retry-After` for GET retries and displays the error immediately when
+the delay exceeds 30 seconds. POST requests are never automatically retried.
+The local cooldown is lost on backend restart, which does not remove any limit
+still enforced by Spotify. Spotify request-rate limiting and backend metadata
+caching are not yet enabled.
+
 Both endpoints have a 1 MiB JSON body limit; other endpoints retain 100 KiB.
 Vitest covers validation and domain logic. Supertest covers authentication, errors,
 parser limits and the preparation-to-generation flow with actual services and
