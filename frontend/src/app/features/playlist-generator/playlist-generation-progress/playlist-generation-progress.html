@@ -28,21 +28,49 @@
     <div>
       <p class="current-stage">{{ stageLabels[stage()] }}</p>
       <p class="stage-description">{{ description() }}</p>
+      <p class="preparation-counter">
+        Przetworzono {{ preparationProgress().processedTracks }} ze
+        {{ preparationProgress().totalTracks }} — ukończone partie:
+        {{ preparationProgress().completedBatches }} z {{ preparationProgress().totalBatches }}.
+      </p>
+      <p class="preparation-results">
+        Przygotowano {{ preparationProgress().preparedTracks }}, pominięto
+        {{ preparationProgress().skippedTracks }}.
+      </p>
+      @if (
+        stage() === 'preparation' &&
+        isRunning() &&
+        preparationProgress().completedBatches < preparationProgress().totalBatches
+      ) {
+        <p class="preparation-current-batch">
+          Pobieranie partii {{ preparationProgress().completedBatches + 1 }} z
+          {{ preparationProgress().totalBatches }}.
+        </p>
+      }
     </div>
   </div>
 
   <div
     class="progress-track"
     role="progressbar"
-    aria-label="Ukończone etapy generowania playlisty"
+    aria-label="Przetworzone identyfikatory utworów"
     aria-valuemin="0"
-    [attr.aria-valuemax]="stages.length"
-    [attr.aria-valuenow]="completedSteps()"
+    [attr.aria-valuemax]="preparationProgress().totalTracks"
+    [attr.aria-valuenow]="preparationProgress().processedTracks"
     [attr.aria-valuetext]="
-      'Ukończono ' + completedSteps() + ' z ' + stages.length + ' etapów. ' + stageLabels[stage()]
+      'Przetworzono ' +
+      preparationProgress().processedTracks +
+      ' z ' +
+      preparationProgress().totalTracks +
+      ' identyfikatorów. Przygotowano ' +
+      preparationProgress().preparedTracks +
+      ', pominięto ' +
+      preparationProgress().skippedTracks +
+      '. ' +
+      stageLabels[stage()]
     "
   >
-    <div class="progress-fill" [style.width.%]="completedPercentage()"></div>
+    <div class="progress-fill" [style.width.%]="preparedPercentage()"></div>
   </div>
 
   <ol class="progress-steps" aria-label="Etapy generowania">

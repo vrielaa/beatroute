@@ -15,13 +15,18 @@ import type {
   PlaylistAudioFeatures,
   PlaylistCriteria,
   PlaylistGenerationStage,
+  PlaylistPreparationProgress,
   PlaylistSaveProgress,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
   SavedPlaylist,
 } from './playlist-generator.models';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
-import { mergePreparedPlaylistDatasets, splitPlaylistTrackIds } from './playlist-dataset-batches';
+import {
+  getPlaylistPreparationProgress,
+  mergePreparedPlaylistDatasets,
+  splitPlaylistTrackIds,
+} from './playlist-dataset-batches';
 import { parsePlaylistTrackIdsFile } from './playlist-track-ids.parser';
 import { selectRankedTrackIds } from './playlist-track-selection';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
@@ -65,6 +70,10 @@ class PlaylistGenerator {
   protected readonly isGenerating = signal(false);
   protected readonly generationError = signal<string | null>(null);
   protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
+  protected readonly preparationProgress = computed<PlaylistPreparationProgress | null>(() => {
+    const file = this.trackIdsFile();
+    return file ? getPlaylistPreparationProgress(file, this.preparedBatches()) : null;
+  });
   protected readonly isSaving = signal(false);
   protected readonly savedPlaylist = signal<SavedPlaylist | null>(null);
   protected readonly partialSaveProgress = signal<PlaylistSaveProgress | null>(null);
@@ -185,7 +194,7 @@ class PlaylistGenerator {
    * Pomija wywołanie bez pliku, przy pustym przygotowanym zbiorze, niepoprawnym
    * formularzu oraz podczas odczytu lub trwającego procesu.
    * Etap zmienia dopiero po zakończeniu pobierania lub otrzymaniu wyniku;
-   * nie szacuje liczby przetworzonych utworów ani czasu pozostałego do końca.
+   * liczy wyłącznie ID z zakończonych partii, bez szacowania czasu.
    * Zapisuje ranking i odrzucenia albo komunikat błędu; pusty ranking jest poprawnym wynikiem.
    * Zmiana danych lub kryteriów oraz zniszczenie komponentu anulują oczekiwanie na odpowiedź.
    * Nie tworzy playlisty w Spotify.

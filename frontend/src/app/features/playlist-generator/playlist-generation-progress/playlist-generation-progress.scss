@@ -96,6 +96,18 @@ h2 {
   color: var(--color-text-secondary);
 }
 
+.preparation-counter {
+  margin: 0.8rem 0 0.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+}
+
+.preparation-results,
+.preparation-current-batch {
+  margin: 0.4rem 0 0;
+  color: var(--color-text-secondary);
+}
+
 .progress-track {
   height: 0.5rem;
   overflow: hidden;

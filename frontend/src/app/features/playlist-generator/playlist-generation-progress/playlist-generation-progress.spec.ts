@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PlaylistGenerationProgress } from './playlist-generation-progress';
-import type { PlaylistGenerationStage } from '../playlist-generator.models';
+import type {
+  PlaylistGenerationStage,
+  PlaylistPreparationProgress,
+} from '../playlist-generator.models';
 
 describe('PlaylistGenerationProgress', () => {
   let fixture: ComponentFixture<PlaylistGenerationProgress>;
@@ -23,9 +26,9 @@ describe('PlaylistGenerationProgress', () => {
     expect(getText()).toContain(`Etap ${step}/3`);
     expect(getText()).toContain(label);
     const progressbar = fixture.nativeElement.querySelector('[role="progressbar"]');
-    expect(progressbar.getAttribute('aria-valuenow')).toBe(String(completed));
+    expect(progressbar.getAttribute('aria-valuenow')).toBe(stage === 'preparation' ? '0' : '100');
     expect(progressbar.getAttribute('aria-valuemin')).toBe('0');
-    expect(progressbar.getAttribute('aria-valuemax')).toBe('3');
+    expect(progressbar.getAttribute('aria-valuemax')).toBe('100');
     expect(fixture.nativeElement.querySelectorAll('.is-complete')).toHaveLength(completed);
   });
 
@@ -50,7 +53,7 @@ describe('PlaylistGenerationProgress', () => {
     expect(fixture.nativeElement.querySelectorAll('.is-complete')).toHaveLength(1);
     expect(
       fixture.nativeElement.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')
-    ).toBe('1');
+    ).toBe('100');
   });
 
   it('shows completion without a loading animation', () => {
@@ -63,9 +66,71 @@ describe('PlaylistGenerationProgress', () => {
     expect(fixture.nativeElement.querySelector('.progress-fill').style.width).toBe('100%');
   });
 
-  function setProgress(stage: PlaylistGenerationStage, isRunning: boolean): void {
+  it('shows actual completed batches separately from prepared tracks and omissions', () => {
+    setProgress('preparation', true, {
+      processedTracks: 20,
+      totalTracks: 100,
+      preparedTracks: 18,
+      skippedTracks: 2,
+      completedBatches: 1,
+      totalBatches: 5,
+    });
+
+    expect(getText()).toContain('Przetworzono 20 ze 100 — ukończone partie: 1 z 5.');
+    expect(getText()).toContain('Przygotowano 18, pominięto 2.');
+    expect(getText()).toContain('Pobieranie partii 2 z 5.');
+    expect(fixture.nativeElement.querySelector('.progress-fill').style.width).toBe('20%');
+    const bar = fixture.nativeElement.querySelector('[role="progressbar"]');
+    expect(bar.getAttribute('aria-valuenow')).toBe('20');
+    expect(bar.getAttribute('aria-valuetext')).toContain('Przygotowano 18, pominięto 2.');
+  });
+
+  it('retains partial progress after interruption without marking the generator as complete', () => {
+    setProgress('preparation', false, {
+      processedTracks: 40,
+      totalTracks: 45,
+      preparedTracks: 38,
+      skippedTracks: 2,
+      completedBatches: 2,
+      totalBatches: 3,
+    });
+
+    expect(getText()).toContain('Przetworzono 40 ze 45');
+    expect(getText()).toContain('Proces zatrzymany');
+    expect(getText()).not.toContain('Pobieranie partii');
+    expect(getText()).not.toContain('Wynik jest gotowy');
+    expect(fixture.nativeElement.querySelector('.is-running')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.is-complete')).toHaveLength(0);
+  });
+
+  it('distinguishes completed data preparation from pending analysis', () => {
+    setProgress('analysis', true);
+
+    expect(fixture.nativeElement.querySelector('.progress-fill').style.width).toBe('100%');
+    expect(getText()).toContain('Analiza i ranking');
+    expect(getText()).not.toContain('Wynik jest gotowy');
+    expect(getText()).not.toContain('Pobieranie partii');
+    expect(fixture.nativeElement.querySelectorAll('.is-complete')).toHaveLength(1);
+  });
+
+  function setProgress(
+    stage: PlaylistGenerationStage,
+    isRunning: boolean,
+    progress?: PlaylistPreparationProgress
+  ): void {
     fixture.componentRef.setInput('stage', stage);
     fixture.componentRef.setInput('isRunning', isRunning);
+    fixture.componentRef.setInput(
+      'preparationProgress',
+      progress ?? {
+        processedTracks: stage === 'preparation' ? 0 : 100,
+        totalTracks: 100,
+        preparedTracks: stage === 'preparation' ? 0 : 100,
+        skippedTracks: 0,
+        completedBatches: stage === 'preparation' ? 0 : 5,
+        totalBatches: 5,
+      }
+    );
     fixture.detectChanges();
   }
 

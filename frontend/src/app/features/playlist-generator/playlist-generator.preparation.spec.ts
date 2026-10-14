@@ -76,7 +76,7 @@ describe('PlaylistGenerator preparation and progress', () => {
     fixture.detectChanges();
 
     expect(getText()).toContain('Etap 2/3');
-    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('1');
+    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('2');
     expect(getText()).toContain('Analiza i ranking');
     expect(getText()).toContain('wymagania i');
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBe(form);
@@ -89,7 +89,7 @@ describe('PlaylistGenerator preparation and progress', () => {
     fixture.detectChanges();
 
     expect(getText()).toContain('Etap 3/3');
-    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('3');
+    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('2');
     expect(getText()).toContain('Wynik jest gotowy');
     expect(getGenerateButton().disabled).toBe(false);
     expect(fixture.nativeElement.querySelector('.is-running')).toBeNull();
@@ -178,7 +178,7 @@ describe('PlaylistGenerator preparation and progress', () => {
     expect(getText()).not.toContain('Wynik jest gotowy');
     expect(getError()).toBeNull();
     expect(getGenerateButton().disabled).toBe(true);
-    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('0');
+    expect(getProgressbar().getAttribute('aria-valuenow')).toBe('2');
     expect(fixture.nativeElement.querySelector('.is-running')).toBeNull();
     getGenerateButton().dispatchEvent(new Event('click'));
     http.expectNone(() => true);

@@ -44,22 +44,28 @@ describe('PlaylistGenerator sequential preparation batches', () => {
 
     startGeneration();
     const first = expectBatch(file.spotifyTrackIds.slice(0, 20));
+    expectProgress(0, 45, 0, 0, 0, 3);
+    expect(getText()).toContain('Pobieranie partii 1 z 3.');
     http.expectNone(PREPARATION_URL);
     http.expectNone(GENERATION_URL);
     first.flush(createPreparedDataset(first.request.body.spotifyTrackIds));
     fixture.detectChanges();
 
+    expectProgress(20, 45, 20, 0, 1, 3);
+    expect(getText()).toContain('Pobieranie partii 2 z 3.');
     const second = expectBatch(file.spotifyTrackIds.slice(20, 40));
     http.expectNone(PREPARATION_URL);
     http.expectNone(GENERATION_URL);
     second.flush(createPreparedDataset(second.request.body.spotifyTrackIds));
     fixture.detectChanges();
 
+    expectProgress(40, 45, 40, 0, 2, 3);
     const third = expectBatch(file.spotifyTrackIds.slice(40));
     http.expectNone(GENERATION_URL);
     third.flush(createPreparedDataset(third.request.body.spotifyTrackIds));
     fixture.detectChanges();
 
+    expectProgress(45, 45, 45, 0, 3, 3);
     expect(getText()).toContain('Etap 2/3');
     expect(getText()).not.toContain('Wynik jest gotowy');
     const analysis = http.expectOne(GENERATION_URL);
@@ -72,10 +78,11 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     fixture.detectChanges();
 
     expect(getText()).toContain('Wynik jest gotowy');
+    expect(getButton('#playlist-cancel-generation')).toBeNull();
     http.expectNone(() => true);
   });
 
-  it('merges skipped tracks and missing measurements across batches', async () => {
+  it('merges gaps across batches and counts fully skipped IDs as processed', async () => {
     const file = createFile(45);
     await importFile(file);
     startGeneration();
@@ -87,6 +94,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     }));
     expectBatch(firstIds).flush(firstData);
     fixture.detectChanges();
+    expectProgress(20, 45, 18, 2, 1, 3);
 
     const secondIds = file.spotifyTrackIds.slice(20, 40);
     const secondData = createPreparedDataset(secondIds);
@@ -99,6 +107,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expectBatch(thirdIds).flush(thirdData);
     fixture.detectChanges();
 
+    expectProgress(45, 45, 38, 7, 3, 3);
     expect(getText()).toContain('Pominięte utwory: 7');
     expect(getText()).toContain('Utwory z niepełnymi pomiarami: 1');
     const analysis = http.expectOne(GENERATION_URL);
@@ -125,9 +134,11 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     }
     fixture.detectChanges();
 
+    expectProgress(45, 45, 0, 45, 3, 3);
     expect(getText()).toContain('Nie znaleziono utworów z metadanymi i użytecznymi pomiarami');
     expect(getText()).not.toContain('Wynik jest gotowy');
     expect(getButton('#playlist-generate')?.disabled).toBe(true);
+    expect(getButton('#playlist-cancel-generation')).toBeNull();
     expect(fixture.nativeElement.querySelector('.generation-error')).toBeNull();
     http.expectNone(() => true);
   });
@@ -145,6 +156,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     );
     fixture.detectChanges();
 
+    expectProgress(20, 45, 20, 0, 1, 3);
     expect(getText()).toContain('Ponów pobieranie za 60 s.');
     expect(getText()).not.toContain('Private diagnostic');
     expect(getText()).toContain('Proces zatrzymany');
@@ -152,6 +164,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
 
     startGeneration();
     const second = expectBatch(file.spotifyTrackIds.slice(20, 40));
+    expectProgress(20, 45, 20, 0, 1, 3);
     second.flush(createPreparedDataset(second.request.body.spotifyTrackIds));
     expectBatch(file.spotifyTrackIds.slice(40)).flush(
       createPreparedDataset(file.spotifyTrackIds.slice(40))
@@ -180,6 +193,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expect(getProgress()).toBeNull();
     http.expectNone(() => true);
     startGeneration();
+    expectProgress(20, 45, 20, 0, 1, 3);
     expectBatch(file.spotifyTrackIds.slice(20, 40)).flush(
       createPreparedDataset(file.spotifyTrackIds.slice(20, 40))
     );
@@ -207,6 +221,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expect(getProgress()).toBeNull();
     http.expectNone(() => true);
     startGeneration();
+    expectProgress(0, 45, 0, 0, 0, 3);
     const first = expectBatch(file.spotifyTrackIds.slice(0, 20));
     expect(getText()).toContain('replacement.json');
     fixture.destroy();
@@ -253,6 +268,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     const updated = http.expectOne(GENERATION_URL);
     expect(updated.request.body.dataset).toBe(cachedDataset);
     expect(updated.request.body.preferences.energy).toBe('high');
+    expectProgress(45, 45, 45, 0, 3, 3);
     updated.flush({ rankedTracks: [], rejectedTracks: [] });
   });
 
@@ -263,6 +279,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
       spotifyTrackIds: [...file.spotifyTrackIds, file.spotifyTrackIds[0], file.spotifyTrackIds[20]],
     });
     startGeneration();
+    expectProgress(0, 21, 0, 0, 0, 2);
     expectBatch(file.spotifyTrackIds.slice(0, 20)).flush(
       createPreparedDataset(file.spotifyTrackIds.slice(0, 20))
     );
@@ -289,6 +306,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
       http.expectNone(GENERATION_URL);
       batch.flush(createPreparedDataset(ids));
       fixture.detectChanges();
+      expectProgress(offset + 20, 500, offset + 20, 0, offset / 20 + 1, 25);
     }
 
     const analysis = http.expectOne(GENERATION_URL);
@@ -327,6 +345,26 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expect(request.request.body).toEqual({ version: 1, spotifyTrackIds: ids });
     expect(request.request.withCredentials).toBe(true);
     return request;
+  }
+
+  function expectProgress(
+    processed: number,
+    total: number,
+    prepared: number,
+    skipped: number,
+    completedBatches: number,
+    totalBatches: number
+  ): void {
+    const progress = getProgress();
+    if (!progress) throw new Error('Nie znaleziono postępu generowania');
+    const text = progress.textContent?.replace(/\s+/g, ' ').trim();
+    expect(text).toContain(
+      `Przetworzono ${processed} ze ${total} — ukończone partie: ${completedBatches} z ${totalBatches}.`
+    );
+    expect(text).toContain(`Przygotowano ${prepared}, pominięto ${skipped}.`);
+    const bar = progress.querySelector('[role="progressbar"]');
+    expect(bar?.getAttribute('aria-valuenow')).toBe(String(processed));
+    expect(bar?.getAttribute('aria-valuemax')).toBe(String(total));
   }
 
   function setEnergyPreference(value: string): void {

@@ -74,14 +74,16 @@ internal example for testing the generator endpoint without provider calls.
    and confirmed track count. Another save requires an explicit new action.
 
 The progress card appears only after clicking Generate. Its three stages are
-data retrieval, analysis/ranking, and a ready result. The counter describes
-stages, not processed tracks or estimated remaining time; it advances on API
-responses rather than a timer. Cached data starts directly at the analysis stage.
-The browser prepares the file in sequential batches of up to 20 IDs through the
-existing preparation endpoint, retaining each successful response. After all
-batches, it merges the data and runs one analysis/ranking request for the complete
-collection. Batching does not reduce Spotify's per-track metadata requests; the
-backend cache and shared scheduler still control them.
+data retrieval, analysis/ranking, and a ready result. The browser prepares the file
+in sequential batches of up to 20 IDs through the existing preparation endpoint.
+After each successful response, it retains the batch and updates the processed-ID,
+prepared-track and skipped-track counters. Skipped IDs count as processed; the
+progress bar describes data preparation, not completion of the whole generator.
+The UI also identifies the currently requested batch, without inventing progress
+inside a pending request or an ETA. After all batches, it merges the data and runs
+one analysis/ranking request for the complete collection. Cached data starts
+directly at the analysis stage. Batching does not reduce Spotify's per-track
+metadata requests; the backend cache and shared scheduler still control them.
 
 Editing criteria clears the previous result but retains successfully prepared
 data, including completed batches from an interrupted preparation. After a failed
