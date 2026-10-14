@@ -70,6 +70,7 @@ class PlaylistGenerator {
   protected readonly isGenerating = signal(false);
   protected readonly generationError = signal<string | null>(null);
   protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
+  protected readonly generationCancelled = signal(false);
   protected readonly preparationProgress = computed<PlaylistPreparationProgress | null>(() => {
     const file = this.trackIdsFile();
     return file ? getPlaylistPreparationProgress(file, this.preparedBatches()) : null;
@@ -248,6 +249,21 @@ class PlaylistGenerator {
   }
 
   /**
+   * Kończy oczekiwanie na bieżącą odpowiedź i nie wysyła kolejnych partii.
+   * Zachowuje ukończone partie i kryteria do wznowienia kolejnym kliknięciem.
+   * Nie gwarantuje zatrzymania pracy już rozpoczętej przez backend lub dostawców.
+   */
+  protected cancelGeneration(): void {
+    if (!this.isGenerating()) {
+      return;
+    }
+
+    this.generationSubscription?.unsubscribe();
+    this.generationSubscription = null;
+    this.generationCancelled.set(true);
+  }
+
+  /**
    * Odczytuje plik z ID i sprawdza go lokalnie, bez wywołań API ani generowania.
    * Anulowanie wyboru nie zmienia stanu; podczas odczytu lub zapisu w Spotify
    * kolejne importy są pomijane. Rozpoczęcie importu usuwa ukończone partie,
@@ -351,6 +367,7 @@ class PlaylistGenerator {
     this.generationError.set(null);
     this.isGenerating.set(false);
     this.generationStage.set(null);
+    this.generationCancelled.set(false);
     this.clearSaveResult();
   }
 

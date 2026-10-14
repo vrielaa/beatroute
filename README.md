@@ -87,10 +87,11 @@ metadata requests; the backend cache and shared scheduler still control them.
 
 Editing criteria clears the previous result but retains successfully prepared
 data, including completed batches from an interrupted preparation. After a failed
-preparation, another Generate click resumes at the first unfinished batch; there
-is no automatic retry. Once the entire dataset is cached, the next Generate click
-only repeats analysis. Replacing the file clears all completed batches, data,
-criteria and result; cancelling the file picker preserves them.
+or cancelled preparation, another Generate click resumes at the first unfinished
+batch; there is no automatic retry. Once the entire dataset is cached, the next
+Generate click only repeats analysis. Cancel stops the pending browser request and
+prevents later batches from being sent. Replacing the file clears all completed
+batches, data, criteria and result; cancelling the file picker preserves them.
 Navigating away destroys the component and its in-memory dataset. Replacing a
 file, changing criteria or leaving the page cancels the pending browser request,
 but does not guarantee that already-started backend/provider work is stopped.

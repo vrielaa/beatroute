@@ -136,11 +136,19 @@
     {{
       isGenerating()
         ? 'Generowanie playlisty…'
-        : generationError()
-          ? 'Spróbuj ponownie'
-          : 'Generuj playlistę'
+        : generationCancelled()
+          ? 'Wznów generowanie'
+          : generationError()
+            ? 'Spróbuj ponownie'
+            : 'Generuj playlistę'
     }}
   </button>
+
+  @if (isGenerating()) {
+    <button id="playlist-cancel-generation" type="button" (click)="cancelGeneration()">
+      Anuluj
+    </button>
+  }
 
   @if (generationStage(); as stage) {
     @if (preparationProgress(); as progress) {
@@ -150,6 +158,13 @@
         [preparationProgress]="progress"
       />
     }
+  }
+
+  @if (generationCancelled()) {
+    <p class="generation-notice" role="status">
+      Generowanie anulowane. Ukończone partie zostały zachowane. Możesz wznowić proces bez ponownego
+      wczytywania pliku. Backend może jeszcze dokończyć rozpoczętą partię.
+    </p>
   }
 
   @if (generationError(); as error) {

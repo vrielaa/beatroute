@@ -178,6 +178,41 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     http.expectNone(() => true);
   });
 
+  it('cancels a pending batch without sending later batches and resumes from the same batch', async () => {
+    const file = createFile(45);
+    await importFile(file);
+    startGeneration();
+    expectBatch(file.spotifyTrackIds.slice(0, 20)).flush(
+      createPreparedDataset(file.spotifyTrackIds.slice(0, 20))
+    );
+    const second = expectBatch(file.spotifyTrackIds.slice(20, 40));
+    fixture.detectChanges();
+
+    const cancel = getButton('#playlist-cancel-generation');
+    if (!cancel) throw new Error('Nie znaleziono przycisku anulowania');
+    cancel.click();
+    fixture.detectChanges();
+
+    expect(second.cancelled).toBe(true);
+    expectProgress(20, 45, 20, 0, 1, 3);
+    expect(getText()).toContain('Ukończone partie zostały zachowane');
+    expect(getButton('#playlist-generate')?.textContent).toContain('Wznów generowanie');
+    expect(getButton('#playlist-cancel-generation')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.generation-error')).toBeNull();
+    http.expectNone(() => true);
+
+    startGeneration();
+    expectBatch(file.spotifyTrackIds.slice(20, 40)).flush(
+      createPreparedDataset(file.spotifyTrackIds.slice(20, 40))
+    );
+    expectBatch(file.spotifyTrackIds.slice(40)).flush(
+      createPreparedDataset(file.spotifyTrackIds.slice(40))
+    );
+    const analysis = http.expectOne(GENERATION_URL);
+    expect(analysis.request.body.dataset.tracks).toHaveLength(45);
+    analysis.flush({ rankedTracks: [], rejectedTracks: [] });
+  });
+
   it('retains completed batches on criteria changes but waits for another Generate click', async () => {
     const file = createFile(45);
     await importFile(file);
@@ -270,6 +305,28 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expect(updated.request.body.preferences.energy).toBe('high');
     expectProgress(45, 45, 45, 0, 3, 3);
     updated.flush({ rankedTracks: [], rejectedTracks: [] });
+  });
+
+  it('can cancel analysis and repeat it without preparing the batches again', async () => {
+    const file = createFile(21);
+    await importFile(file);
+    startGeneration();
+    expectBatch(file.spotifyTrackIds.slice(0, 20)).flush(
+      createPreparedDataset(file.spotifyTrackIds.slice(0, 20))
+    );
+    expectBatch(file.spotifyTrackIds.slice(20)).flush(
+      createPreparedDataset(file.spotifyTrackIds.slice(20))
+    );
+    const analysis = http.expectOne(GENERATION_URL);
+    fixture.detectChanges();
+    getButton('#playlist-cancel-generation')?.click();
+    fixture.detectChanges();
+
+    expect(analysis.cancelled).toBe(true);
+    expectProgress(21, 21, 21, 0, 2, 2);
+    startGeneration();
+    http.expectNone(PREPARATION_URL);
+    http.expectOne(GENERATION_URL).flush({ rankedTracks: [], rejectedTracks: [] });
   });
 
   it('removes duplicate IDs before batching and shows the unique total', async () => {
