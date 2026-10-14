@@ -11,10 +11,25 @@ import type {
   IncompletePlaylistTrack,
   PlaylistDatasetDependencies,
   PlaylistSourceTrack,
+  PlaylistTrackMetadata,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
   SkippedPlaylistTrack,
 } from "./types.js";
+
+/**
+ * Poprawne metadane zachowane w lokalnym cache do czasu wygaśnięcia.
+ *
+ * @property metadata - Nazwa utworu i lista nazw wykonawców.
+ * @property expiresAtMs - Moment wygaśnięcia wpisu jako czas Unix w milisekundach.
+ */
+type CachedTrackMetadata = {
+  metadata: PlaylistTrackMetadata;
+  expiresAtMs: number;
+};
+
+const TRACK_METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
+const MAX_METADATA_CACHE_ENTRIES = 1_000;
 
 /** Rozmiar porcji ID ogranicza długość URL odczytu cech, nie tempo ani równoległość HTTP. */
 const AUDIO_FEATURES_REQUEST_SIZE = 40;
@@ -33,6 +48,8 @@ const AUDIO_FEATURE_KEYS: (keyof PlaylistAudioFeatures)[] = [
  * Tworzy serwis uzupełniający Spotify ID o metadane i pomiary generatora.
  * Zależności odpowiadają wyłącznie za pobieranie danych; nie są wywoływane
  * przez filtrowanie i ranking. Serwis nie odczytuje plików ani zmiennych środowiska.
+ * Zachowuje poprawne metadane w cache swojej instancji przez 24 godziny,
+ * do 1000 wpisów łącznie. Kontekst cache oddziela dane poszczególnych sesji.
  *
  * @param dependencies - Operacje odczytu metadanych i cech audio.
  * @returns Serwis przygotowania zbioru, bez produkcyjnych zależności i stanu globalnego.
@@ -41,6 +58,8 @@ function createPlaylistDatasetService({
   getSpotifyTrackById,
   getAudioFeaturesBySpotifyIds,
 }: PlaylistDatasetDependencies) {
+  const metadataCache = new Map<string, CachedTrackMetadata>();
+
   /**
    * Pobiera metadane po kolei, a następnie cechy wyłącznie dla znalezionych utworów.
    * Status 404 oznacza pominięty utwór; pozostałe wyjątki przerywają przygotowanie
@@ -49,21 +68,31 @@ function createPlaylistDatasetService({
    * Pomija utwory bez metadanych lub wszystkich użytecznych pomiarów.
    * Częściowe braki zapisuje jako null i opisuje w incompleteTracks; zero pozostaje pomiarem.
    * Nie stosuje kryteriów, nie generuje rankingu i nie modyfikuje wejścia.
+   * Udane odczyty metadanych są zachowywane od razu, także gdy późniejszy odczyt
+   * lub pobieranie cech zakończy się błędem. Cache nie zachowuje błędów ani braków.
+   * Bez niepustego cacheScope metadane są pobierane bez korzystania z cache.
    *
    * @param file - Wcześniej zwalidowany plik z unikalnymi Spotify ID.
    * @param accessToken - Token dostępu używany wyłącznie do pobrania metadanych Spotify.
+   * @param cacheScope - Zaufany kontekst sesji przekazany przez backend; nie token
+   * ani wartość z pliku użytkownika. Jego zmiana oznacza oddzielny zestaw wpisów.
    * @returns Zbiór do ponownego użycia oraz informacje o pominiętych i niekompletnych utworach.
    */
   async function prepareDataset(
     file: PlaylistTrackIdsFile,
-    accessToken: string
+    accessToken: string,
+    cacheScope?: string
   ): Promise<PreparedPlaylistDataset> {
-    const metadataById = new Map<string, { name: string; artists: string[] }>();
+    removeExpiredMetadata();
+    const metadataById = new Map<string, PlaylistTrackMetadata>();
 
     for (const spotifyId of file.spotifyTrackIds) {
       try {
-        const sourceTrack = await getSpotifyTrackById(spotifyId, accessToken);
-        const metadata = normalizeTrackMetadata(sourceTrack);
+        const metadata = await getTrackMetadata(
+          spotifyId,
+          accessToken,
+          cacheScope
+        );
 
         if (metadata) {
           metadataById.set(spotifyId, metadata);
@@ -123,6 +152,79 @@ function createPlaylistDatasetService({
     return { dataset: { version: 1, tracks }, skippedTracks, incompleteTracks };
   }
 
+  /** Korzysta z aktualnych metadanych danej sesji albo pobiera i zachowuje poprawny odczyt. */
+  async function getTrackMetadata(
+    spotifyId: string,
+    accessToken: string,
+    cacheScope: string | undefined
+  ): Promise<PlaylistTrackMetadata | null> {
+    const cacheKey = cacheScope
+      ? JSON.stringify([cacheScope, spotifyId])
+      : null;
+    const cachedMetadata =
+      cacheKey === null ? null : getCachedMetadata(cacheKey);
+
+    if (cachedMetadata) {
+      return cachedMetadata;
+    }
+
+    const sourceTrack = await getSpotifyTrackById(spotifyId, accessToken);
+    const metadata = normalizeTrackMetadata(sourceTrack);
+
+    if (metadata && cacheKey !== null) {
+      cacheMetadata(cacheKey, metadata);
+    }
+
+    return metadata;
+  }
+
+  /** Zwraca kopię aktualnego wpisu; wygasłe metadane usuwa i traktuje jako brak wpisu. */
+  function getCachedMetadata(cacheKey: string): PlaylistTrackMetadata | null {
+    const entry = metadataCache.get(cacheKey);
+
+    if (!entry) {
+      return null;
+    }
+
+    if (entry.expiresAtMs <= Date.now()) {
+      metadataCache.delete(cacheKey);
+      return null;
+    }
+
+    return copyTrackMetadata(entry.metadata);
+  }
+
+  /** Zapisuje kopię metadanych na 24 godziny i usuwa najstarszy wpis po przekroczeniu limitu. */
+  function cacheMetadata(
+    cacheKey: string,
+    metadata: PlaylistTrackMetadata
+  ): void {
+    metadataCache.delete(cacheKey);
+    metadataCache.set(cacheKey, {
+      metadata: copyTrackMetadata(metadata),
+      expiresAtMs: Date.now() + TRACK_METADATA_CACHE_TTL_MS,
+    });
+
+    if (metadataCache.size > MAX_METADATA_CACHE_ENTRIES) {
+      const oldestKey = metadataCache.keys().next().value;
+
+      if (oldestKey !== undefined) {
+        metadataCache.delete(oldestKey);
+      }
+    }
+  }
+
+  /** Usuwa wygasłe wpisy wszystkich sesji przed rozpoczęciem kolejnego przygotowania. */
+  function removeExpiredMetadata(): void {
+    const currentTimeMs = Date.now();
+
+    for (const [key, entry] of metadataCache) {
+      if (entry.expiresAtMs <= currentTimeMs) {
+        metadataCache.delete(key);
+      }
+    }
+  }
+
   /** Pobiera cechy w porcjach, nie wysyłając do źródła pustej ani nadmiernie długiej listy ID. */
   async function getAudioFeatures(
     spotifyIds: string[]
@@ -146,7 +248,9 @@ function createPlaylistDatasetService({
 }
 
 /** Przygotowuje przycięte nazwy; brak nazwy utworu lub jakiegokolwiek wykonawcy oznacza null. */
-function normalizeTrackMetadata(track: PlaylistSourceTrack) {
+function normalizeTrackMetadata(
+  track: PlaylistSourceTrack
+): PlaylistTrackMetadata | null {
   if (typeof track?.name !== "string" || !Array.isArray(track?.artists)) {
     return null;
   }
@@ -159,6 +263,13 @@ function normalizeTrackMetadata(track: PlaylistSourceTrack) {
     .filter((artist) => artist.length > 0);
 
   return name && artists.length > 0 ? { name, artists } : null;
+}
+
+/** Kopiuje również listę wykonawców, aby zmiana wyniku nie modyfikowała wpisu w cache. */
+function copyTrackMetadata(
+  metadata: PlaylistTrackMetadata
+): PlaylistTrackMetadata {
+  return { name: metadata.name, artists: [...metadata.artists] };
 }
 
 /** Kopiuje osiem pomiarów generatora, zamieniając brakujące i niepoprawne wartości na null. */

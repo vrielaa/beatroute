@@ -6,6 +6,7 @@ import { createPlaylistDatasetService } from "@application/playlist-generator/pl
 import type {
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
+  PlaylistDatasetDependencies,
 } from "@application/playlist-generator/types.js";
 import type { SpotifySession } from "@application/auth/types.js";
 import { SpotifyReauthorizationRequiredError } from "@application/auth/spotify-reauthorization-required.error.js";
@@ -69,6 +70,7 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
         version: 1,
         spotifyTrackIds: [` ${secondId} `, firstId, secondId],
         accessToken: "body-token",
+        cacheScope: "body-cache-scope",
         dataset: { tracks: [{ name: "Metadata from the request" }] },
       })
       .expect("Content-Type", /json/)
@@ -77,11 +79,18 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
     expect(dependencies.prepareDataset).toHaveBeenCalledOnce();
     expect(dependencies.prepareDataset).toHaveBeenCalledWith(
       createFile([secondId, firstId]),
-      "session-access-token"
+      "session-access-token",
+      expect.any(String)
+    );
+    const sessionResponse = await browser.get("/test/session").expect(200);
+    expect(dependencies.prepareDataset.mock.calls[0][2]).toBe(
+      sessionResponse.body.id
     );
     expect(response.body).toEqual(createPreparedDataset([secondId, firstId]));
     expect(response.text).not.toContain("body-token");
     expect(response.text).not.toContain("session-access-token");
+    expect(response.text).not.toContain("body-cache-scope");
+    expect(response.text).not.toContain(sessionResponse.body.id);
     expect(dependencies.refresh).not.toHaveBeenCalled();
   });
 
@@ -99,12 +108,165 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
     expect(dependencies.refresh).toHaveBeenCalledWith(expiredSession);
     expect(dependencies.prepareDataset).toHaveBeenCalledWith(
       createFile(),
-      "renewed-access-token"
+      "renewed-access-token",
+      expect.any(String)
     );
     const sessionResponse = await browser.get("/test/session").expect(200);
     expect(sessionResponse.body.spotify.accessToken).toBe(
       "renewed-access-token"
     );
+  });
+
+  it("reuses metadata within a session but still retrieves fresh audio measurements", async () => {
+    const { app, getSpotifyTrackById, getAudioFeaturesBySpotifyIds } =
+      createCachedPreparationApp();
+    const browser = request.agent(app);
+    await browser
+      .post("/test/spotify-login")
+      .send(createSpotifySession())
+      .expect(204);
+
+    const firstResponse = await browser
+      .post(endpoint)
+      .send(createFile())
+      .expect(200);
+    const secondResponse = await browser
+      .post(endpoint)
+      .send(createFile())
+      .expect(200);
+
+    expect(secondResponse.body).toEqual(firstResponse.body);
+    expect(getSpotifyTrackById).toHaveBeenCalledOnce();
+    expect(getAudioFeaturesBySpotifyIds).toHaveBeenCalledTimes(2);
+  });
+
+  it("retains the cache context when an expired token is refreshed", async () => {
+    const { app, getSpotifyTrackById, refresh } = createCachedPreparationApp();
+    const browser = request.agent(app);
+    await browser
+      .post("/test/spotify-login")
+      .send(createSpotifySession())
+      .expect(204);
+    await browser.post(endpoint).send(createFile()).expect(200);
+    const before = await browser.get("/test/session").expect(200);
+
+    await browser
+      .post("/test/spotify-login")
+      .send(
+        createSpotifySession({
+          expiresAt: currentTimeMs - 1,
+        })
+      )
+      .expect(204);
+    await browser.post(endpoint).send(createFile()).expect(200);
+    const after = await browser.get("/test/session").expect(200);
+
+    expect(after.body.id).toBe(before.body.id);
+    expect(after.body.spotify.accessToken).toBe("renewed-access-token");
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(getSpotifyTrackById).toHaveBeenCalledOnce();
+  });
+
+  it("does not accept another session's cache scope from the request body", async () => {
+    const { app, getSpotifyTrackById } = createCachedPreparationApp();
+    getSpotifyTrackById
+      .mockResolvedValueOnce({
+        name: "First song",
+        artists: [{ name: "First artist" }],
+      })
+      .mockResolvedValueOnce({
+        name: "Second song",
+        artists: [{ name: "Second artist" }],
+      });
+    const firstBrowser = request.agent(app);
+    const secondBrowser = request.agent(app);
+    await firstBrowser
+      .post("/test/spotify-login")
+      .send(createSpotifySession())
+      .expect(204);
+    await secondBrowser
+      .post("/test/spotify-login")
+      .send(createSpotifySession({ accessToken: "second-token" }))
+      .expect(204);
+    await firstBrowser.post(endpoint).send(createFile()).expect(200);
+    const firstSession = await firstBrowser.get("/test/session").expect(200);
+
+    const secondResponse = await secondBrowser
+      .post(endpoint)
+      .send({
+        ...createFile(),
+        cacheScope: firstSession.body.id,
+      })
+      .expect(200);
+    const firstResponse = await firstBrowser
+      .post(endpoint)
+      .send(createFile())
+      .expect(200);
+
+    expect(secondResponse.body.dataset.tracks[0].name).toBe("Second song");
+    expect(firstResponse.body.dataset.tracks[0].name).toBe("First song");
+    expect(getSpotifyTrackById).toHaveBeenCalledTimes(2);
+    expect(getSpotifyTrackById).toHaveBeenLastCalledWith(
+      firstId,
+      "second-token"
+    );
+    expect(secondResponse.text).not.toContain(firstSession.body.id);
+  });
+
+  it("requires authentication even when requested metadata is already cached", async () => {
+    const { app, getSpotifyTrackById, getAudioFeaturesBySpotifyIds } =
+      createCachedPreparationApp();
+    const browser = request.agent(app);
+    await browser
+      .post("/test/spotify-login")
+      .send(createSpotifySession())
+      .expect(204);
+    await browser.post(endpoint).send(createFile()).expect(200);
+    const sessionResponse = await browser.get("/test/session").expect(200);
+
+    await request(app)
+      .post(endpoint)
+      .send({
+        ...createFile(),
+        cacheScope: sessionResponse.body.id,
+      })
+      .expect(401);
+
+    expect(getSpotifyTrackById).toHaveBeenCalledOnce();
+    expect(getAudioFeaturesBySpotifyIds).toHaveBeenCalledOnce();
+  });
+
+  it("keeps successful metadata after an interrupted HTTP preparation", async () => {
+    const { app, getSpotifyTrackById, getAudioFeaturesBySpotifyIds } =
+      createCachedPreparationApp();
+    getSpotifyTrackById
+      .mockResolvedValueOnce({
+        name: "First song",
+        artists: [{ name: "Artist" }],
+      })
+      .mockRejectedValueOnce(
+        new SpotifyApiError("Rate limit", 429, null, { retryAfterSeconds: 300 })
+      );
+    const browser = request.agent(app);
+    await browser
+      .post("/test/spotify-login")
+      .send(createSpotifySession())
+      .expect(204);
+    const file = createFile([firstId, secondId]);
+
+    await browser.post(endpoint).send(file).expect(429);
+    expect(getAudioFeaturesBySpotifyIds).not.toHaveBeenCalled();
+
+    const response = await browser.post(endpoint).send(file).expect(200);
+
+    expect(response.body.dataset.tracks).toHaveLength(2);
+    expect(response.body.dataset.tracks[0].name).toBe("First song");
+    expect(getSpotifyTrackById).toHaveBeenCalledTimes(3);
+    expect(getSpotifyTrackById).toHaveBeenLastCalledWith(
+      secondId,
+      "session-access-token"
+    );
+    expect(getAudioFeaturesBySpotifyIds).toHaveBeenCalledOnce();
   });
 
   it("does not prepare data when Spotify requires reauthorization", async () => {
@@ -234,7 +396,8 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
     expect(dependencies.prepareDataset).toHaveBeenCalledOnce();
     expect(dependencies.prepareDataset).toHaveBeenCalledWith(
       createFile(ids),
-      "session-access-token"
+      "session-access-token",
+      expect.any(String)
     );
   });
 
@@ -544,6 +707,43 @@ function createDependencies() {
   };
 }
 
+function createCachedPreparationApp() {
+  const dependencies = createDependencies();
+  const getSpotifyTrackById = vi
+    .fn<PlaylistDatasetDependencies["getSpotifyTrackById"]>()
+    .mockImplementation(async (spotifyId) => ({
+      name: `Song ${spotifyId}`,
+      artists: [{ name: "Artist" }],
+    }));
+  const getAudioFeaturesBySpotifyIds = vi
+    .fn<PlaylistDatasetDependencies["getAudioFeaturesBySpotifyIds"]>()
+    .mockImplementation(async (ids) =>
+      ids.map((spotifyId) => ({
+        id: `audio-${spotifyId}`,
+        spotifyId,
+        ...createPreparedDataset([spotifyId]).dataset.tracks[0].audioFeatures,
+        key: null,
+        mode: null,
+        loudness: null,
+        timeSignature: null,
+      }))
+    );
+  const service = createPlaylistDatasetService({
+    getSpotifyTrackById,
+    getAudioFeaturesBySpotifyIds,
+  });
+
+  return {
+    app: createTestApp({
+      ...dependencies,
+      prepareDataset: service.prepareDataset,
+    }),
+    getSpotifyTrackById,
+    getAudioFeaturesBySpotifyIds,
+    refresh: dependencies.refresh,
+  };
+}
+
 function createTestApp(
   dependencies: Parameters<typeof createPlaylistGeneratorRouter>[0]
 ) {
@@ -561,7 +761,7 @@ function createTestApp(
     res.sendStatus(204);
   });
   app.get("/test/session", (req, res) =>
-    res.json({ spotify: req.session.spotify })
+    res.json({ id: req.sessionID, spotify: req.session.spotify })
   );
   app.use(
     "/api/playlist-generator",

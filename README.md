@@ -129,8 +129,21 @@ respects `Retry-After` for GET retries and displays the error immediately when
 the delay exceeds 30 seconds. POST requests are never automatically retried.
 The local cooldown is lost on backend restart, which does not remove any limit
 still enforced by Spotify. These limits apply to one backend process, not to
-multiple server instances or the separate Spotify OAuth client. Backend metadata
-caching is not yet enabled.
+multiple server instances or the separate Spotify OAuth client.
+
+Dataset preparation caches successfully normalized track names and artist names
+within the backend service instance. Entries are scoped by the server-side session
+ID and requested track ID, never by an access token or a context supplied in the
+file. The session is still authorized before any cache lookup. Token renewal in
+the same session preserves reuse; session regeneration starts a different scope.
+Metadata remains valid for 24 hours from retrieval, with at most 1000 entries
+across all sessions. Expired entries are removed on subsequent preparations;
+capacity overflow removes the oldest entry. Each successful read is cached
+immediately, so a later Spotify or audio-provider failure does not discard it.
+Errors, missing tracks and unusable metadata are not cached. Returned data uses
+copies so caller changes cannot corrupt the cache. Audio measurements are still
+retrieved for each preparation. Restarting the backend clears the cache; there
+is no persistent storage or sharing across processes.
 
 Both endpoints have a 1 MiB JSON body limit; other endpoints retain 100 KiB.
 Vitest covers validation and domain logic. Supertest covers authentication, errors,

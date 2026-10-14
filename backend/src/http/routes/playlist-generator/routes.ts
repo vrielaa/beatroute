@@ -31,7 +31,9 @@ type PlaylistGeneratorRouterDependencies = {
  * - spotifyTrackIds: od 1 do 500 identyfikatorów utworów Spotify.
  * Walidator przycina ID i usuwa duplikaty przed pobieraniem danych.
  * Token bierze z req.session.spotify.accessToken po wykonaniu authorize,
- * nigdy z body. Zwraca dataset, skippedTracks i incompleteTracks.
+ * nigdy z body. Kontekst cache metadanych bierze z req.sessionID, nie z pliku
+ * ani body; odnowienie tokenu bez zmiany sesji zachowuje dostęp do wpisów.
+ * Zwraca dataset, skippedTracks i incompleteTracks bez identyfikatora sesji.
  * Pusty przygotowany zbiór jest poprawnym wynikiem odczytu, ale nie wejściem generatora.
  *
  * Endpoint POST /generate odczytuje trzy pola req.body:
@@ -71,7 +73,8 @@ function createPlaylistGeneratorRouter({
     const file = parsePlaylistTrackIdsFile(req.body);
     const preparedDataset = await prepareDataset(
       file,
-      req.session.spotify!.accessToken
+      req.session.spotify!.accessToken,
+      req.sessionID
     );
 
     res.json(preparedDataset);

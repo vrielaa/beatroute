@@ -94,6 +94,18 @@ type PlaylistSourceTrack = {
 };
 
 /**
+ * Metadane utworu przygotowane do wyświetlenia w generatorze playlisty.
+ * Nie zawierają pomiarów audio, tokenów ani pełnej odpowiedzi Spotify.
+ *
+ * @property name - Przycięta, niepusta nazwa utworu.
+ * @property artists - Przycięte, niepuste nazwy wykonawców.
+ */
+type PlaylistTrackMetadata = {
+  name: string;
+  artists: string[];
+};
+
+/**
  * Utwór pominięty podczas pobierania danych, przed filtrowaniem wymagań.
  * Nie jest to odrzucenie przez kryteria użytkownika ani ocena preferencji.
  *
@@ -185,6 +197,7 @@ export type {
   SavedPlaylist,
   PlaylistSaveProgress,
   PlaylistSourceTrack,
+  PlaylistTrackMetadata,
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
