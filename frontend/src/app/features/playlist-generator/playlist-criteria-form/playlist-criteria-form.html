@@ -3,10 +3,7 @@
 
   <fieldset>
     <legend>Wymagania obowiązkowe</legend>
-    <p class="criteria-hint">
-      Utwór musi spełnić wszystkie włączone wymagania. Brak potrzebnego pomiaru również powoduje
-      odrzucenie. Wyłączone wymagania nie ograniczają wyboru utworów.
-    </p>
+    <p class="criteria-hint">Utwór musi spełnić wszystkie te wymagania.</p>
 
     <div class="requirement">
       <label class="requirement-toggle" for="playlist-tempo-enabled">
@@ -143,10 +140,7 @@
 
   <fieldset>
     <legend>Preferencje wpływające na kolejność</legend>
-    <p class="criteria-hint">
-      Preferencje nie odrzucają utworów. Określają kolejność tych, które spełniają wymagania. „Bez
-      znaczenia” pomija cechę w ocenie; brak wszystkich preferencji zachowuje kolejność zbioru.
-    </p>
+    <p class="criteria-hint">Według tych preferencji utwory są sortowane.</p>
     <div class="preference-fields">
       @for (feature of preferenceFeatures; track feature) {
         <div class="criteria-field">
@@ -164,7 +158,5 @@
 
   @if (form().invalid()) {
     <p class="criteria-error" role="status">Popraw lub uzupełnij aktywne kryteria playlisty.</p>
-  } @else {
-    <p class="criteria-hint" role="status">Ustawienia są poprawne.</p>
   }
 </form>

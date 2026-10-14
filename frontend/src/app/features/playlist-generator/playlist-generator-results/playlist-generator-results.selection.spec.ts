@@ -117,7 +117,7 @@ describe('PlaylistGeneratorResults selection', () => {
     expect(getCountInput().value).toBe('2');
     expect(getModeButton('Top N').getAttribute('aria-pressed')).toBe('false');
     expect(getModeButton('Ręcznie').getAttribute('aria-pressed')).toBe('true');
-    expect(getText('.manual-selection-hint')).toContain('Zaznacz lub odznacz utwory poniżej.');
+    expect(getText('.manual-selection-hint')).toBe('Wybierz ręcznie utwory.');
     expect(selectedTrackIdsChange).toHaveBeenLastCalledWith(['track-1', 'track-2']);
   });
 

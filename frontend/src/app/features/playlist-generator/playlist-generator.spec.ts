@@ -35,9 +35,7 @@ describe('PlaylistGenerator file import', () => {
     expect(getChooseButton().disabled).toBe(false);
     expect(getChooseButton().textContent?.trim()).toBe('Wybierz plik');
     expect(getSelectedFileName()).toBe('Nie wybrano pliku');
-    expect(getText()).toContain('1–500 identyfikatorami');
-    expect(getText()).toContain('spotifyTrackIds');
-    expect(getText()).toContain('połączenia konta Spotify');
+    expect(getText()).toContain('Format: { "version": 1, "spotifyTrackIds": [ID1, ID2, …] }');
     expect(getStatus()).toBeNull();
     expect(getError()).toBeNull();
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBeNull();

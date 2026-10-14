@@ -5,11 +5,7 @@
 >
   <header>
     <h1 id="dataset-import-heading">Generator playlist</h1>
-    <p>
-      Wczytaj plik JSON z identyfikatorami utworów Spotify i wybierz kryteria. Dopiero po kliknięciu
-      „Generuj playlistę” aplikacja pobierze metadane ze Spotify i cechy audio z ReccoBeats.
-      Pobieranie wymaga połączenia konta Spotify.
-    </p>
+    <p>Wczytaj plik JSON z identyfikatorami utworów Spotify i wybierz kryteria.</p>
   </header>
 
   <div class="dataset-file-control">
@@ -43,9 +39,7 @@
       </span>
     </div>
     <p id="playlist-dataset-format" class="dataset-format-hint">
-      Format: version: 1 oraz spotifyTrackIds z 1–500 identyfikatorami. Każdy ID ma 22 litery lub
-      cyfry; nie podawaj adresów URL. Nazwy, artystów i pomiary uzupełni aplikacja. Duplikaty
-      zostaną usunięte.
+      Format: &#123; "version": 1, "spotifyTrackIds": [ID1, ID2, …] &#125;
     </p>
   </div>
 

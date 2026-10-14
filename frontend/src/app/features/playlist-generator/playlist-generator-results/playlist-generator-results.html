@@ -62,8 +62,7 @@
           "
         />
         <p id="playlist-track-count-hint" class="selection-hint">
-          Top N wybiera pierwsze pozycje rankingu. Pełny ranking i oceny pozostają bez zmian. W
-          trybie ręcznym pole N jest nieaktywne, a zaznaczenia zmienisz checkboxami przy utworach.
+          Top N wybiera pierwsze pozycje rankingu.
         </p>
         @if (isTrackCountErrorVisible()) {
           <div id="playlist-track-count-error" class="selection-error" role="alert">
@@ -79,11 +78,7 @@
       </p>
 
       @if (form.mode().value() === 'manual') {
-        <p class="manual-selection-hint selection-hint">
-          Zaznacz lub odznacz utwory poniżej. Kolejność wyboru pozostaje zgodna z rankingiem, nie z
-          kolejnością kliknięć. Możesz odznaczyć wszystkie utwory, ale pustego wyboru nie będzie
-          można zapisać w Spotify.
-        </p>
+        <p class="manual-selection-hint selection-hint">Wybierz ręcznie utwory.</p>
       }
     </fieldset>
 

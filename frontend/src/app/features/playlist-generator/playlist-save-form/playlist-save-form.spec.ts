@@ -24,7 +24,7 @@ describe('PlaylistSaveForm', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
     expect(getNameInput().getAttribute('aria-invalid')).toBe('false');
     expect(getNameInput().getAttribute('aria-describedby')).toBe('playlist-save-name-hint');
-    expect(fixture.nativeElement.textContent).toContain('nowa, prywatna playlista');
+    expect(fixture.nativeElement.textContent).toContain('Od 1 do 100 znaków');
     expect(fixture.nativeElement.textContent).toContain('Wybrano utworów: 3.');
     expect(getForm().getAttribute('aria-busy')).toBe('false');
     expect(saveRequested).not.toHaveBeenCalled();

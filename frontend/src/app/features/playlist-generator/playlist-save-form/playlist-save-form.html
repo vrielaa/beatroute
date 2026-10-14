@@ -6,10 +6,6 @@
 >
   <header>
     <h2 id="playlist-save-heading">Zapis playlisty w Spotify</h2>
-    <p class="save-hint">
-      Wybrane utwory zostaną zapisane jako nowa, prywatna playlista. Zapis zachowa kolejność
-      rankingu i nie zmieni istniejących playlist.
-    </p>
   </header>
 
   <div class="save-name-field">
@@ -26,9 +22,7 @@
           : 'playlist-save-name-hint'
       "
     />
-    <p id="playlist-save-name-hint" class="save-hint">
-      Od 1 do 100 znaków po pominięciu spacji na początku i końcu nazwy.
-    </p>
+    <p id="playlist-save-name-hint" class="save-hint">Od 1 do 100 znaków</p>
     @if (isNameErrorVisible()) {
       <div id="playlist-save-name-error">
         @for (error of form.name().errors(); track error.kind) {

@@ -20,7 +20,7 @@ describe('PlaylistCriteriaForm', () => {
     expect(fixture.nativeElement.querySelector('input[type="number"]')).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('input[type="checkbox"]')).toHaveLength(3);
     expect(fixture.nativeElement.querySelectorAll('select')).toHaveLength(5);
-    expect(getText()).toContain('Ustawienia są poprawne.');
+    expect(fixture.nativeElement.querySelector('.criteria-error')).toBeNull();
   });
 
   it.each([
@@ -43,10 +43,9 @@ describe('PlaylistCriteriaForm', () => {
     expect(criteriaChange).toHaveBeenLastCalledWith(createDefaultCriteria());
   });
 
-  it('explains the difference between hard requirements and ranking preferences', () => {
-    expect(getText()).toContain('Utwór musi spełnić wszystkie włączone wymagania');
-    expect(getText()).toContain('Brak potrzebnego pomiaru również powoduje odrzucenie');
-    expect(getText()).toContain('Preferencje nie odrzucają utworów');
+  it('shows the concise hints for requirements and ranking preferences', () => {
+    expect(getText()).toContain('Utwór musi spełnić wszystkie te wymagania.');
+    expect(getText()).toContain('Według tych preferencji utwory są sortowane.');
   });
 
   it('requires both boundaries when the BPM requirement is enabled', () => {
