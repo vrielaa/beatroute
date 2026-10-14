@@ -1,4 +1,5 @@
 import type { RequestScheduler } from "./request-scheduler.js";
+import { RequestSchedulerPausedError } from "./request-scheduler.js";
 
 /** Metody HTTP, których ponowienie nie powinno zmieniać stanu zewnętrznego API. */
 const RETRYABLE_HTTP_METHODS = new Set(["GET", "HEAD"]);
@@ -65,7 +66,8 @@ class HttpRequestExecutionError extends Error {
  * Tworzy wykonawcę żądań stosującego wspólny timeout i politykę retry.
  * Automatyczne ponowienia dotyczą wyłącznie metod `GET` i `HEAD`. Odpowiedź
  * HTTP po ostatniej próbie jest zwracana klientowi integracji do dalszego
- * zmapowania na błąd konkretnego dostawcy.
+ * zmapowania na błąd konkretnego dostawcy. Odmowa schedulera podczas pauzy
+ * jest przekazywana bez zmian, bez ponawiania i bez klasyfikacji jako błąd sieci.
  *
  * @param configuration - Implementacja transportu, polityka i zależności czasu.
  * @returns Funkcja wykonująca żądania HTTP zgodnie ze skonfigurowaną polityką.
@@ -134,6 +136,10 @@ function createHttpRequestExecutor({
 
         await sleep(retryDelayMs);
       } catch (cause) {
+        if (cause instanceof RequestSchedulerPausedError) {
+          throw cause;
+        }
+
         const failureKind = getFailureKind(cause, init.signal, timeoutSignal);
 
         if (

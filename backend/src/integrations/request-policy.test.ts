@@ -3,7 +3,10 @@ import {
   HttpRequestExecutionError,
   createHttpRequestExecutor,
 } from "./request-policy.js";
-import { createRequestScheduler } from "./request-scheduler.js";
+import {
+  createRequestScheduler,
+  RequestSchedulerPausedError,
+} from "./request-scheduler.js";
 
 describe("HTTP request policy", () => {
   afterEach(() => {
@@ -123,6 +126,73 @@ describe("HTTP request policy", () => {
 
     blockingRequest.resolve();
     await blockingResult;
+  });
+
+  it.each(["GET", "POST"])(
+    "preserves a scheduler pause error without fetching or retrying %s",
+    async (method) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      const scheduler = createRequestScheduler({
+        maxConcurrentRequests: 1,
+        pauseBehavior: "reject",
+      });
+      const scheduleSpy = vi.spyOn(scheduler, "schedule");
+      const fetchMock = vi.fn();
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        scheduler,
+        sleep,
+        policy: { maxAttempts: 3 },
+      });
+
+      scheduler.pauseFor(62_976_000);
+      const result = request("https://api.test/resource", { method });
+
+      await expect(result).rejects.toBeInstanceOf(RequestSchedulerPausedError);
+      await expect(result).rejects.toMatchObject({
+        remainingPauseMs: 62_976_000,
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(sleep).not.toHaveBeenCalled();
+      expect(scheduleSpy).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("does not retry an HTTP request rejected while waiting in the scheduler queue", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    const activeRequest = createDeferredPromise<void>();
+    const activeResult = scheduler.schedule(() => activeRequest.promise);
+    const fetchMock = vi.fn();
+    const sleep = vi.fn(async () => undefined);
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+      sleep,
+      policy: { maxAttempts: 3 },
+    });
+    const result = request("https://api.test/resource");
+    const rejection = expect(result).rejects.toBeInstanceOf(
+      RequestSchedulerPausedError
+    );
+
+    await Promise.resolve();
+    scheduler.pauseFor(5_000);
+
+    await rejection;
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sleep).not.toHaveBeenCalled();
+
+    activeRequest.resolve();
+    await activeResult;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("uses Retry-After expressed in seconds", async () => {

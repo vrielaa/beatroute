@@ -14,10 +14,14 @@ type RequestRateLimit = {
  *
  * @property maxConcurrentRequests - Maksymalna liczba jednocześnie wykonywanych zapytań.
  * @property rateLimit - Opcjonalny limit tempa rozpoczynania kolejnych zapytań.
+ * @property pauseBehavior - Zachowanie podczas pauzy: domyślne `wait` zachowuje
+ * kolejkę, a `reject` odrzuca nowe i oczekujące operacje bez ich wykonywania.
+ * Nie zmienia oczekiwania wynikającego z limitu równoległości ani tempa.
  */
 type RequestSchedulerConfiguration = {
   maxConcurrentRequests: number;
   rateLimit?: RequestRateLimit;
+  pauseBehavior?: "wait" | "reject";
 };
 
 /**
@@ -32,8 +36,10 @@ type ScheduledRequestOptions = {
 /**
  * Udostępnia operacje kolejkowania i czasowego wstrzymywania zapytań.
  *
- * @property schedule - Dodaje operację do kolejki i zwraca jej wynik po wykonaniu.
- * @property pauseFor - Wstrzymuje rozpoczynanie nowych operacji na podany czas.
+ * @property schedule - Zwraca wynik operacji albo błąd wykonania, anulowania
+ * lub odrzucenia podczas pauzy. Kolejkuje operacje oczekujące na wolny limit.
+ * @property pauseFor - Wstrzymuje rozpoczynanie operacji i stosuje wybrany
+ * tryb pauzy wobec kolejki. Nie anuluje operacji, które już się wykonują.
  */
 type RequestScheduler = {
   schedule<T>(
@@ -61,16 +67,33 @@ type QueuedRequest = {
 };
 
 /**
+ * Oznacza odmowę rozpoczęcia operacji podczas pauzy schedulera.
+ * Nie jest błędem transportu ani odpowiedzią otrzymaną z zewnętrznego API.
+ *
+ * @property remainingPauseMs - Pozostały czas pauzy w milisekundach w chwili
+ * utworzenia błędu; wartość nie aktualizuje się po przekazaniu wywołującemu.
+ */
+class RequestSchedulerPausedError extends Error {
+  constructor(public readonly remainingPauseMs: number) {
+    super("Request scheduler is paused");
+    this.name = "RequestSchedulerPausedError";
+  }
+}
+
+/**
  * Tworzy scheduler ograniczający równoległość i tempo wychodzących zapytań.
  * Operacje są rozpoczynane w kolejności FIFO. Czas oczekiwania w kolejce nie
- * jest częścią timeoutu samego zapytania HTTP.
+ * jest częścią timeoutu samego zapytania HTTP. Domyślnie pauza zachowuje
+ * kolejkę. Tryb `reject` odrzuca nowe i oczekujące operacje, ale nie przerywa
+ * już wykonywanych. Odrzucone operacje nie wracają do kolejki po końcu pauzy.
  *
- * @param configuration - Limity równoległości i opcjonalny limit czasowy.
+ * @param configuration - Limity równoległości i tempa oraz zachowanie podczas pauzy.
  * @returns Scheduler zachowujący wynik i błędy przekazanych operacji.
  */
 function createRequestScheduler({
   maxConcurrentRequests,
   rateLimit,
+  pauseBehavior = "wait",
 }: RequestSchedulerConfiguration): RequestScheduler {
   validateConfiguration({ maxConcurrentRequests, rateLimit });
 
@@ -87,6 +110,12 @@ function createRequestScheduler({
   ): Promise<T> {
     if (signal?.aborted) {
       return Promise.reject(getAbortReason(signal));
+    }
+
+    const pauseError = getCurrentPauseError();
+
+    if (pauseError) {
+      return Promise.reject(pauseError);
     }
 
     return new Promise<T>((resolve, reject) => {
@@ -118,6 +147,14 @@ function createRequestScheduler({
 
   function processQueue(): void {
     if (queue.length === 0) {
+      clearWakeUpTimer();
+      return;
+    }
+
+    const pauseError = getCurrentPauseError();
+
+    if (pauseError) {
+      rejectQueuedRequests(pauseError.remainingPauseMs);
       clearWakeUpTimer();
       return;
     }
@@ -164,12 +201,41 @@ function createRequestScheduler({
     }
 
     Promise.resolve()
-      .then(request.operation)
+      .then(() => {
+        const pauseError = getCurrentPauseError();
+
+        if (pauseError) {
+          throw pauseError;
+        }
+
+        return request.operation();
+      })
       .then(request.resolve, request.reject)
       .finally(() => {
         activeRequests -= 1;
         processQueue();
       });
+  }
+
+  /** Zwraca błąd aktualnej pauzy wyłącznie wtedy, gdy włączono tryb odrzucania. */
+  function getCurrentPauseError(): RequestSchedulerPausedError | null {
+    if (pauseBehavior !== "reject") {
+      return null;
+    }
+
+    const remainingPauseMs = pausedUntilMs - Date.now();
+
+    return remainingPauseMs > 0
+      ? new RequestSchedulerPausedError(remainingPauseMs)
+      : null;
+  }
+
+  /** Opróżnia kolejkę, usuwa listenery anulowania i kończy operacje błędem pauzy. */
+  function rejectQueuedRequests(remainingPauseMs: number): void {
+    for (const request of queue.splice(0)) {
+      removeAbortListener(request);
+      request.reject(new RequestSchedulerPausedError(remainingPauseMs));
+    }
   }
 
   function cancelQueuedRequest(request: QueuedRequest): void {
@@ -277,7 +343,7 @@ function getAbortReason(signal: AbortSignal | undefined): unknown {
   );
 }
 
-export { createRequestScheduler };
+export { createRequestScheduler, RequestSchedulerPausedError };
 export type {
   RequestRateLimit,
   RequestScheduler,
