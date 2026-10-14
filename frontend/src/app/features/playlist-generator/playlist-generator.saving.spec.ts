@@ -32,7 +32,13 @@ describe('PlaylistGenerator saving', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    try {
+      http.verify();
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
 
   it('does not show a save form or send a save request before generation', async () => {
     expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
@@ -420,9 +426,16 @@ describe('PlaylistGenerator saving', () => {
   async function showResult(result = createResult(dataset)): Promise<void> {
     await importFile();
     getButton('playlist-generate').click();
-    http
-      .expectOne('/api/playlist-generator/prepare-dataset')
-      .flush({ dataset, skippedTracks: [], incompleteTracks: [] });
+    for (let offset = 0; offset < dataset.tracks.length; offset += 20) {
+      const tracks = dataset.tracks.slice(offset, offset + 20);
+      const preparation = http.expectOne('/api/playlist-generator/prepare-dataset');
+      expect(preparation.request.body.spotifyTrackIds).toEqual(tracks.map((track) => track.id));
+      preparation.flush({
+        dataset: { version: 1, tracks },
+        skippedTracks: [],
+        incompleteTracks: [],
+      });
+    }
     http.expectOne('/api/playlist-generator/generate').flush(result);
     fixture.detectChanges();
   }

@@ -8,8 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, finalize, of, switchMap, tap } from 'rxjs';
-import type { Subscription } from 'rxjs';
+import { concatMap, EMPTY, finalize, from, of, reduce, switchMap, tap } from 'rxjs';
+import type { Observable, Subscription } from 'rxjs';
 import type {
   GeneratedPlaylist,
   PlaylistAudioFeatures,
@@ -21,6 +21,7 @@ import type {
   SavedPlaylist,
 } from './playlist-generator.models';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
+import { mergePreparedPlaylistDatasets, splitPlaylistTrackIds } from './playlist-dataset-batches';
 import { parsePlaylistTrackIdsFile } from './playlist-track-ids.parser';
 import { selectRankedTrackIds } from './playlist-track-selection';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
@@ -48,6 +49,8 @@ class PlaylistGenerator {
   private readonly playlistGeneratorApi = inject(PlaylistGeneratorApiService);
   private readonly destroyRef = inject(DestroyRef);
   private generationSubscription: Subscription | null = null;
+  /** Zakończone partie bieżącego pliku; pozostają dostępne po błędzie lub anulowaniu. */
+  private readonly preparedBatches = signal<PreparedPlaylistDataset[]>([]);
 
   protected readonly trackIdsFile = signal<PlaylistTrackIdsFile | null>(null);
   protected readonly preparedDataset = signal<PreparedPlaylistDataset | null>(null);
@@ -176,6 +179,9 @@ class PlaylistGenerator {
   /**
    * Dopiero po kliknięciu przygotowuje dane z ID i analizuje je według kryteriów.
    * Zachowuje przygotowany zbiór do kolejnych generowań bez ponownego pobierania.
+   * Pobiera partie po 20 ID kolejno i zachowuje każdą zakończoną odpowiedź.
+   * Ponowienie zaczyna od pierwszej niezakończonej partii. Po przygotowaniu
+   * całego pliku raz uruchamia filtrowanie i ranking połączonego zbioru.
    * Pomija wywołanie bez pliku, przy pustym przygotowanym zbiorze, niepoprawnym
    * formularzu oraz podczas odczytu lub trwającego procesu.
    * Etap zmienia dopiero po zakończeniu pobierania lub otrzymaniu wyniku;
@@ -197,9 +203,7 @@ class PlaylistGenerator {
 
     const cachedDataset = this.preparedDataset();
     this.generationStage.set(cachedDataset ? 'analysis' : 'preparation');
-    const preparation = cachedDataset
-      ? of(cachedDataset)
-      : this.playlistGeneratorApi.prepareDataset(file);
+    const preparation = cachedDataset ? of(cachedDataset) : this.prepareRemainingBatches(file);
 
     this.generationSubscription = preparation
       .pipe(
@@ -237,7 +241,8 @@ class PlaylistGenerator {
   /**
    * Odczytuje plik z ID i sprawdza go lokalnie, bez wywołań API ani generowania.
    * Anulowanie wyboru nie zmienia stanu; podczas odczytu lub zapisu w Spotify
-   * kolejne importy są pomijane. Rozpoczęcie importu usuwa poprzedni zbiór, nazwę, kryteria i błędy,
+   * kolejne importy są pomijane. Rozpoczęcie importu usuwa ukończone partie,
+   * poprzedni zbiór, nazwę, kryteria i błędy,
    * czyści wynik generowania i wybór utworów oraz anuluje jego trwające żądanie.
    * Błędy odczytu, składni JSON-a oraz struktury danych są wyświetlane osobno.
    * Po zakończeniu czyści input, umożliwiając ponowny wybór tego samego pliku.
@@ -261,6 +266,7 @@ class PlaylistGenerator {
     }
 
     this.clearGeneration();
+    this.preparedBatches.set([]);
     this.preparedDataset.set(null);
     this.trackIdsFile.set(null);
     this.fileName.set(null);
@@ -298,6 +304,33 @@ class PlaylistGenerator {
       this.isReadingFile.set(false);
       input.value = '';
     }
+  }
+
+  /**
+   * Przygotowuje niezakończone partie bieżącego pliku, najwyżej jedną naraz.
+   * Zapisuje odpowiedzi dopiero po sukcesie; błąd przerywa kolejkę bez utraty
+   * wcześniejszych partii. Zwraca jeden połączony zbiór po zakończeniu kolejki.
+   *
+   * @param file - Bieżący sprawdzony plik; zapisane partie należą wyłącznie do niego.
+   * @returns Cały przygotowany zbiór dopiero po zakończeniu pozostałych partii.
+   */
+  private prepareRemainingBatches(file: PlaylistTrackIdsFile): Observable<PreparedPlaylistDataset> {
+    const completedBatches = this.preparedBatches();
+    const remainingBatches = splitPlaylistTrackIds(file).slice(completedBatches.length);
+    const initialDataset = completedBatches.reduce(mergePreparedPlaylistDatasets, {
+      dataset: { version: 1, tracks: [] },
+      skippedTracks: [],
+      incompleteTracks: [],
+    });
+
+    return from(remainingBatches).pipe(
+      concatMap((batch) =>
+        this.playlistGeneratorApi
+          .prepareDataset(batch)
+          .pipe(tap((prepared) => this.preparedBatches.update((batches) => [...batches, prepared])))
+      ),
+      reduce(mergePreparedPlaylistDatasets, initialDataset)
+    );
   }
 
   /** Anuluje generowanie i czyści wynik, wybór oraz lokalne komunikaty, także poprzedniego zapisu. */

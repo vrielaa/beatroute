@@ -20,8 +20,10 @@ class PlaylistGeneratorApiService {
    * Przekazuje ID do backendu, który pobiera metadane Spotify i cechy ReccoBeats.
    * Wymaga sesji Spotify przesyłanej jako cookie, nie tokenu w body.
    * Nie generuje rankingu; przygotowany zbiór można wykorzystać dla wielu kryteriów.
+   * Jedna subskrypcja wysyła jedno żądanie. Kolejność partii, ich zachowanie
+   * oraz ponowienie po błędzie są odpowiedzialnością komponentu strony.
    *
-   * @param file - Sprawdzony plik wersji 1 z unikalnymi ID utworów Spotify.
+   * @param file - Sprawdzony plik wersji 1 lub jego partia z unikalnymi Spotify ID.
    * @returns Zbiór oraz informacje o pominiętych utworach i brakujących pomiarach.
    */
   public prepareDataset(file: PlaylistTrackIdsFile): Observable<PreparedPlaylistDataset> {

@@ -48,8 +48,9 @@ internal example for testing the generator endpoint without provider calls.
 
 1. Selecting a file reads and validates it locally, then displays the criteria
    form. Import and criteria edits do not request track metadata or audio features.
-2. Clicking **Generuj playlistę** starts `POST /api/playlist-generator/prepare-dataset`.
-   It requires a Spotify session and uses its access token, not a token from the
+2. Clicking **Generuj playlistę** starts sequential preparation requests to
+   `POST /api/playlist-generator/prepare-dataset`, each with up to 20 IDs.
+   They require a Spotify session and use its access token, not a token from the
    file. The backend retrieves Spotify names/artists and ReccoBeats measurements.
    Last.fm and Soundcharts are not used in this preparation process.
 3. The frontend keeps the prepared dataset in component memory and sends it,
@@ -76,14 +77,18 @@ The progress card appears only after clicking Generate. Its three stages are
 data retrieval, analysis/ranking, and a ready result. The counter describes
 stages, not processed tracks or estimated remaining time; it advances on API
 responses rather than a timer. Cached data starts directly at the analysis stage.
-Preparation reads Spotify metadata sequentially and looks up audio data in batches
-of up to 40 IDs, with individual audio requests controlled by the shared scheduler.
-A large collection can therefore involve many provider requests while the first
-stage remains active; the UI does not invent per-track progress or an ETA.
+The browser prepares the file in sequential batches of up to 20 IDs through the
+existing preparation endpoint, retaining each successful response. After all
+batches, it merges the data and runs one analysis/ranking request for the complete
+collection. Batching does not reduce Spotify's per-track metadata requests; the
+backend cache and shared scheduler still control them.
 
 Editing criteria clears the previous result but retains successfully prepared
-data. The next Generate click only repeats analysis. Replacing the file clears
-the data, criteria and result; cancelling the file picker preserves them.
+data, including completed batches from an interrupted preparation. After a failed
+preparation, another Generate click resumes at the first unfinished batch; there
+is no automatic retry. Once the entire dataset is cached, the next Generate click
+only repeats analysis. Replacing the file clears all completed batches, data,
+criteria and result; cancelling the file picker preserves them.
 Navigating away destroys the component and its in-memory dataset. Replacing a
 file, changing criteria or leaving the page cancels the pending browser request,
 but does not guarantee that already-started backend/provider work is stopped.
