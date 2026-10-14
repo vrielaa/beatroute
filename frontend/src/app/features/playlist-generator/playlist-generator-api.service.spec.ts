@@ -9,6 +9,7 @@ import type {
   PlaylistGeneratorRequest,
   PlaylistTrackIdsFile,
   PlaylistToSave,
+  PlaylistSaveProgress,
   PreparedPlaylistDataset,
   SavedPlaylist,
 } from './playlist-generator.models';
@@ -304,6 +305,95 @@ describe('PlaylistGeneratorApiService', () => {
       expect(next).not.toHaveBeenCalled();
       expect(error).not.toHaveBeenCalled();
       http.expectNone(url);
+    });
+  });
+
+  describe('resumePlaylist', () => {
+    const url = '/api/playlist-generator/resume-save';
+    const progress: PlaylistSaveProgress = {
+      id: 'p'.repeat(22),
+      name: 'Playlist',
+      spotifyUrl: `https://open.spotify.com/playlist/${'p'.repeat(22)}`,
+      confirmedTrackCount: 1,
+      requestedTrackCount: 2,
+    };
+    const response: SavedPlaylist = {
+      id: progress.id,
+      name: progress.name,
+      spotifyUrl: progress.spotifyUrl,
+      trackCount: 2,
+    };
+
+    it('does nothing before subscription and sends only the playlist ID with the session cookie', () => {
+      const next = vi.fn();
+      const operation = service.resumePlaylist(progress);
+      http.expectNone(() => true);
+
+      operation.subscribe(next);
+
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.withCredentials).toBe(true);
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      expect(request.request.body).toEqual({ playlistId: progress.id });
+      request.flush(response);
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+      http.expectNone('/api/playlist-generator/save');
+      http.expectNone('/api/playlist-generator/generate');
+    });
+
+    it('captures the original ID and count before the caller mutates progress', () => {
+      const mutable = { ...progress };
+      const operation = service.resumePlaylist(mutable);
+      mutable.id = 'changed';
+      mutable.requestedTrackCount = 100;
+      const next = vi.fn();
+      operation.subscribe(next);
+      const request = http.expectOne(url);
+      expect(request.request.body).toEqual({ playlistId: progress.id });
+      request.flush(response);
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+    });
+
+    it.each([400, 401, 403, 409, 413, 429, 500, 502, 503, 504])(
+      'preserves HTTP %s and Retry-After without retrying',
+      (status) => {
+        const next = vi.fn();
+        const error = vi.fn();
+        service.resumePlaylist(progress).subscribe({ next, error });
+        const body = { error: { code: 'PLAYLIST_SAVE_INCOMPLETE', details: { progress } } };
+        http
+          .expectOne(url)
+          .flush(body, { status, statusText: 'Failed', headers: { 'Retry-After': '30' } });
+        expect(next).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledOnce();
+        expect(error.mock.calls[0][0].error).toEqual(body);
+        expect(error.mock.calls[0][0].headers.get('Retry-After')).toBe('30');
+        http.expectNone(() => true);
+      }
+    );
+
+    it.each([
+      {},
+      { ...response, trackCount: 1 },
+      { ...response, spotifyUrl: 'https://untrusted.test' },
+      { ...response, id: 'another', spotifyUrl: 'https://open.spotify.com/playlist/another' },
+    ])('rejects an invalid confirmation without another write: %j', (body) => {
+      const next = vi.fn();
+      const error = vi.fn();
+      service.resumePlaylist(progress).subscribe({ next, error });
+      http.expectOne(url).flush(body);
+      expect(next).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledOnce();
+      http.expectNone(() => true);
+    });
+
+    it('cancels local waiting without another request', () => {
+      const subscription = service.resumePlaylist(progress).subscribe();
+      const request = http.expectOne(url);
+      subscription.unsubscribe();
+      expect(request.cancelled).toBe(true);
+      http.expectNone(() => true);
     });
   });
 

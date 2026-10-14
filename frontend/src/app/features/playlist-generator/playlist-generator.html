@@ -174,66 +174,86 @@
         (selectedTrackIdsChange)="updateSelectedTrackIds($event)"
       />
     </fieldset>
+  }
 
-    @if (generatedPlaylist.rankedTracks.length > 0) {
-      <section class="playlist-save" aria-label="Zapis playlisty" [attr.aria-busy]="isSaving()">
-        @if (!savedPlaylist() && !partialSaveProgress()) {
-          <app-playlist-save-form
-            [selectedTrackCount]="selectedTrackIds().length"
-            [isSaving]="isSaving()"
-            (saveRequested)="savePlaylist($event)"
-          />
-        }
+  @if ((result()?.rankedTracks.length ?? 0) > 0 || partialSaveProgress() || savedPlaylist()) {
+    <section class="playlist-save" aria-label="Zapis playlisty" [attr.aria-busy]="isSaving()">
+      @if (!savedPlaylist() && !partialSaveProgress()) {
+        <app-playlist-save-form
+          [selectedTrackCount]="selectedTrackIds().length"
+          [isSaving]="isSaving()"
+          (saveRequested)="savePlaylist($event)"
+        />
+      }
 
-        @if (isSaving()) {
-          <p class="save-status" role="status">
-            Tworzenie prywatnej playlisty i dodawanie wybranych utworów… Nie zamykaj tego widoku do
-            otrzymania odpowiedzi.
+      @if (isSaving()) {
+        <p class="save-status" role="status">
+          {{
+            partialSaveProgress()
+              ? 'Sprawdzanie playlisty i dodawanie brakujących utworów…'
+              : 'Zapisywanie playlisty…'
+          }}
+          Nie zamykaj tego widoku.
+        </p>
+      }
+
+      @if (savedPlaylist(); as saved) {
+        <div class="save-success" role="status">
+          <h2>Playlista zapisana</h2>
+          <p>
+            <strong>{{ saved.name }}</strong> — potwierdzono dodanie {{ saved.trackCount }} utworów.
           </p>
-        }
+          <a [href]="saved.spotifyUrl" target="_blank" rel="noopener noreferrer"
+            >Otwórz playlistę w Spotify</a
+          >
+        </div>
+        <button class="save-new" type="button" (click)="startNewSave()">
+          Utwórz kolejną playlistę
+        </button>
+      }
 
-        @if (savedPlaylist(); as saved) {
-          <div class="save-success" role="status">
-            <h2>Playlista zapisana</h2>
-            <p>
-              <strong>{{ saved.name }}</strong> — potwierdzono dodanie
-              {{ saved.trackCount }} utworów.
-            </p>
-            <a [href]="saved.spotifyUrl" target="_blank" rel="noopener noreferrer"
-              >Otwórz playlistę w Spotify</a
-            >
-          </div>
-          <button class="save-new" type="button" (click)="startNewSave()">
-            Utwórz kolejną playlistę
+      @if (saveError(); as error) {
+        <p class="save-error" role="alert">{{ error }}</p>
+      }
+
+      @if (partialSaveProgress(); as progress) {
+        <div class="save-partial">
+          <h2>Nieukończony zapis playlisty</h2>
+          <p>
+            <strong>{{ progress.name }}</strong> — potwierdzono {{ progress.confirmedTrackCount }} z
+            {{ progress.requestedTrackCount }} pierwotnie wybranych utworów.
+          </p>
+          <p>
+            {{
+              isResumptionBlocked()
+                ? 'Sprawdź playlistę w Spotify przed nowym zapisem.'
+                : 'Przed wznowieniem sprawdzimy, które utwory są już zapisane.'
+            }}
+          </p>
+          <a [href]="progress.spotifyUrl" target="_blank" rel="noopener noreferrer"
+            >Sprawdź playlistę w Spotify</a
+          >
+        </div>
+        @if (isResumptionBlocked()) {
+          <button
+            class="save-new"
+            type="button"
+            [disabled]="isSaving() || isGenerating() || isReadingFile()"
+            (click)="startNewSave()"
+          >
+            Utwórz nową playlistę
+          </button>
+        } @else {
+          <button
+            id="playlist-resume-save"
+            type="button"
+            [disabled]="isSaving() || isGenerating() || isReadingFile()"
+            (click)="resumePlaylist()"
+          >
+            {{ isSaving() ? 'Wznawianie zapisu…' : 'Wznów zapis' }}
           </button>
         }
-
-        @if (saveError(); as error) {
-          <p class="save-error" role="alert">{{ error }}</p>
-        }
-
-        @if (partialSaveProgress(); as progress) {
-          <div class="save-partial">
-            <h2>Zapis wymaga sprawdzenia</h2>
-            <p>
-              <strong>{{ progress.name }}</strong> — potwierdzono
-              {{ progress.confirmedTrackCount }} z {{ progress.requestedTrackCount }} wybranych
-              utworów.
-            </p>
-            <p>
-              Niepotwierdzona partia mogła również zostać zapisana. Nie usuwamy istniejącej
-              playlisty i nie ponawiamy zapisu automatycznie.
-            </p>
-            <a [href]="progress.spotifyUrl" target="_blank" rel="noopener noreferrer"
-              >Sprawdź playlistę w Spotify</a
-            >
-          </div>
-          <button class="save-new" type="button" (click)="startNewSave()">
-            Sprawdzono playlistę — rozpocznij nowy zapis
-          </button>
-          <p class="save-hint">Nowy zapis utworzy kolejną playlistę, nie uzupełni istniejącej.</p>
-        }
-      </section>
-    }
+      }
+    </section>
   }
 </section>

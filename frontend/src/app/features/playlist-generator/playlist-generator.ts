@@ -35,6 +35,8 @@ import { PlaylistGenerationProgress } from './playlist-generation-progress/playl
 import { PlaylistSaveForm } from './playlist-save-form/playlist-save-form';
 import {
   getPlaylistSaveErrorMessage,
+  getPlaylistResumeErrorMessage,
+  isPlaylistResumptionBlocked,
   readPartialPlaylistSaveProgress,
 } from './playlist-save-response';
 
@@ -79,6 +81,7 @@ class PlaylistGenerator {
   protected readonly savedPlaylist = signal<SavedPlaylist | null>(null);
   protected readonly partialSaveProgress = signal<PlaylistSaveProgress | null>(null);
   protected readonly saveError = signal<string | null>(null);
+  protected readonly isResumptionBlocked = signal(false);
 
   protected readonly canGenerate = computed(
     () =>
@@ -102,7 +105,8 @@ class PlaylistGenerator {
   };
 
   /**
-   * Zapisuje kryteria i czyści wynik, wybór, błędy oraz lokalne potwierdzenie poprzedniego zapisu.
+   * Zapisuje kryteria i czyści wynik, wybór oraz zakończony wynik poprzedniego zapisu.
+   * Zachowuje nieukończony zapis niezależnie od zmian kryteriów i bieżącego wyboru.
    * Ignoruje zmiany podczas zapisu w Spotify, aby zachować jego wynik i żądanie.
    */
   protected updateCriteria(criteria: PlaylistCriteria | null): void {
@@ -179,9 +183,59 @@ class PlaylistGenerator {
       });
   }
 
+  /**
+   * Wznawia zapis wyłącznie playlisty z zachowanego postępu, bez generowania i przygotowania danych.
+   * Blokuje równoległe kliknięcia i zmiany ustawień podczas żądania. Nowe zaznaczenia
+   * nie zastępują pierwotnego wyboru przechowywanego w sesji backendu.
+   * Po sukcesie usuwa postęp; po błędzie odczytu zachowuje go, a po kolejnym częściowym
+   * zapisie przyjmuje tylko postęp tej samej playlisty i pierwotnej liczby utworów.
+   * Konflikt zawartości lub brak stanu sesji blokuje dalsze wznowienie do decyzji użytkownika.
+   */
+  protected resumePlaylist(): void {
+    const progress = this.partialSaveProgress();
+
+    if (
+      !progress ||
+      this.isSaving() ||
+      this.isGenerating() ||
+      this.isReadingFile() ||
+      this.isResumptionBlocked()
+    ) {
+      return;
+    }
+
+    this.saveError.set(null);
+    this.isSaving.set(true);
+    this.playlistGeneratorApi
+      .resumePlaylist(progress)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSaving.set(false))
+      )
+      .subscribe({
+        next: (saved) => {
+          this.clearSaveResult();
+          this.savedPlaylist.set(saved);
+        },
+        error: (error: unknown) => {
+          const updatedProgress = readPartialPlaylistSaveProgress(error);
+
+          if (
+            updatedProgress?.id === progress.id &&
+            updatedProgress.requestedTrackCount === progress.requestedTrackCount
+          ) {
+            this.partialSaveProgress.set(updatedProgress);
+          }
+
+          this.saveError.set(getPlaylistResumeErrorMessage(error));
+          this.isResumptionBlocked.set(isPlaylistResumptionBlocked(error));
+        },
+      });
+  }
+
   /** Czyści potwierdzenie po świadomej decyzji o nowym zapisie, bez żądania HTTP i zmian w Spotify. */
   protected startNewSave(): void {
-    if (!this.isSaving()) {
+    if (!this.isSaving() && !this.isGenerating() && !this.isReadingFile()) {
       this.clearSaveResult();
     }
   }
@@ -273,6 +327,7 @@ class PlaylistGenerator {
    * Po zakończeniu czyści input, umożliwiając ponowny wybór tego samego pliku.
    * Zastąpienie pliku anuluje poprzedni proces. Po udanym odczycie udostępnia
    * formularz kryteriów; pobieranie danych rozpoczyna dopiero generatePlaylist.
+   * Nieukończony zapis playlisty pozostaje dostępny do wznowienia po zmianie pliku.
    *
    * @param event - Zdarzenie change pola wyboru pliku; target wskazuje input z files.
    * @returns Zakończenie odczytu i aktualizacji stanu, z błędem zapisanym w importError.
@@ -358,7 +413,7 @@ class PlaylistGenerator {
     );
   }
 
-  /** Anuluje generowanie i czyści wynik, wybór oraz lokalne komunikaty, także poprzedniego zapisu. */
+  /** Anuluje generowanie i czyści wynik; nie usuwa nieukończonego zapisu do wznowienia. */
   private clearGeneration(): void {
     this.generationSubscription?.unsubscribe();
     this.generationSubscription = null;
@@ -368,7 +423,9 @@ class PlaylistGenerator {
     this.isGenerating.set(false);
     this.generationStage.set(null);
     this.generationCancelled.set(false);
-    this.clearSaveResult();
+    if (!this.partialSaveProgress()) {
+      this.clearSaveResult();
+    }
   }
 
   /** Usuwa tylko lokalny wynik zapisu; nie usuwa ani nie modyfikuje playlisty w Spotify. */
@@ -376,6 +433,7 @@ class PlaylistGenerator {
     this.savedPlaylist.set(null);
     this.partialSaveProgress.set(null);
     this.saveError.set(null);
+    this.isResumptionBlocked.set(false);
   }
 }
 

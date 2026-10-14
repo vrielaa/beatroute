@@ -80,7 +80,7 @@ function getPlaylistSaveErrorMessage(error: unknown): string {
   const body = readErrorBody(error);
 
   if (body?.['code'] === 'PLAYLIST_SAVE_INCOMPLETE') {
-    return 'Nie potwierdzono zapisu wszystkich utworów. Sprawdź utworzoną playlistę przed kolejnym zapisem.';
+    return 'Nie potwierdzono pełnego zapisu.';
   }
 
   if (error instanceof HttpErrorResponse) {
@@ -104,6 +104,43 @@ function getPlaylistSaveErrorMessage(error: unknown): string {
   }
 
   return 'Nie otrzymano potwierdzenia zapisu. Sprawdź swoje playlisty w Spotify przed kolejną próbą.';
+}
+
+/** Wybiera krótki komunikat wznowienia, bez ujawniania treści odpowiedzi dostawcy. */
+function getPlaylistResumeErrorMessage(error: unknown): string {
+  const code = readErrorBody(error)?.['code'];
+
+  switch (code) {
+    case 'PLAYLIST_CONTENTS_CHANGED':
+      return 'Playlista została zmieniona. Wznowienie zatrzymane.';
+    case 'PLAYLIST_RESUME_UNAVAILABLE':
+      return 'Brak zapisu do wznowienia w tej sesji.';
+    case 'PLAYLIST_SAVE_IN_PROGRESS':
+      return 'Zapis tej playlisty już trwa.';
+  }
+
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 401 || error.status === 403) {
+      return 'Połącz ponownie Spotify i zezwól na odczyt oraz zapis playlist.';
+    }
+
+    if (error.status === 429) {
+      const header = error.headers.get('Retry-After')?.trim();
+      const seconds = header ? Number(header) : null;
+
+      return seconds !== null && Number.isSafeInteger(seconds) && seconds >= 0
+        ? `Limit Spotify. Ponów za ${seconds} s.`
+        : 'Limit Spotify. Spróbuj później.';
+    }
+  }
+
+  return 'Nie potwierdzono pełnego zapisu. Spróbuj wznowić ponownie.';
+}
+
+/** Rozpoznaje konflikty wymagające decyzji użytkownika zamiast ponownego dopisywania. */
+function isPlaylistResumptionBlocked(error: unknown): boolean {
+  const code = readErrorBody(error)?.['code'];
+  return code === 'PLAYLIST_CONTENTS_CHANGED' || code === 'PLAYLIST_RESUME_UNAVAILABLE';
 }
 
 /** Odczytuje wyłącznie obiekt error z JSON-a HttpErrorResponse. */
@@ -160,4 +197,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export { parseSavedPlaylist, readPartialPlaylistSaveProgress, getPlaylistSaveErrorMessage };
+export {
+  parseSavedPlaylist,
+  readPartialPlaylistSaveProgress,
+  getPlaylistSaveErrorMessage,
+  getPlaylistResumeErrorMessage,
+  isPlaylistResumptionBlocked,
+};

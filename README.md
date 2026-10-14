@@ -194,9 +194,13 @@ Spotify does not offer a conditional append here: manual changes or delayed
 writes after verification remain an external race. Do not edit the playlist
 during saving. Pending data lives in the session, not a durable job system;
 server restart or session expiry can make resumption unavailable.
-The UI displays validated progress and a Spotify link for partial failures. It
-does not offer automatic resumption; an acknowledged new save creates another
-playlist. It validates complete confirmations and rejects unsafe or inconsistent
+The UI displays validated progress and a Spotify link for partial failures. Its
+**Resume save** button resumes the same playlist only after the user's click.
+Changing criteria, selection or input file does not replace the pending save.
+On a contents conflict or missing session state, it stops resumption and offers
+an explicit new save instead. No POST is automatically retried. The local progress
+is retained in the current view, not persisted across page reloads.
+It validates complete confirmations and rejects unsafe or inconsistent
 links and counts before showing success. Connection failures and timeouts warn
 that the playlist may already exist. Leaving the view stops local waiting but
 does not undo a backend write, so wait for its response before navigating away.

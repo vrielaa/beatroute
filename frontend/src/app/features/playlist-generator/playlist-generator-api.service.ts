@@ -8,6 +8,7 @@ import type {
   PlaylistGeneratorRequest,
   PlaylistTrackIdsFile,
   PlaylistToSave,
+  PlaylistSaveProgress,
   PreparedPlaylistDataset,
   SavedPlaylist,
 } from './playlist-generator.models';
@@ -73,6 +74,38 @@ class PlaylistGeneratorApiService {
         { withCredentials: true }
       )
       .pipe(map((response) => parseSavedPlaylist(response, expectedTrackCount)));
+  }
+
+  /**
+   * Wznawia zapis istniejącej playlisty po świadomym kliknięciu użytkownika.
+   * Wysyła tylko jej ID; pierwotny wybór pozostaje w sesji backendu.
+   * Nie ponawia POST-a, nie tworzy nowej playlisty i nie używa aktualnych zaznaczeń.
+   * Potwierdzenie musi dotyczyć tej samej playlisty i całej pierwotnej liczby utworów.
+   *
+   * @param progress - Sprawdzony postęp nieukończonego zapisu.
+   * @returns Potwierdzenie kompletnej istniejącej playlisty albo błąd do obsługi w widoku.
+   */
+  public resumePlaylist(progress: PlaylistSaveProgress): Observable<SavedPlaylist> {
+    const playlistId = progress.id;
+    const expectedTrackCount = progress.requestedTrackCount;
+
+    return this.http
+      .post<unknown>(
+        '/api/playlist-generator/resume-save',
+        { playlistId },
+        { withCredentials: true }
+      )
+      .pipe(
+        map((response) => {
+          const saved = parseSavedPlaylist(response, expectedTrackCount);
+
+          if (saved.id !== playlistId) {
+            throw new Error('Potwierdzenie dotyczy innej playlisty');
+          }
+
+          return saved;
+        })
+      );
   }
 }
 

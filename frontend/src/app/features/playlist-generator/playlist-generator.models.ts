@@ -308,10 +308,10 @@ type PlaylistToSave = {
 };
 
 /**
- * Potwierdzenie pełnego zapisu playlisty, zwracane przez backend ze statusem 201.
+ * Potwierdzenie pełnego zapisu playlisty: 201 dla nowej lub 200 po wznowieniu.
  * Nie opisuje częściowej awarii; ta trafia do kanału błędów żądania HTTP.
  *
- * @property id - Identyfikator nowo utworzonej playlisty Spotify.
+ * @property id - Identyfikator utworzonej lub uzupełnionej playlisty Spotify.
  * @property name - Nazwa utworzonej playlisty zwrócona przez Spotify.
  * @property spotifyUrl - Odnośnik do playlisty umożliwiający jej otwarcie w Spotify.
  * @property trackCount - Liczba wybranych utworów, których dodanie potwierdzono po wszystkich partiach.
@@ -331,7 +331,8 @@ type SavedPlaylist = {
  * @property id - Identyfikator utworzonej playlisty.
  * @property name - Nazwa utworzonej playlisty.
  * @property spotifyUrl - Odnośnik do istniejącej playlisty w Spotify.
- * @property confirmedTrackCount - Liczba utworów z potwierdzonych partii, również zero.
+ * @property confirmedTrackCount - Liczba utworów potwierdzonych zapisem lub sprawdzonych
+ * podczas wznowienia w Spotify, powiększona o kolejne potwierdzone partie; również zero.
  * @property requestedTrackCount - Liczba utworów wybranych na początku operacji, od 1 do 500.
  */
 type PlaylistSaveProgress = {

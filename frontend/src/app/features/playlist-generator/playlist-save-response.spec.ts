@@ -2,6 +2,8 @@ import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { describe, expect, it } from 'vitest';
 import {
   getPlaylistSaveErrorMessage,
+  getPlaylistResumeErrorMessage,
+  isPlaylistResumptionBlocked,
   parseSavedPlaylist,
   readPartialPlaylistSaveProgress,
 } from './playlist-save-response';
@@ -123,7 +125,7 @@ describe('readPartialPlaylistSaveProgress', () => {
 describe('getPlaylistSaveErrorMessage', () => {
   it.each([401, 403, 429, 504])('prioritizes partial writes over HTTP %i', (status) => {
     expect(getPlaylistSaveErrorMessage(createPartialError(createProgress(), status))).toBe(
-      'Nie potwierdzono zapisu wszystkich utworów. Sprawdź utworzoną playlistę przed kolejnym zapisem.'
+      'Nie potwierdzono pełnego zapisu.'
     );
   });
 
@@ -177,5 +179,68 @@ describe('getPlaylistSaveErrorMessage', () => {
     expect(getPlaylistSaveErrorMessage(new Error('secret-internal-details'))).toBe(
       'Nie otrzymano potwierdzenia zapisu. Sprawdź swoje playlisty w Spotify przed kolejną próbą.'
     );
+  });
+});
+
+describe('playlist resumption errors', () => {
+  it.each([
+    {
+      code: 'PLAYLIST_CONTENTS_CHANGED',
+      blocked: true,
+      message: 'Playlista została zmieniona. Wznowienie zatrzymane.',
+    },
+    {
+      code: 'PLAYLIST_RESUME_UNAVAILABLE',
+      blocked: true,
+      message: 'Brak zapisu do wznowienia w tej sesji.',
+    },
+    { code: 'PLAYLIST_SAVE_IN_PROGRESS', blocked: false, message: 'Zapis tej playlisty już trwa.' },
+  ])('recognizes $code without exposing the server message', ({ code, blocked, message }) => {
+    const error = new HttpErrorResponse({
+      status: 409,
+      error: { error: { code, message: 'secret-message' } },
+    });
+    expect(getPlaylistResumeErrorMessage(error)).toBe(message);
+    expect(isPlaylistResumptionBlocked(error)).toBe(blocked);
+  });
+
+  it.each([401, 403])('requests permissions for HTTP %s', (status) => {
+    const error = new HttpErrorResponse({ status });
+    expect(getPlaylistResumeErrorMessage(error)).toContain('Połącz ponownie Spotify');
+    expect(isPlaylistResumptionBlocked(error)).toBe(false);
+  });
+
+  it.each(['0', '30'])('shows the delay %s without suggesting a new playlist', (seconds) => {
+    const error = new HttpErrorResponse({
+      status: 429,
+      headers: new HttpHeaders({ 'Retry-After': seconds }),
+    });
+    expect(getPlaylistResumeErrorMessage(error)).toBe(`Limit Spotify. Ponów za ${seconds} s.`);
+  });
+
+  it.each(['', ' ', '-1', '1.5', 'Infinity', 'secret'])(
+    'ignores invalid Retry-After %j',
+    (header) => {
+      expect(
+        getPlaylistResumeErrorMessage(
+          new HttpErrorResponse({
+            status: 429,
+            headers: new HttpHeaders({ 'Retry-After': header }),
+          })
+        )
+      ).toBe('Limit Spotify. Spróbuj później.');
+    }
+  );
+
+  it.each([
+    undefined,
+    new Error('secret'),
+    new HttpErrorResponse({ status: 504 }),
+    createPartialError(createProgress(), 500),
+  ])('keeps an unconfirmed write as a failure: %j', (error) => {
+    expect(getPlaylistResumeErrorMessage(error)).toBe(
+      'Nie potwierdzono pełnego zapisu. Spróbuj wznowić ponownie.'
+    );
+    expect(isPlaylistResumptionBlocked(error)).toBe(false);
   });
 });

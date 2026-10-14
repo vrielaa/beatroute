@@ -9,6 +9,7 @@ import { PlaylistSaveForm } from './playlist-save-form/playlist-save-form';
 import type { GeneratedPlaylist, PlaylistDataset } from './playlist-generator.models';
 
 const saveUrl = '/api/playlist-generator/save';
+const resumeUrl = '/api/playlist-generator/resume-save';
 const firstId = 'a'.repeat(22);
 const rejectedId = 'b'.repeat(22);
 const bestId = 'c'.repeat(22);
@@ -44,6 +45,8 @@ describe('PlaylistGenerator saving', () => {
     expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
     await importFile();
     expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
+    http.expectNone(() => true);
+    fixture.componentInstance['resumePlaylist']();
     http.expectNone(() => true);
   });
 
@@ -270,7 +273,8 @@ describe('PlaylistGenerator saving', () => {
       fixture.detectChanges();
 
       expect(getText()).toContain('potwierdzono 0 z 2');
-      expect(getText()).toContain('Niepotwierdzona partia mogła również zostać zapisana');
+      expect(getText()).toContain('Przed wznowieniem sprawdzimy, które utwory są już zapisane.');
+      expect(getButton('playlist-resume-save').textContent?.trim()).toBe('Wznów zapis');
       expect(getText()).not.toContain('secret-');
       expect(getText()).not.toContain('Playlista zapisana');
       expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
@@ -281,7 +285,7 @@ describe('PlaylistGenerator saving', () => {
     }
   );
 
-  it('does not resume an incomplete playlist when the user starts another save', async () => {
+  it('resumes the same playlist only after a click and sends no selection or new save', async () => {
     await showResult();
     startSave();
     http
@@ -289,15 +293,21 @@ describe('PlaylistGenerator saving', () => {
       .flush(createPartialResponse(), { status: 429, statusText: 'Incomplete' });
     fixture.detectChanges();
 
-    expect(getNewSaveButton().textContent).toContain('Sprawdzono playlistę');
-    getNewSaveButton().click();
+    expect(fixture.nativeElement.querySelector('.save-new')).toBeNull();
+    http.expectNone(() => true);
+    getButton('playlist-resume-save').click();
     fixture.detectChanges();
     http.expectNone(saveUrl);
-    startSave('Nowa playlista');
-    const request = http.expectOne(saveUrl);
-    expect(request.request.body).toEqual({ name: 'Nowa playlista', trackIds: [bestId, firstId] });
-    expect(request.request.body.playlistId).toBeUndefined();
-    request.flush(createSavedPlaylist(), { status: 201, statusText: 'Created' });
+    const request = http.expectOne(resumeUrl);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.body).toEqual({ playlistId: 'new-playlist-id' });
+    http.expectNone('/api/playlist-generator/prepare-dataset');
+    http.expectNone('/api/playlist-generator/generate');
+    request.flush(createSavedPlaylist());
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.save-partial')).toBeNull();
+    expect(getText()).toContain('Playlista zapisana');
   });
 
   it('shows 100 confirmed tracks after a later batch fails in a 201-track selection', async () => {
@@ -339,7 +349,7 @@ describe('PlaylistGenerator saving', () => {
     http.expectOne(saveUrl).flush(response, { status: 429, statusText: 'Incomplete' });
     fixture.detectChanges();
 
-    expect(getText()).toContain('Nie potwierdzono zapisu wszystkich utworów');
+    expect(getText()).toContain('Nie potwierdzono pełnego zapisu');
     expect(fixture.nativeElement.querySelector('.save-partial')).toBeNull();
     http.expectNone(saveUrl);
   });
@@ -378,7 +388,7 @@ describe('PlaylistGenerator saving', () => {
     http.expectNone(saveUrl);
   });
 
-  it('clears the save outcome on criteria change and file replacement without another save', async () => {
+  it('preserves the incomplete save on criteria change and file replacement', async () => {
     await showResult();
     startSave();
     http
@@ -392,10 +402,149 @@ describe('PlaylistGenerator saving', () => {
     select.value = 'high';
     select.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.save-partial')).toBeNull();
-    expect(fixture.componentInstance['partialSaveProgress']()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.save-partial')).not.toBeNull();
+    expect(fixture.componentInstance['partialSaveProgress']()?.id).toBe('new-playlist-id');
     await importFile('replacement.json');
     expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
+    http.expectNone(() => true);
+    getButton('playlist-resume-save').click();
+    const request = http.expectOne(resumeUrl);
+    expect(request.request.body).toEqual({ playlistId: 'new-playlist-id' });
+    request.flush(createSavedPlaylist());
+    fixture.detectChanges();
+    expect(getText()).toContain('Playlista zapisana');
+  });
+
+  it('locks controls and ignores repeated clicks while resuming', async () => {
+    await showPartialSave();
+    const progress = fixture.componentInstance['partialSaveProgress']();
+    getButton('playlist-resume-save').click();
+    fixture.detectChanges();
+    fixture.componentInstance['resumePlaylist']();
+    fixture.componentInstance['savePlaylist']('Another');
+    fixture.componentInstance['startNewSave']();
+    fixture.componentInstance['updateCriteria'](null);
+
+    expect(getButton('playlist-resume-save').disabled).toBe(true);
+    expect(getButton('playlist-generate').disabled).toBe(true);
+    expect(getButton('playlist-choose-file').disabled).toBe(true);
+    expect(getInput('playlist-top-track-count').matches(':disabled')).toBe(true);
+    expect(fixture.componentInstance['partialSaveProgress']()).toEqual(progress);
+    expect(getText()).toContain('Sprawdzanie playlisty');
+    http.expectNone(saveUrl);
+    http.expectOne(resumeUrl).flush(createSavedPlaylist());
+  });
+
+  it('does not use later manual choices when resuming the original save', async () => {
+    await showPartialSave();
+    selectMode('Ręcznie');
+    toggleTrack(firstId);
+    expect(fixture.componentInstance['selectedTrackIds']()).toEqual([bestId]);
+
+    getButton('playlist-resume-save').click();
+
+    const request = http.expectOne(resumeUrl);
+    expect(request.request.body).toEqual({ playlistId: 'new-playlist-id' });
+    request.flush(createSavedPlaylist(2));
+    fixture.detectChanges();
+    expect(getText()).toContain('potwierdzono dodanie 2 utworów');
+    expect(fixture.componentInstance['selectedTrackIds']()).toEqual([bestId]);
+  });
+
+  it.each([0, 429, 500, 502, 504])(
+    'preserves progress after a resume HTTP %s error without retrying',
+    async (status) => {
+      await showPartialSave();
+      const progress = fixture.componentInstance['partialSaveProgress']();
+      getButton('playlist-resume-save').click();
+      const request = http.expectOne(resumeUrl);
+      if (status === 0) {
+        request.error(new ProgressEvent('error'));
+      } else {
+        request.flush(
+          { error: { message: 'secret-message' } },
+          { status, statusText: 'Failed', headers: { 'Retry-After': '30' } }
+        );
+      }
+      fixture.detectChanges();
+      expect(fixture.componentInstance['partialSaveProgress']()).toEqual(progress);
+      expect(getButton('playlist-resume-save').disabled).toBe(false);
+      expect(getText()).not.toContain('secret-');
+      expect(fixture.nativeElement.querySelector('.save-success')).toBeNull();
+      http.expectNone(() => true);
+    }
+  );
+
+  it('accepts updated progress only for the original playlist and track count', async () => {
+    await showPartialSave();
+    getButton('playlist-resume-save').click();
+    const response = createPartialResponse();
+    response.error.details.progress.confirmedTrackCount = 1;
+    http.expectOne(resumeUrl).flush(response, { status: 429, statusText: 'Incomplete' });
+    fixture.detectChanges();
+    expect(getText()).toContain('potwierdzono 1 z 2');
+
+    getButton('playlist-resume-save').click();
+    const unrelated = createPartialResponse();
+    unrelated.error.details.progress.id = 'other-playlist';
+    unrelated.error.details.progress.spotifyUrl =
+      'https://open.spotify.com/playlist/other-playlist';
+    http.expectOne(resumeUrl).flush(unrelated, { status: 429, statusText: 'Incomplete' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance['partialSaveProgress']()?.confirmedTrackCount).toBe(1);
+    expect(fixture.componentInstance['partialSaveProgress']()?.id).toBe('new-playlist-id');
+    http.expectNone(() => true);
+  });
+
+  it.each(['PLAYLIST_CONTENTS_CHANGED', 'PLAYLIST_RESUME_UNAVAILABLE'])(
+    'stops on %s and requires an explicit new-save action',
+    async (code) => {
+      await showPartialSave();
+      getButton('playlist-resume-save').click();
+      http
+        .expectOne(resumeUrl)
+        .flush(
+          { error: { code, message: 'secret-message' } },
+          { status: 409, statusText: 'Conflict' }
+        );
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('#playlist-resume-save')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
+      fixture.componentInstance['resumePlaylist']();
+      http.expectNone(() => true);
+      expect(getNewSaveButton().textContent?.trim()).toBe('Utwórz nową playlistę');
+      getNewSaveButton().click();
+      fixture.detectChanges();
+      expect(fixture.componentInstance['partialSaveProgress']()).toBeNull();
+      http.expectNone(() => true);
+      startSave('Nowa');
+      const request = http.expectOne(saveUrl);
+      expect(request.request.body.name).toBe('Nowa');
+      request.flush(createSavedPlaylist());
+    }
+  );
+
+  it('does not treat a confirmation for another playlist as a successful resumption', async () => {
+    await showPartialSave();
+    getButton('playlist-resume-save').click();
+    http.expectOne(resumeUrl).flush({
+      ...createSavedPlaylist(),
+      id: 'other',
+      spotifyUrl: 'https://open.spotify.com/playlist/other',
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.save-success')).toBeNull();
+    expect(fixture.componentInstance['partialSaveProgress']()?.id).toBe('new-playlist-id');
+    http.expectNone(() => true);
+  });
+
+  it('cancels only local waiting when the view is destroyed during resumption', async () => {
+    await showPartialSave();
+    getButton('playlist-resume-save').click();
+    const request = http.expectOne(resumeUrl);
+    fixture.destroy();
+    expect(request.cancelled).toBe(true);
     http.expectNone(() => true);
   });
 
@@ -420,6 +569,15 @@ describe('PlaylistGenerator saving', () => {
     Object.defineProperty(input, 'files', { configurable: true, value: [file] });
     input.dispatchEvent(new Event('change'));
     await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  async function showPartialSave(): Promise<void> {
+    await showResult();
+    startSave();
+    http
+      .expectOne(saveUrl)
+      .flush(createPartialResponse(), { status: 429, statusText: 'Incomplete' });
     fixture.detectChanges();
   }
 

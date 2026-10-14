@@ -178,7 +178,8 @@ label {
   text-decoration: underline;
 }
 
-.save-new {
+.save-new,
+#playlist-resume-save {
   justify-self: start;
   padding: 0.8rem 1.2rem;
   border-radius: var(--radius-sm);
@@ -188,7 +189,14 @@ label {
 }
 
 .save-new:focus-visible,
+#playlist-resume-save:focus-visible,
 .playlist-save a:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
+}
+
+.save-new:disabled,
+#playlist-resume-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
