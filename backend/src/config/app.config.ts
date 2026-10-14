@@ -7,6 +7,7 @@ const SPOTIFY_SCOPES = [
   "user-read-email",
   "user-library-read",
   "playlist-modify-private",
+  "playlist-read-private",
 ];
 
 /** Typ konfiguracji aplikacji. */

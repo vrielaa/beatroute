@@ -3,6 +3,7 @@ import type {
   SpotifyApiConfiguration,
   SpotifyGateway,
   SpotifyPlaylistApiResponse,
+  SpotifyPlaylistContents,
   SpotifyPlaylistSnapshotApiResponse,
   SpotifyTopArtistsApiResponse,
   SpotifyTopItemsSelection,
@@ -254,6 +255,82 @@ function createSpotifyGateway({
     );
   }
 
+  /**
+   * Odczytuje zawartość playlisty w kolejnych stronach po 50 pozycji, do 500 łącznie.
+   * Sprawdza wersję przed i po pobraniu, aby nie zwrócić mieszanki różnych wersji.
+   * Nie korzysta z cache ani adresów next zwróconych przez API. Zachowuje braki jako
+   * null; dla relinkowanego utworu używa pierwotnego ID z linked_from, gdy jest dostępne.
+   * Nie wykonuje zapisów. Wymaga playlist-read-private dla prywatnej playlisty.
+   *
+   * @param accessToken - Token użytkownika uprawnionego do odczytu playlisty.
+   * @param playlistId - Identyfikator playlisty utworzonej przez generator.
+   * @returns ID wszystkich pozycji oraz wersja niezmieniona podczas odczytu.
+   * @throws SpotifyApiError Gdy API zawiedzie, dane są niepełne, lista przekracza
+   * 500 pozycji lub jej zawartość zmieni się podczas pobierania.
+   */
+  async function getPlaylistContents(
+    accessToken: string,
+    playlistId: string
+  ): Promise<SpotifyPlaylistContents> {
+    const endpoint = `/playlists/${encodeURIComponent(playlistId)}`;
+    const snapshotId = await readSnapshot();
+    const trackIds: (string | null)[] = [];
+    let total: number | null = null;
+
+    do {
+      const offset = trackIds.length;
+      const page = await request<unknown>(
+        `${endpoint}/items?limit=50&offset=${offset}`,
+        accessToken,
+        "Nie udało się odczytać zawartości playlisty"
+      );
+
+      if (
+        !isObject(page) ||
+        !Array.isArray(page["items"]) ||
+        !Number.isInteger(page["total"]) ||
+        typeof page["total"] !== "number" ||
+        page["total"] < 0 ||
+        page["total"] > 500 ||
+        page["offset"] !== offset ||
+        page["items"].length > 50 ||
+        (total !== null && page["total"] !== total) ||
+        (page["items"].length === 0 && offset < page["total"]) ||
+        offset + page["items"].length > page["total"]
+      ) {
+        throw invalidPlaylistResponse();
+      }
+
+      total = page["total"];
+      trackIds.push(...page["items"].map(readPlaylistTrackId));
+    } while (trackIds.length < total);
+
+    if ((await readSnapshot()) !== snapshotId) {
+      throw invalidPlaylistResponse();
+    }
+
+    return { trackIds, snapshotId };
+
+    /** Sprawdza identyfikator wersji bez pobierania pełnych metadanych playlisty. */
+    async function readSnapshot(): Promise<string> {
+      const data = await request<unknown>(
+        `${endpoint}?fields=snapshot_id`,
+        accessToken,
+        "Nie udało się sprawdzić wersji playlisty"
+      );
+
+      if (
+        !isObject(data) ||
+        typeof data["snapshot_id"] !== "string" ||
+        !data["snapshot_id"]
+      ) {
+        throw invalidPlaylistResponse();
+      }
+
+      return data["snapshot_id"];
+    }
+  }
+
   return {
     getSpotifyTrackById,
     getCurrentUserTopTracks,
@@ -261,6 +338,7 @@ function createSpotifyGateway({
     getCurrentUserProfile,
     createPlaylist,
     addTracksToPlaylist,
+    getPlaylistContents,
   };
 }
 
@@ -302,6 +380,38 @@ function getSpotifyErrorMessage(data: unknown): string | null {
 /** Sprawdza, czy wartość jest obiektem możliwym do bezpiecznego odczytu. */
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+/** Odczytuje ID pozycji bez usuwania nieznanych, lokalnych lub niedostępnych wpisów. */
+function readPlaylistTrackId(value: unknown): string | null {
+  if (
+    !isObject(value) ||
+    value["is_local"] !== false ||
+    !isObject(value["item"])
+  ) {
+    return null;
+  }
+
+  const item = value["item"];
+
+  if (item["type"] !== "track") {
+    return null;
+  }
+
+  const linkedFrom = item["linked_from"];
+  const id = isObject(linkedFrom) ? linkedFrom["id"] : item["id"];
+
+  return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id) ? id : null;
+}
+
+/** Nie ujawnia odpowiedzi API, gdy zawartość playlisty nie może być bezpiecznie ustalona. */
+function invalidPlaylistResponse(): SpotifyApiError {
+  return new SpotifyApiError(
+    "Nie udało się jednoznacznie odczytać zawartości playlisty. Spróbuj ponownie.",
+    200,
+    null,
+    { category: "invalid-response" }
+  );
 }
 
 /** Gateway korzystający z produkcyjnej konfiguracji Spotify Web API. */

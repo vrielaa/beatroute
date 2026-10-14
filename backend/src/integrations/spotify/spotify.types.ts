@@ -154,6 +154,7 @@ type SpotifyApiConfiguration = {
  * @property getCurrentUserProfile - Pobiera profil zalogowanego użytkownika.
  * @property createPlaylist - Tworzy pustą, prywatną playlistę na koncie użytkownika.
  * @property addTracksToPlaylist - Dopisuje od 1 do 100 utworów do istniejącej playlisty w podanej kolejności.
+ * @property getPlaylistContents - Odczytuje do 500 pozycji playlisty, zachowując kolejność i braki ID.
  */
 type SpotifyGateway = {
   getSpotifyTrackById(
@@ -180,6 +181,10 @@ type SpotifyGateway = {
     playlistId: string,
     trackIds: string[]
   ): Promise<SpotifyPlaylistSnapshotApiResponse>;
+  getPlaylistContents(
+    accessToken: string,
+    playlistId: string
+  ): Promise<SpotifyPlaylistContents>;
 };
 
 /** Skrócone dane utworu zwracane przez endpoint łączący Spotify z Last.fm. */
@@ -223,6 +228,18 @@ type SpotifyPlaylistSnapshotApiResponse = {
   snapshot_id: string;
 };
 
+/**
+ * Zawartość playlisty odczytana ze wszystkich stron tej samej wersji Spotify.
+ *
+ * @property trackIds - ID w kolejności playlisty; null oznacza niedostępną, lokalną
+ * lub inną niż utwór pozycję. Braki nie są usuwane, aby nie przesuwać kolejności.
+ * @property snapshotId - Wersja playlisty, sprawdzona przed i po odczycie stron.
+ */
+type SpotifyPlaylistContents = {
+  trackIds: (string | null)[];
+  snapshotId: string;
+};
+
 export type {
   SpotifyTimeRange,
   SpotifyExternalUrls,
@@ -242,4 +259,5 @@ export type {
   SpotifyTrackSummary,
   SpotifyPlaylistApiResponse,
   SpotifyPlaylistSnapshotApiResponse,
+  SpotifyPlaylistContents,
 };

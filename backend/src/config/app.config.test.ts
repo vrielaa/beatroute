@@ -38,4 +38,13 @@ describe("createAppConfig", () => {
     expect(config.lastfm.userAgent).toBe("BeatRoute/1.0");
     expect(config.spotify.clientId).toBe("");
   });
+
+  it("requests permissions to save and inspect private playlists", () => {
+    expect(createAppConfig().spotify.scopes).toEqual(
+      expect.arrayContaining([
+        "playlist-modify-private",
+        "playlist-read-private",
+      ])
+    );
+  });
 });
