@@ -5,6 +5,9 @@ import { PlaylistPreferenceMatches } from '../playlist-preference-matches/playli
 
 /**
  * Wyświetla jeden dopuszczony utwór, jego pozycję i oceny otrzymane z backendu.
+ * Nazwa, artyści i ogólne dopasowanie pozostają widoczne. Szczegółowe oceny i kompletność
+ * pomiarów są domyślnie zwinięte; ich rozwijanie obsługuje natywny element details.
+ * Nie zarządza zaznaczeniem utworu, które należy do komponentu wyników.
  * Nie oblicza dopasowania, nie filtruje utworów ani nie ustala kolejności rankingu.
  */
 @Component({

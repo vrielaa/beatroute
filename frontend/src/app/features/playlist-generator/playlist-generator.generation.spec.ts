@@ -202,6 +202,50 @@ describe('PlaylistGenerator generation', () => {
     http.expectNone(() => true);
   });
 
+  it('expands and collapses results without sending requests or changing the selected tracks', async () => {
+    await importDataset();
+    setTempoRange('120', '140');
+    generate();
+    http.expectOne('/api/playlist-generator/generate').flush(createResult());
+    fixture.detectChanges();
+    const results = getResults();
+    const details = getResultElements('details');
+    const selectionCount = getResultText('.selection-count');
+    const checkbox: HTMLInputElement | null =
+      results?.querySelector('.track-selection-toggle input') ?? null;
+
+    if (!checkbox) {
+      throw new Error('Nie znaleziono checkboxa dopuszczonego utworu');
+    }
+
+    expect(details).toHaveLength(2);
+    expect(details.every((element) => !element.hasAttribute('open'))).toBe(true);
+
+    for (const detail of details) {
+      const summary = detail.querySelector('summary');
+
+      if (!summary) {
+        throw new Error('Nie znaleziono nagłówka rozwijanej sekcji wyników');
+      }
+
+      summary.click();
+      fixture.detectChanges();
+      expect(detail.hasAttribute('open')).toBe(true);
+      http.expectNone(() => true);
+
+      summary.click();
+      fixture.detectChanges();
+      expect(detail.hasAttribute('open')).toBe(false);
+      http.expectNone(() => true);
+    }
+
+    expect(getResults()).toBe(results);
+    expect(getResultText('.selection-count')).toBe(selectionCount);
+    expect(checkbox.checked).toBe(true);
+    expect(getResultText('app-playlist-ranked-track h3')).toBe('First track');
+    expect(getResultText('.rejected-track h4')).toBe('Second track');
+  });
+
   it('treats an empty ranking as a valid result rather than a request error', async () => {
     await importDataset();
     setTempoRange('200', '210');
