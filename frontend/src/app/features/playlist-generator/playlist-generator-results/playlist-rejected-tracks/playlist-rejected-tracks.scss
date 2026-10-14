@@ -8,6 +8,30 @@
   gap: 1rem;
 }
 
+.rejections-summary {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-secondary);
+  cursor: pointer;
+}
+
+.rejections-summary h3 {
+  display: inline;
+  font-size: var(--text-lg);
+}
+
+.rejections-summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.rejections-content {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .rejections-empty,
 .rejections-hint,
 .track-artists {

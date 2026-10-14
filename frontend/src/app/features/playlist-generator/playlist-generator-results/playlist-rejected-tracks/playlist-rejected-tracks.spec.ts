@@ -21,6 +21,63 @@ describe('PlaylistRejectedTracks', () => {
     expect(getTracks()).toHaveLength(0);
     expect(fixture.nativeElement.querySelector('.rejected-track-list')).toBeNull();
     expect(fixture.nativeElement.querySelector('.rejections-hint')).toBeNull();
+    expect(fixture.nativeElement.querySelector('details')).toBeNull();
+    expect(fixture.nativeElement.querySelector('summary')).toBeNull();
+    expect(getText()).toContain('Odrzucone utwory (0)');
+  });
+
+  it('starts collapsed and displays the number of rejected tracks in its summary', () => {
+    const second = createRejectedTrack();
+    second.track = { ...second.track, id: 'second-track' };
+
+    renderTracks([createRejectedTrack(), second]);
+
+    expect(getDetails().open).toBe(false);
+    expect(getDetails().hasAttribute('open')).toBe(false);
+    expect(getText(getSummary())).toBe('Odrzucone utwory (2)');
+    expect(fixture.nativeElement.querySelector('.rejected-track-list').closest('details')).toBe(
+      getDetails()
+    );
+  });
+
+  it('opens and closes through the native summary without changing tracks or reasons', () => {
+    const tracks = [createRejectedTrack()];
+    const originalTracks = structuredClone(tracks);
+    renderTracks(tracks);
+
+    getSummary().click();
+    fixture.detectChanges();
+
+    expect(getDetails().open).toBe(true);
+    expect(getText(getTracks()[0].querySelector('h4'))).toBe('Przykładowy utwór');
+    expect(getReasons(getTracks()[0])).toEqual(['Tempo (BPM) jest poza wybranym zakresem.']);
+
+    getSummary().click();
+    fixture.detectChanges();
+
+    expect(getDetails().open).toBe(false);
+    expect(tracks).toEqual(originalTracks);
+  });
+
+  it('updates the count and creates a collapsed section again after an empty result', () => {
+    const second = createRejectedTrack();
+    second.track = { ...second.track, id: 'second-track' };
+    renderTracks([createRejectedTrack(), second]);
+    getSummary().click();
+
+    renderTracks([second]);
+
+    expect(getText(getSummary())).toBe('Odrzucone utwory (1)');
+    expect(getTracks()).toHaveLength(1);
+
+    renderTracks([]);
+
+    expect(fixture.nativeElement.querySelector('details')).toBeNull();
+
+    renderTracks([createRejectedTrack()]);
+
+    expect(getDetails().open).toBe(false);
+    expect(getText(getSummary())).toBe('Odrzucone utwory (1)');
   });
 
   it('displays the rejected track name and all artists', () => {
@@ -179,6 +236,26 @@ describe('PlaylistRejectedTracks', () => {
 
   function getTracks(): HTMLElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll('.rejected-track'));
+  }
+
+  function getDetails(): HTMLDetailsElement {
+    const details: HTMLDetailsElement | null = fixture.nativeElement.querySelector('details');
+
+    if (!details) {
+      throw new Error('Nie znaleziono rozwijanej sekcji odrzuconych utworów');
+    }
+
+    return details;
+  }
+
+  function getSummary(): HTMLElement {
+    const summary = getDetails().querySelector('summary');
+
+    if (!summary) {
+      throw new Error('Nie znaleziono nagłówka rozwijanej sekcji odrzuconych utworów');
+    }
+
+    return summary;
   }
 
   function getText(element: Element | null = fixture.nativeElement): string {

@@ -1,26 +1,33 @@
 <section class="rejected-tracks" aria-label="Odrzucone utwory">
-  <h3>Odrzucone utwory</h3>
-
   @if (rejectedTracks().length === 0) {
+    <h3>Odrzucone utwory (0)</h3>
     <p class="rejections-empty">Żaden utwór nie został odrzucony przez wymagania obowiązkowe.</p>
   } @else {
-    <p class="rejections-hint">
-      Te utwory nie spełniają co najmniej jednego wymagania obowiązkowego. Brak potrzebnego pomiaru
-      również powoduje odrzucenie.
-    </p>
+    <details class="rejections-details">
+      <summary class="rejections-summary">
+        <h3>Odrzucone utwory ({{ rejectedTracks().length }})</h3>
+      </summary>
 
-    <ul class="rejected-track-list" aria-label="Lista odrzuconych utworów">
-      @for (rejectedTrack of rejectedTracks(); track rejectedTrack.track.id) {
-        <li class="rejected-track">
-          <h4>{{ rejectedTrack.track.name }}</h4>
-          <p class="track-artists">{{ rejectedTrack.track.artists.join(', ') }}</p>
-          <ul class="rejection-reasons" aria-label="Powody odrzucenia">
-            @for (reason of rejectedTrack.reasons; track reason.feature) {
-              <li>{{ getRejectionReasonMessage(reason) }}</li>
-            }
-          </ul>
-        </li>
-      }
-    </ul>
+      <div class="rejections-content">
+        <p class="rejections-hint">
+          Te utwory nie spełniają co najmniej jednego wymagania obowiązkowego. Brak potrzebnego
+          pomiaru również powoduje odrzucenie.
+        </p>
+
+        <ul class="rejected-track-list" aria-label="Lista odrzuconych utworów">
+          @for (rejectedTrack of rejectedTracks(); track rejectedTrack.track.id) {
+            <li class="rejected-track">
+              <h4>{{ rejectedTrack.track.name }}</h4>
+              <p class="track-artists">{{ rejectedTrack.track.artists.join(', ') }}</p>
+              <ul class="rejection-reasons" aria-label="Powody odrzucenia">
+                @for (reason of rejectedTrack.reasons; track reason.feature) {
+                  <li>{{ getRejectionReasonMessage(reason) }}</li>
+                }
+              </ul>
+            </li>
+          }
+        </ul>
+      </div>
+    </details>
   }
 </section>

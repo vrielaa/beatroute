@@ -5,7 +5,9 @@ import type {
 } from '../../playlist-generator.models';
 
 /**
- * Wyświetla odrzucone utwory i wszystkie przyczyny niespełnienia wymagań obowiązkowych.
+ * Wyświetla liczbę odrzuconych utworów, a po rozwinięciu sekcji ich nazwy i powody odrzucenia.
+ * Niepusta lista jest domyślnie zwinięta; otwieranie i zamykanie obsługuje natywny element details.
+ * Dla pustej listy pokazuje komunikat bez elementu do rozwijania.
  * Tłumaczy kody backendu na komunikaty, bez ponownej walidacji, filtrowania i sortowania.
  */
 @Component({
