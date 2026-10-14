@@ -25,9 +25,15 @@ import {
 const DEFAULT_SPOTIFY_API_ROOT = "https://api.spotify.com/v1";
 const SPOTIFY_RETRYABLE_STATUSES = [502, 503, 504];
 
-/** Wspólny scheduler Spotify odrzucający nowe i oczekujące operacje podczas pauzy. */
+/**
+ * Wspólny scheduler produkcyjnych odczytów, zapisów i ponowień Spotify Web API.
+ * Rozpoczyna maksymalnie jedno zapytanie w każdych 1000 ms i dopuszcza do pięciu
+ * jednocześnie trwających. Podczas pauzy odrzuca nowe i oczekujące operacje.
+ * Limit tempa jest ustawieniem aplikacji, nie opublikowanym progiem Spotify.
+ */
 const spotifyRequestScheduler = createRequestScheduler({
   maxConcurrentRequests: 5,
+  rateLimit: { maxRequests: 1, intervalMs: 1_000 },
   pauseBehavior: "reject",
 });
 
