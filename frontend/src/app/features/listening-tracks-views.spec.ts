@@ -16,8 +16,13 @@ describe.each([Dashboard, MusicProfile])('%s top-track collection flow', (view) 
   let fixture: ComponentFixture<Dashboard | MusicProfile>;
   let filters: AnalysisFiltersStore;
   let http: HttpTestingController;
+  let artistsFoundRatio = signal<{
+    requestedArtistsCount: number;
+    spotifyTotalArtistsCount: number;
+  } | null>(null);
 
   beforeEach(async () => {
+    artistsFoundRatio = signal(null);
     vi.spyOn(console, 'error').mockImplementation(() => {});
     TestBed.configureTestingModule({
       imports: [view],
@@ -40,7 +45,7 @@ describe.each([Dashboard, MusicProfile])('%s top-track collection flow', (view) 
                 genreDistribution: signal(null),
                 isGenreDistributionLoading: signal(false),
                 hasGenreDistributionError: signal(false),
-                artistsFoundRatio: signal(null),
+                artistsFoundRatio,
                 artistGenres: signal({}),
                 reloadVersion: signal(0),
                 load: () => new Subscription(),
@@ -61,6 +66,9 @@ describe.each([Dashboard, MusicProfile])('%s top-track collection flow', (view) 
   });
 
   it('shows real 7/10 → 9/10 → 10/10 progress and summarizes the combined measurements only once', () => {
+    if (view === Dashboard) {
+      artistsFoundRatio.set({ requestedArtistsCount: 10, spotifyTotalArtistsCount: 9 });
+    }
     fixture.detectChanges();
     page(10, 0).flush(batch(0, 10, 7, 20));
     fixture.detectChanges();
@@ -86,7 +94,16 @@ describe.each([Dashboard, MusicProfile])('%s top-track collection flow', (view) 
     });
     fixture.detectChanges();
     expect(feedback()?.textContent).toContain('Znaleziono 10/10');
+    expect(feedback()?.textContent).toContain('Utwory z pomiarami.');
+    expect(feedback()?.textContent).toContain('Sprawdzono 14.');
+    expect(feedback()?.textContent).toContain('Pominięto 4.');
     expect(feedback()?.textContent).not.toContain('Szukam kolejnych');
+    if (view === Dashboard) {
+      const warning = element().querySelector('app-listening-stats-warnings');
+      expect(warning?.textContent).toContain('10 artystów');
+      expect(warning?.textContent).toContain('9 najczęściej słuchanych artystów');
+      expect(feedback()?.textContent).not.toContain('artystów');
+    }
     if (view === MusicProfile)
       expect(element().querySelector('app-average-bpm')?.textContent).toContain('120');
     http.expectNone('/api/tracks/analysis');

@@ -1,29 +1,32 @@
 <section class="card" [attr.role]="hasError() ? 'alert' : 'status'">
-  @if (progress(); as progress) {
-    @if (progress.totalItems === null) {
-      @if (!hasError()) {
-        <p>Pobieranie utworów…</p>
-      }
-    } @else {
-      <p>
-        Znaleziono {{ progress.foundTracks }}/{{ progress.requestedTracks }}. Pominięto
-        {{ progress.skippedItems }}.
-      </p>
-      @if (!progress.complete && !hasError()) {
-        <p>Szukam kolejnych {{ progress.requestedTracks - progress.foundTracks }}.</p>
-      } @else if (
-        progress.complete &&
-        progress.foundTracks < progress.requestedTracks &&
-        progress.totalItems > 0
-      ) {
-        <p>Koniec wyników dla tego okresu.</p>
+  <div class="listening-tracks-feedback-banner">
+    @if (progress(); as progress) {
+      @if (progress.totalItems === null) {
+        @if (!hasError()) {
+          <p>Pobieranie utworów…</p>
+        }
+      } @else {
+        <p>
+          <strong>Utwory z pomiarami.</strong>
+          Znaleziono {{ progress.foundTracks }}/{{ progress.requestedTracks }}. Sprawdzono
+          {{ progress.processedItems }}. Pominięto {{ progress.skippedItems }}.
+        </p>
+        @if (!progress.complete && !hasError()) {
+          <p>Szukam kolejnych {{ progress.requestedTracks - progress.foundTracks }}.</p>
+        } @else if (
+          progress.complete &&
+          progress.foundTracks < progress.requestedTracks &&
+          progress.totalItems > 0
+        ) {
+          <p>Koniec wyników dla tego okresu.</p>
+        }
       }
     }
-  }
-  @if (message()) {
-    <p>{{ message() }}</p>
-  }
-  @if (hasError()) {
-    <button type="button" (click)="retryRequested.emit()">Spróbuj ponownie</button>
-  }
+    @if (message()) {
+      <p>{{ message() }}</p>
+    }
+    @if (hasError()) {
+      <button type="button" (click)="retryRequested.emit()">Spróbuj ponownie</button>
+    }
+  </div>
 </section>
