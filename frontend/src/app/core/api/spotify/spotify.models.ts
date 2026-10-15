@@ -34,6 +34,7 @@ interface TopTrack {
   album: { name: string; images: SpotifyImage[] };
   duration_ms: number;
   popularity: number;
+  external_urls?: SpotifyExternalUrls;
 }
 
 interface TopTracksResponse {

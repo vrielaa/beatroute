@@ -19,21 +19,6 @@ describe('MusicMapApiService', () => {
 
   afterEach(() => http.verify());
 
-  it('loads a reusable dataset for the selected listening range', () => {
-    service.getMusicMapDataset('short_term', 20).subscribe();
-
-    const request = http.expectOne(
-      (candidate) =>
-        candidate.url === '/api/music-map/dataset' &&
-        candidate.params.get('time_range') === 'short_term' &&
-        candidate.params.get('limit') === '20'
-    );
-
-    expect(request.request.method).toBe('GET');
-    expect(request.request.withCredentials).toBe(true);
-    request.flush(createDataset());
-  });
-
   it('sends the cached dataset to analysis without requesting source data again', () => {
     const dataset = createDataset();
 

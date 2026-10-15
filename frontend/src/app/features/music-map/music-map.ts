@@ -10,7 +10,10 @@ import {
 } from '@angular/core';
 import type { TimeRange } from '@core/api/spotify/spotify.models';
 import { AnalysisFiltersStore } from '@core/stores/analysis-filters.store';
-import { Subscription, switchMap } from 'rxjs';
+import { EMPTY, filter, map, Subscription, switchMap, tap } from 'rxjs';
+import { TopTracksCollector } from '@core/stores/top-tracks-collector.service';
+import type { TopTracksProgress } from '@core/api/tracks/top-tracks.models';
+import { ListeningTracksFeedback } from '@shared/components/listening-tracks-feedback/listening-tracks-feedback';
 import { ClusterControl } from './cluster-control/cluster-control';
 import { ClusterDetails } from './cluster-details/cluster-details';
 import { MusicMapChart } from './music-map-chart/music-map-chart';
@@ -27,11 +30,18 @@ import {
   buildMusicMapClusterDetails,
   clampMusicMapClusterCount,
   getMaxMusicMapClusterCount,
+  buildCollectedMusicMapDataset,
 } from './music-map.utils';
 
 @Component({
   selector: 'app-music-map',
-  imports: [ClusterControl, MusicMapChart, ClusterDetails, MusicMapMethodology],
+  imports: [
+    ClusterControl,
+    MusicMapChart,
+    ClusterDetails,
+    MusicMapMethodology,
+    ListeningTracksFeedback,
+  ],
   templateUrl: './music-map.html',
   styleUrl: './music-map.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -42,6 +52,7 @@ import {
 class MusicMap {
   private readonly analysisFiltersStore = inject(AnalysisFiltersStore);
   private readonly musicMapApi = inject(MusicMapApiService);
+  private readonly collector = inject(TopTracksCollector);
   private readonly destroyRef = inject(DestroyRef);
 
   private datasetSubscription: Subscription | null = null;
@@ -52,6 +63,7 @@ class MusicMap {
   public readonly minClusterCount = MUSIC_MAP_CLUSTER_LIMITS.min;
 
   public readonly dataset = signal<MusicMapDataset | null>(null);
+  public readonly progress = signal<TopTracksProgress | null>(null);
   public readonly musicMap = signal<MusicMapResponse | null>(null);
   public readonly isLoading = signal(true);
   public readonly errorMessage = signal<string | null>(null);
@@ -82,6 +94,11 @@ class MusicMap {
   }
 
   public retryLoading(): void {
+    const dataset = this.dataset();
+    if (dataset?.tracks.length) {
+      this.analyzeDataset(dataset, this.selectedClusterCount());
+      return;
+    }
     this.loadDatasetAndAnalyze(
       this.selectedTimeRange(),
       this.selectedTracksRange(),
@@ -90,7 +107,7 @@ class MusicMap {
   }
 
   public updateClusterCount(clusterCount: number): void {
-    if (!Number.isInteger(clusterCount)) {
+    if (!Number.isInteger(clusterCount) || this.isLoading()) {
       return;
     }
 
@@ -117,19 +134,36 @@ class MusicMap {
   ): Subscription {
     this.cancelActiveRequests();
     this.startLoading();
+    this.dataset.set(null);
+    this.musicMap.set(null);
+    this.selectedClusterId.set(null);
+    this.progress.set(null);
+    let datasetReady = false;
 
-    this.datasetSubscription = this.musicMapApi
-      .getMusicMapDataset(timeRange, tracksRange)
+    this.datasetSubscription = this.collector
+      .collect(timeRange, tracksRange, 'music-map')
       .pipe(
+        tap((collection) => this.progress.set(collection.progress)),
+        filter((collection) => collection.progress.complete),
+        map((collection) => buildCollectedMusicMapDataset(collection, timeRange, tracksRange)),
         switchMap((dataset) => {
           this.dataset.set(dataset);
+          datasetReady = true;
+
+          if (!dataset.tracks.length) {
+            this.isLoading.set(false);
+            return EMPTY;
+          }
 
           return this.musicMapApi.analyzeMusicMap(dataset, clusterCount);
         })
       )
       .subscribe({
         next: (musicMap) => this.applyMusicMap(musicMap),
-        error: (error) => this.handleDatasetLoadingError(error),
+        error: (error) =>
+          datasetReady
+            ? this.handleDatasetAnalysisError(error)
+            : this.handleDatasetLoadingError(error),
       });
 
     return this.datasetSubscription;

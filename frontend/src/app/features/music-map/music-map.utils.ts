@@ -3,13 +3,57 @@ import type {
   MusicMapClusterDetail,
   MusicMapClusterMetric,
   MusicMapResponse,
+  MusicMapDataset,
 } from './music-map.models';
+import type { TimeRange } from '@core/api/spotify/spotify.models';
+import type { TopTracksCollection } from '@core/api/tracks/top-tracks.models';
 
 const MUSIC_MAP_CLUSTER_LIMITS = {
   default: 4,
   min: 2,
   max: 8,
 } as const;
+
+/** Buduje zbiór PCA z już pobranych danych; nie przenosi identyfikatorów dostawcy do wektora cech. */
+function buildCollectedMusicMapDataset(
+  collection: TopTracksCollection,
+  timeRange: TimeRange,
+  requestedLimit: number
+): MusicMapDataset {
+  return {
+    tracks: collection.tracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      artists: track.artists.map((artist) => artist.name),
+      album: track.album?.name || null,
+      imageUrl: track.album?.images?.[0]?.url ?? null,
+      spotifyUrl: track.external_urls?.spotify ?? null,
+    })),
+    audioFeatures: collection.audioFeatures.map((audio) => ({
+      status: 'found',
+      trackId: audio.spotifyId,
+      features: {
+        acousticness: audio.acousticness ?? null,
+        danceability: audio.danceability ?? null,
+        energy: audio.energy ?? null,
+        instrumentalness: audio.instrumentalness ?? null,
+        liveness: audio.liveness ?? null,
+        speechiness: audio.speechiness ?? null,
+        valence: audio.valence ?? null,
+        loudness: audio.loudness ?? null,
+        tempo: audio.tempo ?? null,
+        key: audio.key ?? null,
+        mode: audio.mode ?? null,
+      },
+    })),
+    metadata: {
+      timeRange,
+      requestedLimit,
+      spotifyReturnedTracksCount: collection.tracks.length,
+      spotifyTotalTracksCount: collection.progress.totalItems ?? 0,
+    },
+  };
+}
 
 function getMaxMusicMapClusterCount(tracksCount: number): number {
   return Math.max(
@@ -56,4 +100,5 @@ export {
   getMaxMusicMapClusterCount,
   clampMusicMapClusterCount,
   buildMusicMapClusterDetails,
+  buildCollectedMusicMapDataset,
 };

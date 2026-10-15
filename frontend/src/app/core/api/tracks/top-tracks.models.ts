@@ -4,6 +4,9 @@ import type { AudioFeatures } from './audio-features.models';
 /** Wymagana kompletność danych: dowolny użyteczny pomiar lub pełny wektor mapy. */
 type TopTracksPurpose = 'statistics' | 'music-map';
 
+/** Pomiary przygotowanego utworu: wymagane ID Spotify i brak technicznego błędu. */
+type TrackAudioMeasurements = Omit<AudioFeatures, 'error'> & { spotifyId: string };
+
 /**
  * Odpowiedź przygotowania jednej partii top utworów.
  * @property tracks - Przydatne metadane w kolejności Spotify.
@@ -15,7 +18,7 @@ type TopTracksPurpose = 'statistics' | 'music-map';
  */
 type TopTracksBatch = {
   tracks: TopTrack[];
-  audioFeatures: AudioFeatures[];
+  audioFeatures: TrackAudioMeasurements[];
   processedItems: number;
   skippedItems: number;
   totalItems: number;
@@ -49,7 +52,7 @@ type TopTracksProgress = {
  */
 type TopTracksCollection = {
   tracks: TopTrack[];
-  audioFeatures: AudioFeatures[];
+  audioFeatures: TrackAudioMeasurements[];
   progress: TopTracksProgress;
   nextOffset: number | null;
 };

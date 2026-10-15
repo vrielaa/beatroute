@@ -88,7 +88,7 @@ function mergeTopTracksBatch(
   );
   for (const track of batch.tracks) {
     const features = featuresById.get(track.id);
-    if (!features || features.error) throw new Error('Brak pomiarów przygotowanego utworu');
+    if (!features || 'error' in features) throw new Error('Brak pomiarów przygotowanego utworu');
     if (!seenIds.has(track.id)) {
       seenIds.add(track.id);
       tracks.push(track);
