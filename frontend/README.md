@@ -27,13 +27,15 @@ The page retains the prepared data while criteria change, so another click sends
 only the analysis request. A replacement file resets data and criteria; cancelling
 the picker does not. The cache lasts until the component is destroyed.
 
-The feature directory separates the page and API service, ID parser, criteria
-form, progress card and result components. Import, preparation/progress,
+The feature directory separates the page and API service, criteria form,
+progress card and result components. `data-preparation/` contains the ID parser,
+file-batch helpers and saved-track preparation, together with their tests.
+Import, preparation/progress,
 generation and selection have separate page-level test files. The progress card presents
 actual API stages; it does not estimate processed tracks or advance on a timer.
 
 Saved-track preparation is available as a separate, not-yet-connected flow in
-`playlist-saved-tracks-preparation.ts`. This module contains sequential requests,
+`data-preparation/playlist-saved-tracks-preparation.ts`. This module contains sequential requests,
 page merging, deduplication and progress calculation. It uses the API service to
 request one library page at a time and follows `nextOffset`. It reports progress
 after each response and emits one deduplicated dataset only after every page succeeds.

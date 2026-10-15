@@ -5,9 +5,9 @@ import { EMPTY, of, Subject, takeUntil } from 'rxjs';
 import type { Observable } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
-import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
+import { PlaylistGeneratorApiService } from '../playlist-generator-api.service';
 import { prepareSavedTracksDataset } from './playlist-saved-tracks-preparation';
-import type { PlaylistTrack, PreparedSavedTracksPage } from './playlist-generator.models';
+import type { PlaylistTrack, PreparedSavedTracksPage } from '../playlist-generator.models';
 
 const endpoint = '/api/playlist-generator/prepare-saved-tracks';
 

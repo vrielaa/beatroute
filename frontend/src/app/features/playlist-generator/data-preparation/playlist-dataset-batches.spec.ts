@@ -4,7 +4,7 @@ import {
   mergePreparedPlaylistDatasets,
   splitPlaylistTrackIds,
 } from './playlist-dataset-batches';
-import type { PlaylistTrackIdsFile, PreparedPlaylistDataset } from './playlist-generator.models';
+import type { PlaylistTrackIdsFile, PreparedPlaylistDataset } from '../playlist-generator.models';
 
 describe('splitPlaylistTrackIds', () => {
   it.each([1, 19, 20, 21, 40, 41, 500])(

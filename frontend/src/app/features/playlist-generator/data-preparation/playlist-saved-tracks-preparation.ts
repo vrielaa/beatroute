@@ -7,7 +7,7 @@ import type {
   PreparedPlaylistDataset,
   PreparedSavedTracksPage,
   SkippedPlaylistTrack,
-} from './playlist-generator.models';
+} from '../playlist-generator.models';
 
 const SAVED_TRACKS_PAGE_SIZE = 50;
 const MAX_SAVED_TRACKS_POSITIONS = 500;

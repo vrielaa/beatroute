@@ -1,4 +1,4 @@
-import type { PlaylistTrackIdsFile } from './playlist-generator.models';
+import type { PlaylistTrackIdsFile } from '../playlist-generator.models';
 
 const MAX_TRACKS_LIMIT = 500;
 const SPOTIFY_TRACK_ID_PATTERN = /^[A-Za-z0-9]{22}$/;

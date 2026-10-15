@@ -2,7 +2,7 @@ import type {
   PlaylistPreparationProgress,
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
-} from './playlist-generator.models';
+} from '../playlist-generator.models';
 
 const PREPARATION_BATCH_SIZE = 20;
 

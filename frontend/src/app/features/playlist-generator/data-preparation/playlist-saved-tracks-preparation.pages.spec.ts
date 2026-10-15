@@ -3,7 +3,7 @@ import {
   getSavedTracksPreparationProgress,
   mergeSavedTracksPages,
 } from './playlist-saved-tracks-preparation';
-import type { PlaylistTrack, PreparedSavedTracksPage } from './playlist-generator.models';
+import type { PlaylistTrack, PreparedSavedTracksPage } from '../playlist-generator.models';
 
 describe('mergeSavedTracksPages', () => {
   it('returns a fresh empty dataset before receiving any pages', () => {
