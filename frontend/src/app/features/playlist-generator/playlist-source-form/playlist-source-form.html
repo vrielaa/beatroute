@@ -1,0 +1,29 @@
+<div class="playlist-source-field">
+  <label for="playlist-source-reference">ID lub link do playlisty</label>
+  <input
+    id="playlist-source-reference"
+    type="text"
+    autocomplete="off"
+    spellcheck="false"
+    [formField]="form.reference"
+    [attr.aria-invalid]="isReferenceErrorVisible()"
+    [attr.aria-describedby]="
+      isReferenceErrorVisible()
+        ? 'playlist-source-hint playlist-source-example playlist-source-error'
+        : 'playlist-source-hint playlist-source-example'
+    "
+  />
+  <p id="playlist-source-hint" class="source-hint">
+    Podaj ID lub link do playlisty, której jesteś właścicielem lub współtwórcą.
+  </p>
+  <p id="playlist-source-example" class="source-hint">
+    Przykład: <code>https://open.spotify.com/playlist/<strong>ID_PLAYLISTY</strong></code>
+  </p>
+  @if (isReferenceErrorVisible()) {
+    <div id="playlist-source-error">
+      @for (error of form.reference().errors(); track error.kind) {
+        <p class="source-error" role="alert">{{ error.message }}</p>
+      }
+    </div>
+  }
+</div>
