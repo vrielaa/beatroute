@@ -17,6 +17,10 @@ The development server runs at `https://127.0.0.1:4200` and forwards `/auth` and
 
 ## Playlist generator
 
+The source switch offers **Plik** or **Zapisane utwory**. It makes no HTTP requests;
+data preparation starts only after **Generuj playlistę**. Both sources share the
+criteria form, ranking, selection and save flow.
+
 The file picker accepts `version: 1` and `spotifyTrackIds`, not a full dataset.
 See the [input example](../examples/playlist-track-ids.json) and
 [generator workflow](../README.md#playlist-generator).
@@ -34,15 +38,20 @@ Import, preparation/progress,
 generation and selection have separate page-level test files. The progress card presents
 actual API stages; it does not estimate processed tracks or advance on a timer.
 
-Saved-track preparation is available as a separate, not-yet-connected flow in
+Saved-track preparation is connected to the page through
 `data-preparation/playlist-saved-tracks-preparation.ts`. This module contains sequential requests,
 page merging, deduplication and progress calculation. It uses the API service to
 request one library page at a time and follows `nextOffset`. It reports progress
 after each response and emits one deduplicated dataset only after every page succeeds.
 An error or cancellation stops further requests; another subscription starts
-from offset zero rather than reusing an interrupted library snapshot. A complete
-dataset can later be retained by the page for repeated analyses. The source
-switch and its progress display are not connected to the UI yet.
+from offset zero rather than reusing an interrupted library snapshot. The page
+retains a complete nonempty dataset for repeated analyses. Before the first
+response, progress has no total; afterwards it counts source positions up to 500,
+including unavailable entries and duplicates. An empty library, missing useful
+measurements and failures are displayed separately. Empty prepared libraries can
+be fetched again with Generate. Switching sources clears prepared data and
+criteria while retaining the imported file; source switching is locked during
+reading, generation and saving. A pending partial save remains resumable.
 
 Results include a Signal Forms count field and Top N/manual mode buttons. Top N
 selects the first N accepted tracks without changing or requesting the ranking.
@@ -55,7 +64,11 @@ The results component emits a copy of the selected IDs via selectedTrackIdsChang
 The page stores them in selectedTrackIds, restricted to the current accepted ranking
 and its order. Clearing a result also clears selection, including while another
 analysis is pending or after a criteria/file change. Cancelling the file picker
-preserves selection. Saving a Spotify playlist is still a subsequent step.
+preserves selection. Submitting the save form writes the current selection to
+Spotify; interrupted saves can be resumed against the same playlist.
+
+Page tests cover the library-to-save flow with real components and Signal Forms,
+but mocked HTTP responses. They do not send requests to Spotify or ReccoBeats.
 
 The initial preparation requires a Spotify session and external APIs. The full
 synthetic dataset is an internal backend example, not a supported UI import.

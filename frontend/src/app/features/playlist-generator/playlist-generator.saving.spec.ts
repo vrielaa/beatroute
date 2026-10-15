@@ -6,7 +6,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGenerator } from './playlist-generator';
 import { PlaylistSaveForm } from './playlist-save-form/playlist-save-form';
-import type { GeneratedPlaylist, PlaylistDataset } from './playlist-generator.models';
+import type {
+  GeneratedPlaylist,
+  PlaylistDataset,
+  PreparedSavedTracksPage,
+} from './playlist-generator.models';
 
 const saveUrl = '/api/playlist-generator/save';
 const resumeUrl = '/api/playlist-generator/resume-save';
@@ -39,6 +43,101 @@ describe('PlaylistGenerator saving', () => {
     } finally {
       TestBed.resetTestingModule();
     }
+  });
+
+  it('prepares saved tracks, ranks them, selects Top N and saves only that selection', () => {
+    showSavedTracksResult();
+    setTrackCount('1');
+    startSave();
+
+    const save = http.expectOne(saveUrl);
+    expect(save.request.method).toBe('POST');
+    expect(save.request.withCredentials).toBe(true);
+    expect(save.request.body).toEqual({ name: 'Na trening', trackIds: [bestId] });
+    expect(getButton('playlist-source-file').disabled).toBe(true);
+    expect(getButton('playlist-source-saved-tracks').disabled).toBe(true);
+    fixture.componentInstance['changeDataSource']('file');
+    expect(fixture.componentInstance['dataSource']()).toBe('saved-tracks');
+    http.expectNone(() => true);
+
+    save.flush(createSavedPlaylist(1), { status: 201, statusText: 'Created' });
+    fixture.detectChanges();
+
+    expect(getText()).toContain('Playlista zapisana');
+    expect(getText()).toContain('potwierdzono dodanie 1 utworów');
+    expect(getButton('playlist-source-file').disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('.save-success a').href).toBe(
+      'https://open.spotify.com/playlist/new-playlist-id'
+    );
+    http.expectNone(() => true);
+  });
+
+  it('saves manually selected saved tracks in ranking order without reading providers again', () => {
+    showSavedTracksResult();
+    setTrackCount('');
+    selectMode('Ręcznie');
+    toggleTrack(firstId);
+    toggleTrack(bestId);
+
+    startSave('Z biblioteki');
+
+    const save = http.expectOne(saveUrl);
+    expect(save.request.body).toEqual({ name: 'Z biblioteki', trackIds: [bestId, firstId] });
+    expect(save.request.body.trackIds).not.toContain(rejectedId);
+    http.expectNone(() => true);
+    save.flush(
+      { ...createSavedPlaylist(), name: 'Z biblioteki' },
+      { status: 201, statusText: 'Created' }
+    );
+    fixture.detectChanges();
+    expect(getText()).toContain('Playlista zapisana');
+  });
+
+  it('retains a partial library save across a source change and resumes the same playlist', () => {
+    showSavedTracksResult();
+    startSave();
+    http.expectOne(saveUrl).flush(createPartialResponse(), {
+      status: 429,
+      statusText: 'Incomplete',
+      headers: { 'Retry-After': '30' },
+    });
+    fixture.detectChanges();
+    const progress = fixture.componentInstance['partialSaveProgress']();
+
+    getButton('playlist-source-file').click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['result']()).toBeNull();
+    expect(fixture.componentInstance['selectedTrackIds']()).toEqual([]);
+    expect(fixture.componentInstance['partialSaveProgress']()).toEqual(progress);
+    http.expectNone(() => true);
+    getButton('playlist-resume-save').click();
+    fixture.detectChanges();
+    const resume = http.expectOne(resumeUrl);
+    expect(resume.request.body).toEqual({ playlistId: 'new-playlist-id' });
+    expect(getButton('playlist-source-saved-tracks').disabled).toBe(true);
+    http.expectNone(() => true);
+    resume.flush(createSavedPlaylist());
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['partialSaveProgress']()).toBeNull();
+    expect(getText()).toContain('Playlista zapisana');
+    expect(getText()).toContain('potwierdzono dodanie 2 utworów');
+    http.expectNone(() => true);
+  });
+
+  it('does not offer saving for an empty ranking produced from saved tracks', () => {
+    showSavedTracksResult({
+      rankedTracks: [],
+      rejectedTracks: dataset.tracks.map((track) => ({
+        track,
+        reasons: [{ feature: 'tempo', code: 'outside-range' }],
+      })),
+    });
+
+    expect(fixture.nativeElement.querySelector('app-playlist-save-form')).toBeNull();
+    fixture.componentInstance['savePlaylist']('No accepted tracks');
+    http.expectNone(() => true);
   });
 
   it('does not show a save form or send a save request before generation', async () => {
@@ -569,6 +668,42 @@ describe('PlaylistGenerator saving', () => {
     Object.defineProperty(input, 'files', { configurable: true, value: [file] });
     input.dispatchEvent(new Event('change'));
     await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  function showSavedTracksResult(result = createResult(dataset)): void {
+    getButton('playlist-source-saved-tracks').click();
+    fixture.detectChanges();
+    http.expectNone(() => true);
+    getButton('playlist-generate').click();
+    fixture.detectChanges();
+
+    for (let offset = 0; offset < dataset.tracks.length; offset += 2) {
+      const tracks = dataset.tracks.slice(offset, offset + 2);
+      const page: PreparedSavedTracksPage = {
+        preparedDataset: {
+          dataset: { version: 1, tracks },
+          skippedTracks: [],
+          incompleteTracks: [],
+        },
+        pagination: {
+          offset,
+          processedItems: tracks.length,
+          totalItems: dataset.tracks.length,
+          nextOffset:
+            offset + tracks.length < dataset.tracks.length ? offset + tracks.length : null,
+        },
+        unavailableItemsCount: 0,
+      };
+      const preparation = http.expectOne('/api/playlist-generator/prepare-saved-tracks');
+      expect(preparation.request.body).toEqual({ offset });
+      preparation.flush(page);
+    }
+
+    const analysis = http.expectOne('/api/playlist-generator/generate');
+    expect(analysis.request.body.dataset).toEqual(dataset);
+    http.expectNone('/api/playlist-generator/prepare-dataset');
+    analysis.flush(result);
     fixture.detectChanges();
   }
 

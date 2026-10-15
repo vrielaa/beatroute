@@ -8,7 +8,8 @@ with clustering.
 
 The current version includes Spotify login, a user profile, top tracks and
 artists, audio-feature statistics, Last.fm genres, a music map and a working
-playlist generator based on an imported file of Spotify track IDs.
+playlist generator based on an imported file of Spotify track IDs or the user's
+saved Spotify tracks. Importing an owned/collaborative playlist is not implemented yet.
 
 Track-category percentages are calculated only from available measurements
 of the relevant feature. No measurements produce `null` (shown as "Brak danych"),
@@ -44,7 +45,14 @@ The previous `tracks`/`audioFeatures` format is no longer accepted by the file
 picker. The [synthetic full dataset](examples/playlist-dataset.json) remains an
 internal example for testing the generator endpoint without provider calls.
 
-### Saved Spotify tracks — backend endpoint
+### Saved Spotify tracks
+
+Select **Zapisane utwory**, choose criteria and click **Generuj playlistę**.
+Selecting the source or editing criteria does not read provider data. The frontend
+then prepares library pages sequentially, displays real progress and runs one
+ranking request after all pages succeed. The first request shows a waiting state
+without an invented total or percentage. An empty library, missing measurements
+and a failed request have separate messages; an empty preparation does not run ranking.
 
 `POST /api/playlist-generator/prepare-saved-tracks` accepts `{ "offset": 0 }`.
 It requires a Spotify session with `user-library-read`; reconnect Spotify if the
@@ -58,8 +66,21 @@ The response contains `preparedDataset`, `pagination` and `unavailableItemsCount
 unavailable entries and duplicates, not just prepared tracks. Use `nextOffset`
 for the next request; `null` ends preparation at the library end or 500-position
 cap. An empty library returns an empty dataset, not an error. This endpoint does
-not rank tracks or save a playlist. The frontend source switch and sequential
-library-page preparation are not connected yet; the current UI still uses files.
+not rank tracks or save a playlist. The frontend merges pages, deduplicates IDs
+and keeps the first prepared occurrence and its missing-measurement information.
+An ID successfully prepared on any page is removed from the final omissions list.
+
+A complete nonempty dataset is kept in component memory for new criteria, without
+reading Spotify or ReccoBeats again. A failed or cancelled library preparation
+restarts at offset zero on the next Generate click, because saved-track pagination
+is not a stable snapshot. An empty prepared library can also be fetched again.
+Switching sources clears prepared data, progress, results and criteria, but keeps
+the imported ID file for returning to file mode. Switching is locked during file
+reading, generation and saving. Pending partial saves survive a source change and
+can still be resumed using the original selection in the backend session.
+
+Both sources use the same ranking, Top N/manual selection and Spotify save flow
+described below. There is no separate library ranking algorithm or save endpoint.
 
 ### What happens after import
 
@@ -89,6 +110,11 @@ library-page preparation are not connected yet; the current UI still uses files.
    save locks file import, criteria, selection and repeated submission; it does not
    retrieve measurements or recalculate scores. Success shows the playlist link
    and confirmed track count. Another save requires an explicit new action.
+
+Frontend tests cover saved-track preparation, ranking-response handling, Top N
+and manual selection, saving and resuming a partial save after changing sources.
+They use real components and Signal Forms with mocked HTTP responses, not live
+Spotify writes; backend/domain behaviour is verified separately by backend tests.
 
 The progress card appears only after clicking Generate. Its three stages are
 data retrieval, analysis/ranking, and a ready result. The browser prepares the file
