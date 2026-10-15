@@ -33,9 +33,10 @@ generation and selection have separate page-level test files. The progress card 
 actual API stages; it does not estimate processed tracks or advance on a timer.
 
 Saved-track preparation is available as a separate, not-yet-connected flow in
-`playlist-saved-tracks-preparation.ts`. It uses the API service to request one
-library page at a time, follows `nextOffset`, and reports progress after each
-response. It emits one deduplicated dataset only after every page succeeds.
+`playlist-saved-tracks-preparation.ts`. This module contains sequential requests,
+page merging, deduplication and progress calculation. It uses the API service to
+request one library page at a time and follows `nextOffset`. It reports progress
+after each response and emits one deduplicated dataset only after every page succeeds.
 An error or cancellation stops further requests; another subscription starts
 from offset zero rather than reusing an interrupted library snapshot. A complete
 dataset can later be retained by the page for repeated analyses. The source

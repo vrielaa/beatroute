@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getSavedTracksPreparationProgress,
   mergeSavedTracksPages,
-} from './playlist-saved-tracks-pages';
+} from './playlist-saved-tracks-preparation';
 import type { PlaylistTrack, PreparedSavedTracksPage } from './playlist-generator.models';
 
 describe('mergeSavedTracksPages', () => {
