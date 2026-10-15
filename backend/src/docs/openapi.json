@@ -252,6 +252,118 @@
         }
       }
     },
+    "/api/me/top-tracks/dataset": {
+      "get": {
+        "tags": ["Me"],
+        "summary": "Prepare one top-track batch with useful audio measurements",
+        "description": "Reads one Spotify page and reuses its metadata. Statistics require at least one useful measurement; music-map requires all eleven PCA features. Known missing data, unavailable metadata and duplicates within the page are skipped. Any technical ReccoBeats failure aborts the batch, including partial failures; rate limits retain Retry-After. Does not refill automatically or compute summary statistics.",
+        "security": [{ "SessionCookie": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 40,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "default": 0
+            }
+          },
+          {
+            "name": "time_range",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["short_term", "medium_term", "long_term"],
+              "default": "medium_term"
+            }
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["statistics", "music-map"],
+              "default": "statistics"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One prepared batch; source counters include skipped positions",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TopTracksBatch" }
+              }
+            }
+          },
+          "400": { "description": "Invalid or repeated query parameters" },
+          "401": { "description": "Spotify session required" },
+          "429": {
+            "description": "Provider rate limit",
+            "headers": {
+              "Retry-After": { "schema": { "type": "integer", "minimum": 0 } }
+            }
+          },
+          "502": {
+            "description": "Provider connection, response or pagination failure"
+          },
+          "503": { "description": "Provider unavailable" },
+          "504": { "description": "Provider timeout" }
+        }
+      }
+    },
+    "/api/tracks/statistics": {
+      "post": {
+        "tags": ["Tracks"],
+        "summary": "Summarize collected measurements without provider requests",
+        "description": "Computes statistics over the combined raw measurements, not averages of page averages. Accepts 0–40 unique spotifyId values. Optional numeric features are finite numbers or null; omitted features become null. No Spotify, ReccoBeats or Soundcharts request is made.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["audioFeatures"],
+                "properties": {
+                  "audioFeatures": {
+                    "type": "array",
+                    "maxItems": 40,
+                    "items": { "$ref": "#/components/schemas/AudioFeatures" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Statistics of the complete supplied collection",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AudioStats" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid measurements or duplicate spotifyId values"
+          },
+          "401": { "description": "Spotify session required" },
+          "413": { "description": "Request body exceeds 100 KB" }
+        }
+      }
+    },
     "/api/me/top-tracks": {
       "get": {
         "tags": ["Me"],
@@ -1606,6 +1718,33 @@
           }
         },
         "required": ["href", "limit", "next", "offset", "previous", "total"]
+      },
+      "TopTracksBatch": {
+        "type": "object",
+        "required": [
+          "tracks",
+          "audioFeatures",
+          "processedItems",
+          "skippedItems",
+          "totalItems",
+          "nextOffset"
+        ],
+        "properties": {
+          "tracks": {
+            "type": "array",
+            "maxItems": 40,
+            "items": { "$ref": "#/components/schemas/SpotifyTopTrack" }
+          },
+          "audioFeatures": {
+            "type": "array",
+            "maxItems": 40,
+            "items": { "$ref": "#/components/schemas/AudioFeatures" }
+          },
+          "processedItems": { "type": "integer", "minimum": 0, "maximum": 40 },
+          "skippedItems": { "type": "integer", "minimum": 0, "maximum": 40 },
+          "totalItems": { "type": "integer", "minimum": 0 },
+          "nextOffset": { "type": ["integer", "null"], "minimum": 0 }
+        }
       },
       "TopTracksResponse": {
         "allOf": [

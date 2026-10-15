@@ -13,6 +13,60 @@ import type {
 } from "@domain/tracks/types.js";
 
 describe("track routes", () => {
+  it("summarizes collected raw measurements once without reading any provider", async () => {
+    const dependencies = createRouteDependencies();
+    const response = await request(createTestApp(dependencies))
+      .post("/api/tracks/statistics")
+      .send({
+        audioFeatures: [
+          createAudioFeatures("one", { tempo: 100, liveness: 0.9 }),
+          createAudioFeatures("two", { tempo: 120, liveness: null }),
+          createAudioFeatures("three", { tempo: 200, liveness: 0.1 }),
+        ],
+      })
+      .expect(200);
+    expect(response.body).toMatchObject({
+      averageBpm: 140,
+      totalTracksCount: 3,
+      foundTracksCount: 3,
+      liveTrackPercentage: 50,
+    });
+    expect(
+      dependencies.trackAnalysisService.getTracksAnalysis
+    ).not.toHaveBeenCalled();
+    expect(dependencies.getSoundchartsAudioFeatures).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {},
+    { audioFeatures: null },
+    { audioFeatures: [null] },
+    { audioFeatures: [{ spotifyId: " " }] },
+    { audioFeatures: [{ spotifyId: "one", energy: "0.5" }] },
+    { audioFeatures: [{ spotifyId: "one" }, { spotifyId: " one " }] },
+    {
+      audioFeatures: Array.from({ length: 41 }, (_, index) => ({
+        spotifyId: String(index),
+      })),
+    },
+  ])("rejects invalid local measurements: %j", async (body) => {
+    await request(createTestApp(createRouteDependencies()))
+      .post("/api/tracks/statistics")
+      .send(body)
+      .expect(400);
+  });
+
+  it("accepts zero and missing measurements without inventing data", async () => {
+    const response = await request(createTestApp(createRouteDependencies()))
+      .post("/api/tracks/statistics")
+      .send({
+        audioFeatures: [{ spotifyId: "one", energy: 0, liveness: null }],
+      })
+      .expect(200);
+    expect(response.body.averageEnergy).toBe(0);
+    expect(response.body.liveTrackPercentage).toBeNull();
+  });
+
   it("returns nullable percentages and measurement counts through /analysis", async () => {
     const dependencies = createRouteDependencies();
     const audioFeaturesReader = {
@@ -75,6 +129,10 @@ describe("track routes", () => {
     await request(app)
       .post("/api/tracks/analysis")
       .send({ trackIds: ["spotify-1"] })
+      .expect(401);
+    await request(app)
+      .post("/api/tracks/statistics")
+      .send({ audioFeatures: [] })
       .expect(401);
 
     expect(dependencies.getSoundchartsAudioFeatures).not.toHaveBeenCalled();

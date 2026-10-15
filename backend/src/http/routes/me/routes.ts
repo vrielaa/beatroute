@@ -6,6 +6,10 @@ import {
   parseSpotifyTopTracksQuery,
 } from "@integrations/spotify/spotify.validators.js";
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
+import { createTopTracksService } from "@application/tracks/top-tracks.service.js";
+import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
+import { parseTopTracksBatchQuery } from "./top-tracks.validator.js";
+import type { TopTracksBatchReader } from "@application/tracks/top-tracks.types.js";
 import type { RequestHandler } from "express";
 import type { SpotifyGateway } from "@integrations/spotify/spotify.types.js";
 
@@ -19,6 +23,7 @@ type SpotifyMeGateway = Pick<
 
 /** Zależności routera udostępniającego dane bieżącego użytkownika Spotify. */
 type SpotifyMeRouterDependencies = {
+  topTracksService: TopTracksBatchReader;
   /** Middleware dopuszczający wyłącznie żądania z aktywną sesją Spotify. */
   authorize: RequestHandler;
   /** Operacje pobierające profil oraz najczęściej słuchane zasoby. */
@@ -36,10 +41,22 @@ type SpotifyMeRouterDependencies = {
  * @returns Router obsługujący profil, top utwory i top artystów.
  */
 function createMeRouter({
+  topTracksService,
   spotifyGateway,
   authorize,
 }: SpotifyMeRouterDependencies): Router {
   const router = Router();
+
+  /** Przygotowuje jedną partię, bez ukrytego dobierania kolejnych stron. */
+  router.get("/top-tracks/dataset", authorize, async (req, res) => {
+    const selection = parseTopTracksBatchQuery(req.query);
+    res.json(
+      await topTracksService.getTopTracksBatch(
+        req.session.spotify!.accessToken,
+        selection
+      )
+    );
+  });
 
   router.get("/top-tracks", authorize, async (req, res) => {
     const selection = parseSpotifyTopTracksQuery(req.query);
@@ -81,6 +98,10 @@ function createMeRouter({
 
 /** Router skonfigurowany z produkcyjnymi zależnościami Spotify. */
 const meRouter = createMeRouter({
+  topTracksService: createTopTracksService({
+    spotifyGateway: defaultSpotifyGateway,
+    audioFeaturesReader: reccoBeatsService,
+  }),
   spotifyGateway: defaultSpotifyGateway,
   authorize: ensureSpotifyAccessToken,
 });

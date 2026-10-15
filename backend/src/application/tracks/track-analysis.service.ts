@@ -40,22 +40,25 @@ function createTrackAnalysisService({
       await audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds(
         spotifyIds
       );
-    const stats = calculateAudioStats(audioFeatures);
-
     return {
       audioFeatures,
-      stats: {
-        ...stats,
-        totalTracksCount: spotifyIds.length,
-        foundTracksCount: stats.trackCount,
-      },
+      stats: summarizeAudioFeatures(audioFeatures, spotifyIds.length),
     };
   }
 
   return { getTracksAnalysis };
 }
 
-export { createTrackAnalysisService };
+/** Oblicza statystyki ze wszystkich zebranych pomiarów, bez odczytu z API ani średnich ze średnich. */
+function summarizeAudioFeatures(
+  audioFeatures: TrackAudioFeaturesResult[],
+  totalTracksCount = audioFeatures.length
+): TrackAudioStatsSummary {
+  const stats = calculateAudioStats(audioFeatures);
+  return { ...stats, totalTracksCount, foundTracksCount: stats.trackCount };
+}
+
+export { createTrackAnalysisService, summarizeAudioFeatures };
 export type {
   TrackAudioFeaturesReader,
   TrackAnalysisDependencies,

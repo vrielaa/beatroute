@@ -34,6 +34,7 @@ describe("me routes", () => {
 
     await request(app).get("/api/me/profile").expect(401);
     await request(app).get("/api/me/top-tracks").expect(401);
+    await request(app).get("/api/me/top-tracks/dataset").expect(401);
     await request(app).get("/api/me/top-artists").expect(401);
 
     expect(
@@ -45,6 +46,71 @@ describe("me routes", () => {
     expect(
       dependencies.spotifyGateway.getCurrentUserTopArtists
     ).not.toHaveBeenCalled();
+    expect(
+      dependencies.topTracksService.getTopTracksBatch
+    ).not.toHaveBeenCalled();
+  });
+
+  it("prepares exactly one batch with explicit purpose and source offset", async () => {
+    const dependencies = createRouteDependencies();
+    const batch = {
+      tracks: [],
+      audioFeatures: [],
+      processedItems: 3,
+      skippedItems: 3,
+      totalItems: 20,
+      nextOffset: 13,
+    };
+    dependencies.topTracksService.getTopTracksBatch.mockResolvedValue(batch);
+    const response = await request(createTestApp(dependencies))
+      .get(
+        "/api/me/top-tracks/dataset?limit=3&offset=10&time_range=short_term&purpose=music-map"
+      )
+      .expect(200);
+    expect(response.body).toEqual(batch);
+    expect(
+      dependencies.topTracksService.getTopTracksBatch
+    ).toHaveBeenCalledExactlyOnceWith("access-token", {
+      limit: 3,
+      offset: 10,
+      timeRange: "short_term",
+      purpose: "music-map",
+    });
+    expect(
+      dependencies.spotifyGateway.getCurrentUserTopTracks
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "purpose=unknown",
+    "purpose=statistics&purpose=music-map",
+    "offset=-1",
+    "limit=41",
+    "time_range=recent",
+  ])("rejects invalid dataset selection: %s", async (query) => {
+    const dependencies = createRouteDependencies();
+    await request(createTestApp(dependencies))
+      .get(`/api/me/top-tracks/dataset?${query}`)
+      .expect(400);
+    expect(
+      dependencies.topTracksService.getTopTracksBatch
+    ).not.toHaveBeenCalled();
+  });
+
+  it("preserves a batch rate limit with Retry-After instead of returning empty data", async () => {
+    const dependencies = createRouteDependencies();
+    const { ReccoBeatsApiError } =
+      await import("@integrations/reccobeats/reccobeats-api.error.js");
+    dependencies.topTracksService.getTopTracksBatch.mockRejectedValue(
+      new ReccoBeatsApiError("Rate limited", 429, null, {
+        retryAfterSeconds: 120,
+      })
+    );
+    const response = await request(createTestApp(dependencies))
+      .get("/api/me/top-tracks/dataset")
+      .expect(429);
+    expect(response.headers["retry-after"]).toBe("120");
+    expect(response.body.error.details.retryAfterSeconds).toBe(120);
   });
 
   it("returns the profile of the authenticated Spotify user", async () => {
@@ -167,6 +233,7 @@ describe("me routes", () => {
     );
     const app = createTestApp({
       authorize,
+      topTracksService: createRouteDependencies().topTracksService,
       spotifyGateway: createSpotifyGateway({ fetchImpl: fetchMock }),
     });
 
@@ -236,6 +303,7 @@ function createRouteDependencies() {
   };
 
   return {
+    topTracksService: { getTopTracksBatch: vi.fn() },
     spotifyGateway: {
       getCurrentUserProfile: vi.fn<SpotifyGateway["getCurrentUserProfile"]>(),
       getCurrentUserTopTracks:

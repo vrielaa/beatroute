@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { getTrackAudioFeaturesBySpotifyId } from "@integrations/soundcharts/service.js";
 import { trackAnalysisService } from "./composition.js";
+import { summarizeAudioFeatures } from "@application/tracks/track-analysis.service.js";
+import { parseAudioFeaturesBody } from "./audio-features.validator.js";
 import {
   MAX_TRACKS_LIMIT,
   parseTrackIds,
@@ -41,6 +43,11 @@ function createTrackRouter({
   authorize,
 }: TrackRouterDependencies) {
   const router = Router();
+
+  /** Oblicza jedno podsumowanie z przesłanych pomiarów, bez odpytywania dostawcy. */
+  router.post("/statistics", authorize, (req, res) => {
+    res.json(summarizeAudioFeatures(parseAudioFeaturesBody(req.body)));
+  });
 
   /** Pobiera z Soundcharts cechy audio pojedynczego utworu Spotify. */
   router.get<SpotifyTrackRouteParams>(
