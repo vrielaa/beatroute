@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  MusicProfileSpotifyTrack,
-  MusicProfileTrackInfo,
-} from "./music-profile.ports.js";
+import type { MusicProfileSpotifyTrack } from "./music-profile.ports.js";
+import type { LastfmTrackInfo } from "@application/lastfm/types.js";
 import { createGetSpotifyTrackLastfmInfo } from "./get-spotify-track-lastfm-info.js";
 
 describe("Spotify and Last.fm track profile", () => {
@@ -96,7 +94,7 @@ function createSpotifySummary(): MusicProfileSpotifyTrack {
   };
 }
 
-function createLastfmTrackInfo(): MusicProfileTrackInfo {
+function createLastfmTrackInfo(): LastfmTrackInfo {
   return {
     name: "Believe",
     artist: "Cher",

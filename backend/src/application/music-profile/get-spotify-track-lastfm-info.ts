@@ -2,8 +2,8 @@ import type {
   MusicProfileMetadataReader,
   MusicProfileSpotifyReader,
   MusicProfileSpotifyTrack,
-  MusicProfileTrackInfo,
 } from "./music-profile.ports.js";
+import type { LastfmTrackInfo } from "@application/lastfm/types.js";
 
 /** Dane wymagane do pobrania profilu pojedynczego utworu. */
 type SpotifyTrackProfileRequest = {
@@ -18,7 +18,7 @@ type SpotifyTrackProfile = {
   /** Skrócone dane utworu Spotify przeznaczone dla klienta aplikacji. */
   spotify: MusicProfileSpotifyTrack;
   /** Metadane i klasyfikacja gatunkowa przygotowane na podstawie Last.fm. */
-  lastfm: MusicProfileTrackInfo;
+  lastfm: LastfmTrackInfo;
 };
 
 /** Operacje potrzebne do zbudowania profilu utworu bez zależności od HTTP. */

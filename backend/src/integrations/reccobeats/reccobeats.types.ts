@@ -1,8 +1,3 @@
-import type {
-  TrackAudioFeatures,
-  TrackAudioFeaturesResult,
-} from "@domain/tracks/types.js";
-
 /** Surowe, opcjonalne cechy audio zwracane przez API ReccoBeats. */
 type ReccoBeatsAudioFeatures = {
   /** Udział brzmienia akustycznego w skali od 0 do 1. */
@@ -54,31 +49,8 @@ type ReccoBeatsTracksApiResponse =
           };
     };
 
-type ReccoBeatsService = {
-  /**
-   * Pobiera cechy audio dla pojedynczego utworu Spotify.
-   *
-   * @param spotifyId - Identyfikator utworu Spotify.
-   * @returns Cechy audio albo opis błędu, jeśli nie udało się ich pobrać.
-   */
-  getTrackAudioFeaturesBySpotifyId(
-    spotifyId: string
-  ): Promise<TrackAudioFeatures>;
-
-  /**
-   * Pobiera cechy audio dla wielu utworów Spotify.
-   *
-   * @param spotifyIds - Lista identyfikatorów utworów Spotify.
-   * @returns Lista wyników, w której każdy element odpowiada jednemu identyfikatorowi.
-   */
-  getManyTrackAudioFeaturesBySpotifyIds(
-    spotifyIds: string[]
-  ): Promise<TrackAudioFeaturesResult[]>;
-};
-
 export type {
   ReccoBeatsAudioFeatures,
   ReccoBeatsTrackApiResponse,
   ReccoBeatsTracksApiResponse,
-  ReccoBeatsService,
 };
