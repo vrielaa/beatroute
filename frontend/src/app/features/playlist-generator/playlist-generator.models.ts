@@ -140,6 +140,41 @@ type PreparedSavedTracksPage = {
 };
 
 /**
+ * Wybór strony źródłowej playlisty wysyłany do backendu, bez tokenu i URL.
+ *
+ * @property playlistId - ID playlisty właściciela lub współtwórcy, z zachowaniem wielkości liter.
+ * @property offset - Pozycja początkowa od 0 do 499.
+ * @property snapshotId - null przy rozpoczęciu; przy kontynuacji wersja z pierwszej strony.
+ */
+type PlaylistSourceSelection = {
+  playlistId: string;
+  offset: number;
+  snapshotId: string | null;
+};
+
+/**
+ * Jedna przygotowana strona źródłowej playlisty Spotify, bez rankingu i zapisu.
+ *
+ * @property playlist - ID, nazwa i wersja playlisty niezmieniona podczas odczytu.
+ * @property preparedDataset - Utwory z pomiarami i informacje o brakach; może być pusty.
+ * @property pagination - Offset, liczba odczytanych pozycji, rozmiar źródła i następny offset.
+ * Liczniki dotyczą pozycji źródłowych, także niedostępnych i powtórzonych, do limitu 500.
+ * @property unavailableItemsCount - Liczba niedostępnych, lokalnych i innych niż utwór pozycji.
+ * Nie obejmuje duplikatów ani pominięć zapisanych w preparedDataset.skippedTracks.
+ */
+type PreparedPlaylistPage = {
+  playlist: { id: string; name: string; snapshotId: string };
+  preparedDataset: PreparedPlaylistDataset;
+  pagination: {
+    offset: number;
+    processedItems: number;
+    totalItems: number;
+    nextOffset: number | null;
+  };
+  unavailableItemsCount: number;
+};
+
+/**
  * Postęp przygotowania pliku albo biblioteki Spotify, liczony z zakończonych partii.
  * Nie szacuje pracy wewnątrz trwającego żądania ani czasu pozostałego do końca.
  * Przetworzone pozycje obejmują przygotowane i pominięte utwory oraz powtórzenia
@@ -418,6 +453,8 @@ type PlaylistGeneratorRequest = {
 };
 
 export type {
+  PlaylistSourceSelection,
+  PreparedPlaylistPage,
   PlaylistTrackIdsFile,
   PlaylistDataSource,
   PlaylistAudioFeatures,

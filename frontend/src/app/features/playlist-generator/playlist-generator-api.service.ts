@@ -12,6 +12,8 @@ import type {
   PreparedPlaylistDataset,
   SavedPlaylist,
   PreparedSavedTracksPage,
+  PlaylistSourceSelection,
+  PreparedPlaylistPage,
 } from './playlist-generator.models';
 
 @Injectable({ providedIn: 'root' })
@@ -128,6 +130,25 @@ class PlaylistGeneratorApiService {
     return this.http.post<PreparedSavedTracksPage>(
       '/api/playlist-generator/prepare-saved-tracks',
       { offset },
+      { withCredentials: true }
+    );
+  }
+
+  /**
+   * Przygotowuje jedną stronę wskazanej playlisty dopiero przy subskrypcji.
+   * Wysyła wyłącznie ID, offset i wersję; sesja jest przesyłana jako cookie.
+   * Nie pobiera kolejnych stron, nie ponawia POST-a, nie uruchamia rankingu ani zapisu.
+   * Przekazuje odpowiedź i błędy bez zmian, w tym konflikt wersji oraz Retry-After.
+   * Anulowanie subskrypcji nie gwarantuje zatrzymania pracy rozpoczętej w backendzie.
+   *
+   * @param selection - Sprawdzony wybór strony; pierwsza ma offset 0 i snapshotId: null.
+   * @returns Przygotowana strona z metadanymi playlisty i postępem pozycji źródłowych.
+   */
+  public preparePlaylistPage(selection: PlaylistSourceSelection): Observable<PreparedPlaylistPage> {
+    const { playlistId, offset, snapshotId } = selection;
+    return this.http.post<PreparedPlaylistPage>(
+      '/api/playlist-generator/prepare-playlist',
+      { playlistId, offset, snapshotId },
       { withCredentials: true }
     );
   }

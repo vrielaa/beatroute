@@ -13,6 +13,7 @@ import type {
   PreparedPlaylistDataset,
   PreparedSavedTracksPage,
   SavedPlaylist,
+  PreparedPlaylistPage,
 } from './playlist-generator.models';
 
 describe('PlaylistGeneratorApiService', () => {
@@ -31,6 +32,77 @@ describe('PlaylistGeneratorApiService', () => {
   });
 
   afterEach(() => http.verify());
+
+  describe('preparePlaylistPage', () => {
+    const url = '/api/playlist-generator/prepare-playlist';
+    const selection = { playlistId: 'P'.repeat(22), offset: 0, snapshotId: null };
+    const response: PreparedPlaylistPage = {
+      playlist: { id: selection.playlistId, name: 'Summer', snapshotId: 'version-1' },
+      preparedDataset: {
+        dataset: { version: 1, tracks: [] },
+        skippedTracks: [],
+        incompleteTracks: [],
+      },
+      pagination: { offset: 0, processedItems: 0, totalItems: 0, nextOffset: null },
+      unavailableItemsCount: 0,
+    };
+
+    it('does not fetch before subscription', () => {
+      service.preparePlaylistPage(selection);
+      http.expectNone(url);
+    });
+
+    it('posts only source selection and sends the session cookie', () => {
+      const next = vi.fn();
+      const extendedSelection = { ...selection, accessToken: 'untrusted' };
+      service.preparePlaylistPage(extendedSelection).subscribe(next);
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual(selection);
+      expect(request.request.withCredentials).toBe(true);
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush(response);
+      expect(next).toHaveBeenCalledExactlyOnceWith(response);
+      http.expectNone('/api/playlist-generator/generate');
+    });
+
+    it('preserves the snapshot and offset on continuation', () => {
+      const following = { ...selection, offset: 50, snapshotId: 'version-1' };
+      service.preparePlaylistPage(following).subscribe();
+      const request = http.expectOne(url);
+      expect(request.request.body).toEqual(following);
+      request.flush(response);
+      http.expectNone(url);
+    });
+
+    it.each([400, 401, 403, 404, 409, 413, 429, 500, 502, 503, 504])(
+      'preserves HTTP %i without retrying or returning partial success',
+      (status) => {
+        const error = vi.fn();
+        const next = vi.fn();
+        service.preparePlaylistPage(selection).subscribe({ next, error });
+        http
+          .expectOne(url)
+          .flush(
+            { error: { code: 'SOURCE_ERROR' } },
+            { status, statusText: 'Failure', headers: { 'Retry-After': '60' } }
+          );
+        expect(next).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledOnce();
+        const failure: HttpErrorResponse = error.mock.calls[0][0];
+        expect(failure.status).toBe(status);
+        expect(failure.headers.get('Retry-After')).toBe('60');
+        http.expectNone(url);
+      }
+    );
+
+    it('cancels the pending HTTP request', () => {
+      const subscription = service.preparePlaylistPage(selection).subscribe();
+      const request = http.expectOne(url);
+      subscription.unsubscribe();
+      expect(request.cancelled).toBe(true);
+    });
+  });
 
   describe('prepareDataset', () => {
     const file: PlaylistTrackIdsFile = {
