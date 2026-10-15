@@ -75,6 +75,33 @@ describe('TopTracksCollector', () => {
     expect(complete).toHaveBeenCalledOnce();
   });
 
+  it('can examine more than forty positions when all measurements are missing', () => {
+    const states: TopTracksCollection[] = [];
+    collector.collect('short_term', 2, 'statistics').subscribe((state) => states.push(state));
+    for (let offset = 0; offset < 50; offset += 2) {
+      pageRequest(2, offset).flush(batch(offset, 2, 0, 50));
+    }
+    expect(states.at(-1)?.progress).toMatchObject({
+      complete: true,
+      foundTracks: 0,
+      processedItems: 50,
+      skippedItems: 50,
+    });
+  });
+
+  it('does not extend collection indefinitely if the source total grows between pages', () => {
+    const states: TopTracksCollection[] = [];
+    collector.collect('short_term', 3, 'statistics').subscribe((state) => states.push(state));
+    pageRequest(3, 0).flush(batch(0, 3, 0, 4));
+    pageRequest(1, 3).flush(batch(3, 1, 0, 100));
+    expect(states.at(-1)?.progress).toMatchObject({
+      complete: true,
+      foundTracks: 0,
+      totalItems: 4,
+      skippedItems: 4,
+    });
+  });
+
   it('passes the map completeness purpose without changing the time period', () => {
     collector.collect('long_term', 10, 'music-map').subscribe();
     const request = http.expectOne((request) => request.params.get('purpose') === 'music-map');

@@ -340,7 +340,16 @@
                   "audioFeatures": {
                     "type": "array",
                     "maxItems": 40,
-                    "items": { "$ref": "#/components/schemas/AudioFeatures" }
+                    "items": {
+                      "allOf": [
+                        { "$ref": "#/components/schemas/AudioFeatures" },
+                        {
+                          "type": "object",
+                          "required": ["spotifyId"],
+                          "not": { "required": ["error"] }
+                        }
+                      ]
+                    }
                   }
                 }
               }

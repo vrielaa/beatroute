@@ -40,6 +40,7 @@ describe("track routes", () => {
   it.each([
     {},
     { audioFeatures: null },
+    { audioFeatures: [{ spotifyId: "one", error: "Not found" }] },
     { audioFeatures: [null] },
     { audioFeatures: [{ spotifyId: " " }] },
     { audioFeatures: [{ spotifyId: "one", energy: "0.5" }] },

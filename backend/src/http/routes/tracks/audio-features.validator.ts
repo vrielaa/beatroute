@@ -21,6 +21,11 @@ function parseAudioFeaturesBody(value: unknown): TrackAudioFeatures[] {
       throw new RequestValidationError("Każdy pomiar musi być obiektem");
     }
     const features = item as Record<string, unknown>;
+    if ("error" in features) {
+      throw new RequestValidationError(
+        "Do podsumowania przekaż pomiary, nie błędy odczytu"
+      );
+    }
     const spotifyId = features.spotifyId;
     if (
       typeof spotifyId !== "string" ||

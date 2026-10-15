@@ -21,6 +21,49 @@ audio measurements, and a failed request. Failures display a retry button using
 the current filters. If audio analysis fails, the dashboard keeps the track list
 already retrieved from Spotify; changing filters cancels the previous request.
 
+## Top-track analysis
+
+The chosen count (1–40) is a target number of **usable** tracks, not a cap on
+the number of Spotify source positions examined. The dashboard, music profile
+and music map use the same sequential collection process; the playlist generator
+does not use this replacement strategy.
+
+`GET /api/me/top-tracks/dataset` prepares one page from Spotify and ReccoBeats.
+It accepts `limit`, `offset`, `time_range` and `purpose` (`statistics` or
+`music-map`). Metadata comes from the Spotify page, without individual track
+metadata requests. Statistics accept at least one useful numeric measurement;
+the map requires all eleven features of its PCA vector. Zero is a measurement,
+not a missing value. Unmatched tracks, known missing measurements (404), unusable
+metadata and duplicates are skipped. An all-null audio record is not usable.
+
+The frontend asks for only the missing count, retaining the same time period:
+
+1. Request 10 positions at offset 0; keep 7 and report 3 skipped.
+2. Request 3 at offset 10; keep 2 and report 4 skipped in total.
+3. Request 1 at offset 13; reach 10 usable tracks and stop.
+
+After each completed batch the UI reports found/target and cumulative skipped
+counts. Offsets advance by source positions, not found tracks. Duplicates between
+pages do not increase the found count. Collection ends at the target or source
+end, and is bounded by the initial source total (reduced if the source shrinks).
+It can examine more than 40 source positions, but keeps at most 40 usable tracks.
+
+Technical failures, including partial ReccoBeats failures, are errors rather than
+missing tracks. They stop collection without incrementing skips or presenting
+partial statistics as complete. Batch requests opt out of the browser's automatic
+429 retry. Provider timeout/retry/scheduler policies still apply to individual
+backend calls. Changing filters or leaving a view cancels the browser request and
+prevents further batches; already-started provider operations may still finish.
+An explicit retry starts at offset zero rather than mixing results from two
+potentially different Spotify rankings.
+
+Dashboard/profile call `POST /api/tracks/statistics` once with the combined raw
+measurements. This authenticated, validated endpoint only performs domain
+calculations: no provider calls and no averaging of page averages. The music map
+instead sends the collected dataset to `POST /api/music-map/analysis` for PCA and
+clustering. Cluster changes and retrying failed analysis reuse that dataset;
+changing the time period or requested count starts a new collection.
+
 `GET /api/me/top-tracks` accepts `limit` (1–40, default 10), `time_range`
 and `offset` (a nonnegative safe integer, default 0). Each request returns just
 one Spotify page and preserves its order and pagination. Use the same period
@@ -28,7 +71,9 @@ for subsequent pages; advance the offset by the number of source positions read,
 not just tracks with measurements. `next: null` marks the end. An empty page
 before the declared end or inconsistent page counters produce a 502 integration
 error, not an empty result. Requests without an offset still read the first page.
-Automatic replacement of tracks with missing measurements is not implemented yet.
+This raw-page endpoint does not itself perform the collection loop. The older
+`GET /api/music-map/dataset` remains a single-page API; the map UI uses the shared
+batch preparation described above instead.
 
 ## Playlist generator
 
@@ -300,12 +345,15 @@ explicit dependencies, which keeps the core logic independently testable.
 Production dependencies for Last.fm, track analysis, playlist preparation and saving are assembled in
 `composition.ts` beside their routers.
 
-Dashboard and music profile use `POST /api/tracks/analysis` to retrieve audio
-features and statistics calculated from the same provider results. The former
-batch `/audio-features` and `/audio-stats` endpoints have been removed; the
-single-track Soundcharts endpoint remains available. Music-map data retrieval
-uses an application service, while its analysis router calls the domain function
-directly after validating the dataset.
+Dashboard, profile and map share `TopTracksCollector`, a stateless service whose
+subscriptions own their individual datasets. A top-track application service
+prepares one page, and routers expose page preparation and pure statistics.
+`POST /api/tracks/analysis` remains available for one-off ID-based analyses; it is
+not called by these views. The former batch `/audio-features` and `/audio-stats`
+endpoints have been removed; the single-track Soundcharts endpoint remains.
+The music-map analysis router calls the domain function directly after validating
+the dataset. No server-side job registry, persistent dataset store or progress
+stream is required for collection.
 
 For playlists, `application/playlist-generator` prepares provider data and coordinates saving;
 `domain/playlist-generator` contains deterministic filtering and ranking.

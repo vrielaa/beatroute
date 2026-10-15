@@ -13,6 +13,59 @@ import { mapErrorToHttp } from "@http/error-handler.js";
 import { parsePlaylistResumeId } from "@http/routes/playlist-generator/save-playlist.validator.js";
 import { PlaylistSaveConflictError } from "@application/playlist-generator/playlist-save-conflict.error.js";
 import { parseSpotifyTopTracksQuery } from "@integrations/spotify/spotify.validators.js";
+import { parseTopTracksBatchQuery } from "@http/routes/me/top-tracks.validator.js";
+import { parseAudioFeaturesBody } from "@http/routes/tracks/audio-features.validator.js";
+
+describe("top-track preparation OpenAPI contract", () => {
+  it("documents the two completeness purposes and the validated default selection", () => {
+    const operation = document.paths["/api/me/top-tracks/dataset"].get;
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(
+      operation.parameters.find((parameter) => parameter.name === "purpose")
+        ?.schema
+    ).toMatchObject({
+      enum: ["statistics", "music-map"],
+      default: parseTopTracksBatchQuery().purpose,
+    });
+    expect(operation.description).toContain(
+      "Any technical ReccoBeats failure aborts the batch"
+    );
+    expect(
+      operation.responses["429"].headers["Retry-After"].schema.minimum
+    ).toBe(0);
+    expect(document.components.schemas.TopTracksBatch.required).toEqual([
+      "tracks",
+      "audioFeatures",
+      "processedItems",
+      "skippedItems",
+      "totalItems",
+      "nextOffset",
+    ]);
+  });
+
+  it("documents local statistics without provider reads and a matching count limit", () => {
+    const operation = document.paths["/api/tracks/statistics"].post;
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(operation.description).toContain(
+      "No Spotify, ReccoBeats or Soundcharts request"
+    );
+    const limit =
+      operation.requestBody.content["application/json"].schema.properties
+        .audioFeatures.maxItems;
+    const features = Array.from({ length: limit }, (_, index) => ({
+      spotifyId: String(index),
+      energy: 0,
+    }));
+    expect(parseAudioFeaturesBody({ audioFeatures: features })).toHaveLength(
+      limit
+    );
+    expect(() =>
+      parseAudioFeaturesBody({
+        audioFeatures: [...features, { spotifyId: "extra" }],
+      })
+    ).toThrow();
+  });
+});
 
 describe("top tracks pagination OpenAPI contract", () => {
   const operation = document.paths["/api/me/top-tracks"].get;
