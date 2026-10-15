@@ -7,6 +7,22 @@ import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 afterEach(() => vi.restoreAllMocks());
 
 describe("ReccoBeats service", () => {
+  it("rejects a strict batch immediately without waiting for another unfinished request", async () => {
+    const { service, gateway } = createService();
+    const error = new ReccoBeatsApiError("Unavailable", 503, null);
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+      createTrack("one", "spotify1"),
+      createTrack("two", "spotify2"),
+    ]);
+    vi.mocked(gateway.getTrackAudioFeatures)
+      .mockRejectedValueOnce(error)
+      .mockImplementationOnce(() => new Promise(() => {}));
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds(["spotify1", "spotify2"], {
+        errorMode: "strict",
+      })
+    ).rejects.toBe(error);
+  });
   it("does not query an empty collection", async () => {
     const { service, gateway } = createService();
     await expect(
@@ -271,6 +287,6 @@ function createTrack(id: string, spotifyId: string) {
   return {
     id,
     href: `https://open.spotify.com/track/${spotifyId}`,
-    name: `Track ${spotifyId}`,
+    trackTitle: `Track ${spotifyId}`,
   };
 }

@@ -26,14 +26,15 @@ type ReccoBeatsAudioFeatures = {
   valence?: number | null;
 };
 
-/** Skrócone dane utworu zwracane przez wyszukiwarkę ReccoBeats. */
+/**
+ * Dane potrzebne do powiązania wyników ReccoBeats ze Spotify.
+ * Pozostałe metadane wyszukiwarki (np. trackTitle) nie są używane przez serwis.
+ * @property id - Wewnętrzny identyfikator ReccoBeats do odczytu pomiarów.
+ * @property href - Odnośnik Spotify pozwalający przypisać wynik do żądanego ID.
+ */
 type ReccoBeatsTrackApiResponse = {
-  /** Wewnętrzny identyfikator utworu ReccoBeats. */
   id: string;
-  /** Odnośnik pozwalający powiązać wynik z utworem Spotify. */
   href: string;
-  /** Nazwa utworu. */
-  name: string;
 };
 
 /** Obsługiwane warianty odpowiedzi endpointu wyszukiwania utworów. */

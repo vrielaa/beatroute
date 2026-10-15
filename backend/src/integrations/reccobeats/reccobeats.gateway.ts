@@ -91,11 +91,15 @@ type ReccoBeatsGateway = {
  *
  * @param tracksResponse - Odpowiedź ReccoBeats zawierająca utwory bezpośrednio
  * albo wewnątrz jednego z obsługiwanych kontenerów.
- * @returns Lista utworów lub pusta tablica, gdy odpowiedź nie zawiera wyników.
+ * @returns Lista utworów; pusty kontener lub obiekt {} oznacza brak dopasowań.
+ * @throws ReccoBeatsApiError Gdy odpowiedź ma inny kształt niż obsługiwane kontenery.
  */
 function normalizeTracksResponse(
   tracksResponse: ReccoBeatsTracksApiResponse
 ): ReccoBeatsTrackApiResponse[] {
+  if (!tracksResponse || typeof tracksResponse !== "object") {
+    throw invalidReccoBeatsResponse();
+  }
   if (Array.isArray(tracksResponse)) {
     return tracksResponse;
   }
@@ -122,7 +126,10 @@ function normalizeTracksResponse(
     return objectResponse.items;
   }
 
-  return [];
+  if (Object.keys(tracksResponse).length === 0) {
+    return [];
+  }
+  throw invalidReccoBeatsResponse();
 }
 
 /**
@@ -222,22 +229,74 @@ function createReccoBeatsGateway({
       `/v1/track?${params.toString()}`
     );
 
-    return normalizeTracksResponse(response);
+    const tracks = normalizeTracksResponse(response);
+    if (
+      !tracks.every(
+        (track) =>
+          track &&
+          typeof track.id === "string" &&
+          track.id.length > 0 &&
+          typeof track.href === "string" &&
+          track.href.length > 0
+      )
+    ) {
+      throw invalidReccoBeatsResponse();
+    }
+    return tracks;
   }
 
-  /** Pobiera surowe cechy audio utworu wskazanego identyfikatorem ReccoBeats. */
+  /** Pobiera cechy audio i sprawdza typy pomiarów. Jawne null oznacza brak pomiaru; wadliwy JSON jest błędem integracji. */
   async function getTrackAudioFeatures(
     reccoBeatsTrackId: string
   ): Promise<ReccoBeatsAudioFeaturesApiResponse> {
-    return request(
+    const data = await request<ReccoBeatsAudioFeaturesApiResponse>(
       `/v1/track/${encodeURIComponent(reccoBeatsTrackId)}/audio-features`
     );
+    const keys: readonly (keyof ReccoBeatsAudioFeaturesApiResponse)[] = [
+      "acousticness",
+      "danceability",
+      "energy",
+      "instrumentalness",
+      "key",
+      "liveness",
+      "loudness",
+      "mode",
+      "speechiness",
+      "tempo",
+      "timeSignature",
+      "valence",
+    ];
+    if (
+      !data ||
+      typeof data !== "object" ||
+      Array.isArray(data) ||
+      !keys.some((key) => key in data) ||
+      keys.some(
+        (key) =>
+          data[key] !== undefined &&
+          data[key] !== null &&
+          (typeof data[key] !== "number" || !Number.isFinite(data[key]))
+      )
+    ) {
+      throw invalidReccoBeatsResponse();
+    }
+    return data;
   }
 
   return {
     findTracksBySpotifyIds,
     getTrackAudioFeatures,
   };
+}
+
+/** Oznacza naruszenie kontraktu odpowiedzi 200, bez ujawniania jej treści. */
+function invalidReccoBeatsResponse(): ReccoBeatsApiError {
+  return new ReccoBeatsApiError(
+    "ReccoBeats zwróciło niepoprawną odpowiedź",
+    200,
+    null,
+    { category: "invalid-response" }
+  );
 }
 
 /** Gateway korzystający z produkcyjnej konfiguracji ReccoBeats. */

@@ -86,7 +86,8 @@ function createReccoBeatsService({
    * utworu, nie przerywając przetwarzania pozostałych elementów.
    * W trybie strict każdy techniczny błąd przerywa całą partię, także gdy inne
    * odczyty się powiodły. Umożliwia to dobieranie utworów bez uznawania awarii
-   * za braki katalogu. Domyślny tryb partial zachowuje istniejące zachowanie:
+   * za brak danych; już uruchomione odczyty mogą nadal się zakończyć.
+   * Domyślny tryb partial zachowuje istniejące zachowanie:
    * jeśli nie udał się żaden odczyt i wystąpił błąd inny niż brak danych 404,
    * przekazuje oryginalny wyjątek zamiast przedstawiać awarię jako pusty zbiór.
    * Zachowuje dzięki temu status, kategorię i Retry-After dla warstwy HTTP.
@@ -144,6 +145,9 @@ function createReccoBeatsService({
             error.category === "upstream-error";
 
           if (!missingMeasurements) {
+            if (errorMode === "strict") {
+              throw error;
+            }
             requestErrors.push(error);
           }
 
@@ -163,7 +167,7 @@ function createReccoBeatsService({
 
     if (
       requestErrors.length > 0 &&
-      (errorMode === "strict" || results.every((result) => "error" in result))
+      results.every((result) => "error" in result)
     ) {
       throw requestErrors[0];
     }

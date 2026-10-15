@@ -5,12 +5,81 @@ import { createReccoBeatsGateway } from "./reccobeats.gateway.js";
 import { createRequestScheduler } from "@integrations/request-scheduler.js";
 
 describe("ReccoBeats gateway", () => {
+  it("accepts the real search response with trackTitle rather than name", async () => {
+    const track = {
+      id: "bf5bbe91-ad19-4fab-bc0f-bd1e41ef9c13",
+      trackTitle: "Bound 2",
+      href: "https://open.spotify.com/track/3sNVsP50132BTNlImLx70i",
+      durationMs: 229146,
+      artists: [{ name: "Kanye West" }],
+    };
+    const gateway = createGateway(
+      vi.fn().mockResolvedValue(jsonResponse({ content: [track] }))
+    );
+    await expect(
+      gateway.findTracksBySpotifyIds(["3sNVsP50132BTNlImLx70i"])
+    ).resolves.toEqual([track]);
+  });
+
+  it("only requires the ID and Spotify link used to associate results", async () => {
+    const track = {
+      id: "recco-1",
+      href: "https://open.spotify.com/track/spotify1",
+    };
+    const gateway = createGateway(
+      vi.fn().mockResolvedValue(jsonResponse({ content: [track] }))
+    );
+    await expect(gateway.findTracksBySpotifyIds(["spotify1"])).resolves.toEqual(
+      [track]
+    );
+  });
+  it.each([
+    null,
+    "unexpected",
+    { content: null },
+    { error: "not a result" },
+    [null],
+    [{ id: "one" }],
+  ])(
+    "does not treat a malformed search response as missing tracks: %j",
+    async (data) => {
+      const gateway = createGateway(
+        vi.fn().mockResolvedValue(jsonResponse(data))
+      );
+      await expect(
+        gateway.findTracksBySpotifyIds(["spotify1"])
+      ).rejects.toMatchObject({ category: "invalid-response", data: null });
+    }
+  );
+
+  it.each([null, [], "unexpected", {}, { tempo: "120" }, { energy: false }])(
+    "does not treat invalid audio data as a missing measurement: %j",
+    async (data) => {
+      const gateway = createGateway(
+        vi.fn().mockResolvedValue(jsonResponse(data))
+      );
+      await expect(gateway.getTrackAudioFeatures("one")).rejects.toMatchObject({
+        category: "invalid-response",
+        data: null,
+      });
+    }
+  );
+
+  it("accepts null and zero measurements as valid incomplete data", async () => {
+    const gateway = createGateway(
+      vi.fn().mockResolvedValue(jsonResponse({ tempo: null, energy: 0 }))
+    );
+    await expect(gateway.getTrackAudioFeatures("one")).resolves.toEqual({
+      tempo: null,
+      energy: 0,
+    });
+  });
   it("searches for every Spotify ID using repeated query parameters", async () => {
     const responseBody = [
       {
         id: "recco-1",
         href: "https://open.spotify.com/track/spotify1",
-        name: "Track 1",
+        trackTitle: "Track 1",
       },
     ];
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(responseBody));
@@ -118,6 +187,6 @@ function createTrack() {
   return {
     id: "recco-1",
     href: "https://open.spotify.com/track/spotify1",
-    name: "Track 1",
+    trackTitle: "Track 1",
   };
 }
