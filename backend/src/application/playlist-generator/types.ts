@@ -3,6 +3,7 @@ import type {
   PlaylistDataset,
 } from "@domain/playlist-generator/types.js";
 import type { TrackAudioFeaturesResult } from "@domain/tracks/types.js";
+import type { SpotifySavedTracksApiResponse } from "@integrations/spotify/spotify.types.js";
 
 /**
  * Plik JSON wskazujący utwory Spotify do przygotowania zbioru generatora.
@@ -122,7 +123,7 @@ type PlaylistTrackMetadata = {
  * Utwór pominięty podczas pobierania danych, przed filtrowaniem wymagań.
  * Nie jest to odrzucenie przez kryteria użytkownika ani ocena preferencji.
  *
- * @property spotifyId - ID utworu z pliku użytkownika.
+ * @property spotifyId - ID utworu z wybranego źródła danych.
  * @property reason - metadata-unavailable: brak utworu lub wymaganych metadanych;
  * audio-features-unavailable: nieudany odczyt albo brak wszystkich ośmiu użytecznych pomiarów.
  */
@@ -145,7 +146,7 @@ type IncompletePlaylistTrack = {
 
 /**
  * Przygotowany zbiór oraz informacje o kompletności pobranych danych.
- * Wszystkie listy zachowują kolejność utworów z pliku. Zbiór może być pusty,
+ * Wszystkie listy zachowują kolejność utworów źródłowych. Zbiór może być pusty,
  * gdy żaden utwór nie ma metadanych i użytecznego pomiaru; UI nie powinno wtedy wywoływać generatora.
  * Awarie całych zapytań są wyjątkami, nie pustym zbiorem ani wpisami skippedTracks.
  *
@@ -167,6 +168,8 @@ type PreparedPlaylistDataset = {
  * brak utworu jest błędem integracji ze statusem źródłowym 404.
  * @property getAudioFeaturesBySpotifyIds - Pobiera wyniki cech audio dla wskazanych ID;
  * błąd pojedynczego utworu jest wpisem wyniku, a awaria całego odczytu wyjątkiem.
+ * @property getCurrentUserSavedTracks - Pobiera jedną stronę biblioteki z metadanymi
+ * utworów i paginacją. Nie pobiera cech audio ani kolejnych stron.
  */
 type PlaylistDatasetDependencies = {
   getSpotifyTrackById(
@@ -176,6 +179,10 @@ type PlaylistDatasetDependencies = {
   getAudioFeaturesBySpotifyIds(
     spotifyIds: string[]
   ): Promise<TrackAudioFeaturesResult[]>;
+  getCurrentUserSavedTracks(
+    accessToken: string,
+    { limit, offset }: { limit: number; offset: number }
+  ): Promise<SpotifySavedTracksApiResponse>;
 };
 
 /**
@@ -210,6 +217,39 @@ type PlaylistSaveDependencies = {
   ): Promise<{ trackIds: (string | null)[]; snapshotId: string }>;
 };
 
+/**
+ * Postęp jednej strony biblioteki Spotify, niezależny od liczby przygotowanych utworów.
+ * Dotyczy pozycji źródłowych, więc uwzględnia również duplikaty i pominięcia.
+ *
+ * @property offset - Indeks pierwszej odczytanej pozycji, liczony od zera.
+ * @property processedItems - Liczba pozycji tej strony, bez dodawania offsetu.
+ * @property totalItems - Całkowita liczba zapisanych pozycji według Spotify; może przekraczać 500.
+ * @property nextOffset - Kolejny indeks albo null po końcu biblioteki lub osiągnięciu limitu 500.
+ */
+type SavedTracksPagination = {
+  offset: number;
+  processedItems: number;
+  totalItems: number;
+  nextOffset: number | null;
+};
+
+/**
+ * Jedna przygotowana strona zapisanych utworów, bez rankingu i danych autoryzacji.
+ * Deduplikacja dotyczy tej strony; łączenie kolejnych stron wymaga osobnego sprawdzenia ID.
+ *
+ * @property preparedDataset - Unikalne utwory z pomiarami oraz informacje o brakach
+ * metadanych i cech audio dla znanych, poprawnych ID.
+ * @property pagination - Postęp liczony z pozycji Spotify, nie z długości gotowego zbioru.
+ * @property unavailableItemsCount - Liczba pozycji z track: null, lokalnych, jawnie
+ * nieodtwarzalnych lub z błędnym ID. Nie obejmuje duplikatów ani pominięć
+ * już opisanych w preparedDataset.skippedTracks.
+ */
+type PreparedSavedTracksPage = {
+  preparedDataset: PreparedPlaylistDataset;
+  pagination: SavedTracksPagination;
+  unavailableItemsCount: number;
+};
+
 export type {
   PlaylistTrackIdsFile,
   PlaylistToSave,
@@ -223,4 +263,6 @@ export type {
   PreparedPlaylistDataset,
   PlaylistDatasetDependencies,
   PlaylistSaveDependencies,
+  SavedTracksPagination,
+  PreparedSavedTracksPage,
 };

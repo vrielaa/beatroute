@@ -232,6 +232,8 @@ function createFlow() {
   };
   const audioService = createReccoBeatsService({ reccoBeatsGateway: gateway });
   const datasetService = createPlaylistDatasetService({
+    getCurrentUserSavedTracks:
+      vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
     getSpotifyTrackById,
     getAudioFeaturesBySpotifyIds:
       audioService.getManyTrackAudioFeaturesBySpotifyIds,

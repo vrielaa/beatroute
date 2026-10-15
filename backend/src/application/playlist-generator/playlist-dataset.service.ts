@@ -15,6 +15,7 @@ import type {
   PlaylistTrackIdsFile,
   PreparedPlaylistDataset,
   SkippedPlaylistTrack,
+  PreparedSavedTracksPage,
 } from "./types.js";
 
 /**
@@ -45,20 +46,23 @@ const AUDIO_FEATURE_KEYS: (keyof PlaylistAudioFeatures)[] = [
 ];
 
 /**
- * Tworzy serwis uzupełniający Spotify ID o metadane i pomiary generatora.
+ * Tworzy serwis przygotowujący metadane i pomiary generatora z ID lub biblioteki Spotify.
  * Zależności odpowiadają wyłącznie za pobieranie danych; nie są wywoływane
  * przez filtrowanie i ranking. Serwis nie odczytuje plików ani zmiennych środowiska.
- * Zachowuje poprawne metadane w cache swojej instancji przez 24 godziny,
+ * Wariant z ID zachowuje poprawne metadane w cache instancji przez 24 godziny,
  * do 1000 wpisów łącznie. Kontekst cache oddziela dane poszczególnych sesji.
+ * Wariant biblioteki korzysta bezpośrednio z metadanych zwróconych na stronie
+ * zapisanych utworów, bez odczytu i uzupełniania cache pojedynczych ID.
  * Odczyt metadanych z ID oddziela od prywatnego przygotowania pomiarów
  * i składania zbioru; ta część nie zależy od sposobu dostarczenia metadanych.
  *
- * @param dependencies - Operacje odczytu metadanych i cech audio.
+ * @param dependencies - Odczyt pojedynczego utworu, strony biblioteki i cech audio.
  * @returns Serwis przygotowania zbioru, bez produkcyjnych zależności i stanu globalnego.
  */
 function createPlaylistDatasetService({
   getSpotifyTrackById,
   getAudioFeaturesBySpotifyIds,
+  getCurrentUserSavedTracks,
 }: PlaylistDatasetDependencies) {
   const metadataCache = new Map<string, CachedTrackMetadata>();
 
@@ -270,7 +274,101 @@ function createPlaylistDatasetService({
     return { dataset: { version: 1, tracks }, skippedTracks, incompleteTracks };
   }
 
-  return { prepareDataset };
+  /**
+   * Przygotowuje jedną stronę zapisanych utworów w granicach pierwszych 500 pozycji.
+   * Pobiera do 50 pozycji, a przy końcu limitu zmniejsza rozmiar strony.
+   * Wykorzystuje metadane z odpowiedzi biblioteki, bez getSpotifyTrackById.
+   * Pomija track: null, pliki lokalne, utwory z is_playable: false i błędne ID.
+   * Brak opcjonalnej flagi nie oznacza niedostępności. Dla pozostałych pozycji
+   * zachowuje pierwsze wystąpienie ID na tej stronie; wielkość liter ma znaczenie.
+   * Przycinanie metadanych i przygotowanie pomiarów współdzieli z wariantem plikowym.
+   * Brak użytecznych metadanych lub cech zgłasza w preparedDataset, nie dolicza
+   * go ponownie do unavailableItemsCount. Duplikaty nie zwiększają tego licznika.
+   * Postęp i następny offset wyznacza z wszystkich odczytanych pozycji strony,
+   * również pominiętych i powtórzonych, nie z liczby utworów w gotowym zbiorze.
+   * Nie pobiera kolejnych stron, nie ustala rankingu ani nie przechowuje wyniku.
+   * Awarie odczytów przekazuje bez zmian; pusta biblioteka jest poprawnym wynikiem.
+   *
+   * @param offset - Całkowity indeks pierwszej pozycji strony, od 0 do 499.
+   * @param accessToken - Token użytkownika z uprawnieniem user-library-read.
+   * @returns Przygotowana strona, paginacja i liczba niedostępnych pozycji.
+   * @throws RangeError Gdy offset nie mieści się w całkowitym zakresie 0–499.
+   */
+  async function prepareSavedTracksPage(
+    offset: number,
+    accessToken: string
+  ): Promise<PreparedSavedTracksPage> {
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset >= 500) {
+      throw new RangeError(
+        "Offset zapisanych utworów musi być liczbą całkowitą od 0 do 499"
+      );
+    }
+
+    const limit = Math.min(50, 500 - offset);
+    const page = await getCurrentUserSavedTracks(accessToken, {
+      limit,
+      offset,
+    });
+
+    const trackIds: string[] = [];
+    const metadataById = new Map<string, PlaylistTrackMetadata>();
+    const seenTrackIds = new Set<string>();
+
+    let unavailableItemsCount = 0;
+
+    for (const item of page.items) {
+      const track = item.track;
+
+      if (
+        track === null ||
+        track.is_local === true ||
+        track.is_playable === false
+      ) {
+        unavailableItemsCount += 1;
+        continue;
+      }
+
+      const hasValidSpotifyId = /^[A-Za-z0-9]{22}$/.test(track.id);
+
+      if (!hasValidSpotifyId) {
+        unavailableItemsCount += 1;
+        continue;
+      }
+
+      if (seenTrackIds.has(track.id)) {
+        continue;
+      }
+
+      seenTrackIds.add(track.id);
+      trackIds.push(track.id);
+
+      const metadata = normalizeTrackMetadata(track);
+
+      if (metadata !== null) {
+        metadataById.set(track.id, metadata);
+      }
+    }
+
+    const preparedDataset = await prepareTracks(trackIds, metadataById);
+    const processedThrough = offset + page.items.length;
+    const preparationLimit = Math.min(page.total, 500);
+
+    const nextOffset =
+      processedThrough < preparationLimit ? processedThrough : null;
+
+    return {
+      preparedDataset,
+      pagination: {
+        offset,
+        processedItems: page.items.length,
+        totalItems: page.total,
+        nextOffset,
+      },
+      unavailableItemsCount,
+    };
+  }
+
+  return { prepareDataset, prepareSavedTracksPage };
 }
 
 /** Przygotowuje przycięte nazwy; brak nazwy utworu lub jakiegokolwiek wykonawcy oznacza null. */

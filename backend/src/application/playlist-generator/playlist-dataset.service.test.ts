@@ -670,6 +670,8 @@ function createSourceTrack(spotifyId: string): PlaylistSourceTrack {
 
 function createDependencies() {
   return {
+    getCurrentUserSavedTracks:
+      vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
     getSpotifyTrackById: vi
       .fn<PlaylistDatasetDependencies["getSpotifyTrackById"]>()
       .mockImplementation(async (spotifyId) => createSourceTrack(spotifyId)),
