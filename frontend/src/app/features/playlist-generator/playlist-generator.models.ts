@@ -108,6 +108,35 @@ type PreparedPlaylistDataset = {
 };
 
 /**
+ * Jedna przygotowana strona zapisanych utworów Spotify, bez rankingu i tokenów.
+ * Duplikaty są usuwane w obrębie strony; łączenie stron wymaga sprawdzenia ID.
+ *
+ * @property preparedDataset - Utwory z metadanymi i pomiarami oraz informacje o brakach.
+ * Pusty zbiór jest poprawnym wynikiem przygotowania, ale nie wejściem generatora.
+ * @property pagination - Postęp odczytu pozycji biblioteki, nie licznik przygotowanych utworów.
+ * @property pagination.offset - Indeks pierwszej odczytanej pozycji, od 0 do 499.
+ * @property pagination.processedItems - Liczba pozycji bieżącej strony, do 50,
+ * także niedostępnych i powtórzonych. Nie jest sumą wszystkich stron.
+ * @property pagination.totalItems - Pełna liczba zapisanych pozycji według Spotify;
+ * może przekraczać limit przygotowania pierwszych 500 pozycji.
+ * @property pagination.nextOffset - Początek kolejnej strony albo null po końcu
+ * biblioteki lub osiągnięciu limitu 500 pozycji.
+ * @property unavailableItemsCount - Liczba pozycji niedostępnych, lokalnych,
+ * jawnie nieodtwarzalnych lub z błędnym ID. Nie obejmuje duplikatów ani pominięć
+ * opisanych w preparedDataset.skippedTracks.
+ */
+type PreparedSavedTracksPage = {
+  preparedDataset: PreparedPlaylistDataset;
+  pagination: {
+    offset: number;
+    processedItems: number;
+    totalItems: number;
+    nextOffset: number | null;
+  };
+  unavailableItemsCount: number;
+};
+
+/**
  * Postęp przygotowania bieżącego pliku, liczony wyłącznie z zakończonych partii.
  * Nie szacuje pracy wewnątrz trwającego żądania ani czasu pozostałego do końca.
  * Przetworzone ID obejmują zarówno przygotowane, jak i pominięte utwory.
@@ -390,6 +419,7 @@ export type {
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
+  PreparedSavedTracksPage,
   PlaylistPreparationProgress,
   PlaylistGenerationStage,
   TempoRange,
