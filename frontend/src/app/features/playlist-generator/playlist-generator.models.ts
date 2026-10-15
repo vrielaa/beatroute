@@ -15,6 +15,9 @@ type PlaylistTrackIdsFile = {
   spotifyTrackIds: string[];
 };
 
+/** Źródło zbioru generatora: plik z ID albo zapisane utwory aktualnego użytkownika Spotify. */
+type PlaylistDataSource = 'file' | 'saved-tracks';
+
 /**
  * Osiem pomiarów cech audio przyjmowanych przez generator playlist.
  * Wszystkie pola są wymagane; null oznacza brak pomiaru, a nie wartość zero.
@@ -416,6 +419,7 @@ type PlaylistGeneratorRequest = {
 
 export type {
   PlaylistTrackIdsFile,
+  PlaylistDataSource,
   PlaylistAudioFeatures,
   PlaylistTrack,
   PlaylistDataset,

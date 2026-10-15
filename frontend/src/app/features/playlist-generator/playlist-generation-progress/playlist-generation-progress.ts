@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type {
   PlaylistGenerationStage,
+  PlaylistDataSource,
   PlaylistPreparationProgress,
 } from '../playlist-generator.models';
 
@@ -27,8 +28,10 @@ class PlaylistGenerationProgress {
   public readonly stage = input.required<PlaylistGenerationStage>();
   /** Czy proces nadal trwa; false przed completed oznacza zatrzymanie, nie sukces. */
   public readonly isRunning = input.required<boolean>();
-  /** Liczniki z zakończonych partii; pominięty utwór także jest przetworzonym ID. */
-  public readonly preparationProgress = input.required<PlaylistPreparationProgress>();
+  /** Źródło określa komunikat podczas oczekiwania na pierwszą odpowiedź. */
+  public readonly source = input<PlaylistDataSource>('file');
+  /** Liczniki ukończonych partii; null oznacza nieznany jeszcze rozmiar biblioteki. */
+  public readonly preparationProgress = input.required<PlaylistPreparationProgress | null>();
 
   protected readonly stages = GENERATION_STAGES;
   protected readonly stageLabels = STAGE_LABELS;
@@ -38,7 +41,9 @@ class PlaylistGenerationProgress {
   );
   protected readonly preparedPercentage = computed(() => {
     const progress = this.preparationProgress();
-    return (progress.processedTracks / progress.totalTracks) * 100;
+    return progress && progress.totalTracks > 0
+      ? (progress.processedTracks / progress.totalTracks) * 100
+      : 0;
   });
   protected readonly isAnimating = computed(() => this.isRunning() && this.stage() !== 'completed');
   protected readonly description = computed(() =>

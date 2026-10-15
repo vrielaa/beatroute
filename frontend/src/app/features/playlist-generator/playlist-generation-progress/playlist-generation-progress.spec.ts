@@ -113,6 +113,46 @@ describe('PlaylistGenerationProgress', () => {
     expect(fixture.nativeElement.querySelectorAll('.is-complete')).toHaveLength(1);
   });
 
+  it('shows waiting for the first library response without inventing totals or percentages', () => {
+    setProgress('preparation', true);
+    fixture.componentRef.setInput('source', 'saved-tracks');
+    fixture.componentRef.setInput('preparationProgress', null);
+    fixture.detectChanges();
+
+    expect(getText()).toContain('Pobieranie zapisanych utworów…');
+    expect(getText()).toContain('Etap 1/3');
+    expect(getText()).not.toContain('Przetworzono');
+    expect(getText()).not.toContain('0 ze 0');
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.is-running')).not.toBeNull();
+  });
+
+  it('does not keep animating when the first library request failed', () => {
+    setProgress('preparation', false);
+    fixture.componentRef.setInput('preparationProgress', null);
+    fixture.detectChanges();
+
+    expect(getText()).toContain('Nie pobrano jeszcze danych.');
+    expect(getText()).toContain('Proces zatrzymany');
+    expect(fixture.nativeElement.querySelector('.is-running')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
+  it('handles zero known positions without dividing by zero', () => {
+    setProgress('preparation', false, {
+      processedTracks: 0,
+      totalTracks: 0,
+      preparedTracks: 0,
+      skippedTracks: 0,
+      completedBatches: 1,
+      totalBatches: 1,
+    });
+
+    expect(getText()).toContain('Brak pozycji do przygotowania.');
+    expect(getText()).not.toMatch(/NaN|Infinity|0 ze 0/);
+    expect(fixture.nativeElement.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
   function setProgress(
     stage: PlaylistGenerationStage,
     isRunning: boolean,

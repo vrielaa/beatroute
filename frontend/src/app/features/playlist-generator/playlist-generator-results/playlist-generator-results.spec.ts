@@ -122,7 +122,7 @@ describe('PlaylistGeneratorResults', () => {
     expect(getText('.score-explanation')).toContain(
       'Przy remisie porównujemy średnią bliskość pomiarów do wybranych poziomów'
     );
-    expect(getText('.score-explanation')).toContain('zachowujemy kolejność z pliku');
+    expect(getText('.score-explanation')).toContain('zachowujemy kolejność zbioru');
     expect(getText('.score-explanation')).toContain(
       'Wyłączone preferencje i brakujące pomiary są pomijane.'
     );

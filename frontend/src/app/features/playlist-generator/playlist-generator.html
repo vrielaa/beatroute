@@ -5,53 +5,82 @@
 >
   <header>
     <h1 id="dataset-import-heading">Generator playlist</h1>
-    <p>Wczytaj plik JSON z identyfikatorami utworów Spotify i wybierz kryteria.</p>
+    <p>Wybierz źródło utworów i kryteria.</p>
   </header>
 
-  <div class="dataset-file-control">
-    <label for="playlist-dataset-file">Plik z identyfikatorami utworów Spotify</label>
-    <input
-      #datasetFileInput
-      id="playlist-dataset-file"
-      type="file"
-      hidden
-      accept=".json,application/json"
-      aria-describedby="playlist-dataset-format"
-      [disabled]="isReadingFile() || isSaving()"
-      (change)="importDataset($event)"
-    />
-    <div class="dataset-file-picker">
-      <button
-        id="playlist-choose-file"
-        type="button"
-        aria-describedby="playlist-selected-file playlist-dataset-format"
-        [disabled]="isReadingFile() || isSaving()"
-        (click)="datasetFileInput.click()"
-      >
-        {{ fileName() ? 'Zmień plik' : 'Wybierz plik' }}
-      </button>
-      <span id="playlist-selected-file" class="dataset-file-name">
-        @if (isReadingFile()) {
-          Wczytywanie pliku…
-        } @else {
-          {{ fileName() ?? 'Nie wybrano pliku' }}
-        }
-      </span>
-    </div>
-    <p id="playlist-dataset-format" class="dataset-format-hint">
-      Format: &#123; "version": 1, "spotifyTrackIds": [ID1, ID2, …] &#125;
-    </p>
+  <div class="dataset-source-switch" role="group" aria-label="Źródło utworów">
+    <button
+      id="playlist-source-file"
+      type="button"
+      [class.is-active]="dataSource() === 'file'"
+      [attr.aria-pressed]="dataSource() === 'file'"
+      [disabled]="isReadingFile() || isGenerating() || isSaving()"
+      (click)="changeDataSource('file')"
+    >
+      Plik
+    </button>
+    <button
+      id="playlist-source-saved-tracks"
+      type="button"
+      [class.is-active]="dataSource() === 'saved-tracks'"
+      [attr.aria-pressed]="dataSource() === 'saved-tracks'"
+      [disabled]="isReadingFile() || isGenerating() || isSaving()"
+      (click)="changeDataSource('saved-tracks')"
+    >
+      Zapisane utwory
+    </button>
   </div>
 
-  @if (isReadingFile()) {
-    <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
-  } @else if (importError(); as error) {
-    <p class="dataset-import-error" role="alert">{{ error }}</p>
-  } @else if (trackIdsFile(); as importedFile) {
-    <p class="dataset-import-status" role="status">
-      Wczytano <strong>{{ fileName() }}</strong
-      >. Liczba identyfikatorów: <strong>{{ importedFile.spotifyTrackIds.length }}</strong
-      >.
+  @if (dataSource() === 'file') {
+    <div class="dataset-file-control">
+      <label for="playlist-dataset-file">Plik z identyfikatorami utworów Spotify</label>
+      <input
+        #datasetFileInput
+        id="playlist-dataset-file"
+        type="file"
+        hidden
+        accept=".json,application/json"
+        aria-describedby="playlist-dataset-format"
+        [disabled]="isReadingFile() || isSaving()"
+        (change)="importDataset($event)"
+      />
+      <div class="dataset-file-picker">
+        <button
+          id="playlist-choose-file"
+          type="button"
+          aria-describedby="playlist-selected-file playlist-dataset-format"
+          [disabled]="isReadingFile() || isSaving()"
+          (click)="datasetFileInput.click()"
+        >
+          {{ fileName() ? 'Zmień plik' : 'Wybierz plik' }}
+        </button>
+        <span id="playlist-selected-file" class="dataset-file-name">
+          @if (isReadingFile()) {
+            Wczytywanie pliku…
+          } @else {
+            {{ fileName() ?? 'Nie wybrano pliku' }}
+          }
+        </span>
+      </div>
+      <p id="playlist-dataset-format" class="dataset-format-hint">
+        Format: &#123; "version": 1, "spotifyTrackIds": [ID1, ID2, …] &#125;
+      </p>
+    </div>
+
+    @if (isReadingFile()) {
+      <p class="dataset-import-status" role="status">Wczytywanie pliku…</p>
+    } @else if (importError(); as error) {
+      <p class="dataset-import-error" role="alert">{{ error }}</p>
+    } @else if (trackIdsFile(); as importedFile) {
+      <p class="dataset-import-status" role="status">
+        Wczytano <strong>{{ fileName() }}</strong
+        >. Liczba identyfikatorów: <strong>{{ importedFile.spotifyTrackIds.length }}</strong
+        >.
+      </p>
+    }
+  } @else {
+    <p class="dataset-format-hint">
+      Do 500 pierwszych zapisanych pozycji Spotify. Pobieranie po kliknięciu „Generuj playlistę”.
     </p>
   }
 
@@ -62,13 +91,28 @@
     </p>
     @if (importedDataset.tracks.length === 0) {
       <p class="dataset-empty" role="status">
-        Nie znaleziono utworów z metadanymi i użytecznymi pomiarami. Wybierz inny plik. Generowanie
-        playlisty jest niedostępne.
+        @if (dataSource() === 'saved-tracks') {
+          @if (preparationProgress()?.totalTracks === 0) {
+            Nie masz zapisanych utworów w Spotify. Zapisz utwory i spróbuj ponownie.
+          } @else {
+            Nie znaleziono utworów z użytecznymi pomiarami. Możesz ponowić pobieranie.
+          }
+        } @else {
+          Nie znaleziono utworów z metadanymi i użytecznymi pomiarami. Wybierz inny plik.
+          Generowanie playlisty jest niedostępne.
+        }
       </p>
     }
   }
 
   @if (preparedDataset(); as prepared) {
+    @if (dataSource() === 'saved-tracks' && preparationProgress(); as progress) {
+      @if (progress.skippedTracks > prepared.skippedTracks.length) {
+        <p class="dataset-import-status">
+          Niedostępne pozycje Spotify: {{ progress.skippedTracks - prepared.skippedTracks.length }}.
+        </p>
+      }
+    }
     @if (prepared.skippedTracks.length > 0) {
       <details class="dataset-data-gaps">
         <summary>Pominięte utwory: {{ prepared.skippedTracks.length }}</summary>
@@ -109,8 +153,8 @@
   }
 </section>
 
-<!-- Śledzenie pliku odtwarza formularz po jego zmianie, nie po pobraniu danych. -->
-@for (importedFile of trackIdsFile() ? [trackIdsFile()] : []; track importedFile) {
+<!-- Zmiana źródła lub pliku odtwarza formularz; pobranie danych zachowuje wpisane kryteria. -->
+@for (source of criteriaSource() ? [criteriaSource()] : []; track source) {
   <fieldset class="playlist-control-lock" [disabled]="isSaving()" aria-label="Kryteria playlisty">
     <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />
   </fieldset>
@@ -145,19 +189,26 @@
   }
 
   @if (generationStage(); as stage) {
-    @if (preparationProgress(); as progress) {
-      <app-playlist-generation-progress
-        [stage]="stage"
-        [isRunning]="isGenerating()"
-        [preparationProgress]="progress"
-      />
-    }
+    <app-playlist-generation-progress
+      [stage]="stage"
+      [isRunning]="isGenerating()"
+      [source]="dataSource()"
+      [preparationProgress]="preparationProgress()"
+    />
   }
 
   @if (generationCancelled()) {
     <p class="generation-notice" role="status">
-      Generowanie anulowane. Ukończone partie zostały zachowane. Możesz wznowić proces bez ponownego
-      wczytywania pliku. Backend może jeszcze dokończyć rozpoczętą partię.
+      @if (dataSource() === 'saved-tracks') {
+        @if (preparedDataset()) {
+          Generowanie anulowane. Przygotowany zbiór został zachowany.
+        } @else {
+          Generowanie anulowane. Pobieranie biblioteki zacznie się od początku.
+        }
+      } @else {
+        Generowanie anulowane. Ukończone partie zostały zachowane. Możesz wznowić proces bez
+        ponownego wczytywania pliku. Backend może jeszcze dokończyć rozpoczętą partię.
+      }
     </p>
   }
 

@@ -14,6 +14,7 @@ import type {
   GeneratedPlaylist,
   PlaylistAudioFeatures,
   PlaylistCriteria,
+  PlaylistDataSource,
   PlaylistGenerationStage,
   PlaylistPreparationProgress,
   PlaylistSaveProgress,
@@ -28,6 +29,7 @@ import {
   splitPlaylistTrackIds,
 } from './data-preparation/playlist-dataset-batches';
 import { parsePlaylistTrackIdsFile } from './data-preparation/playlist-track-ids.parser';
+import { prepareSavedTracksDataset } from './data-preparation/playlist-saved-tracks-preparation';
 import { selectRankedTrackIds } from './playlist-track-selection';
 import { PlaylistCriteriaForm } from './playlist-criteria-form/playlist-criteria-form';
 import { PlaylistGeneratorResults } from './playlist-generator-results/playlist-generator-results';
@@ -58,8 +60,14 @@ class PlaylistGenerator {
   private generationSubscription: Subscription | null = null;
   /** Zakończone partie bieżącego pliku; pozostają dostępne po błędzie lub anulowaniu. */
   private readonly preparedBatches = signal<PreparedPlaylistDataset[]>([]);
+  private readonly savedTracksProgress = signal<PlaylistPreparationProgress | null>(null);
 
+  protected readonly dataSource = signal<PlaylistDataSource>('file');
   protected readonly trackIdsFile = signal<PlaylistTrackIdsFile | null>(null);
+  /** Klucz formularza zmienia się tylko po zmianie źródła lub pliku, nie po pobraniu danych. */
+  protected readonly criteriaSource = computed(() =>
+    this.dataSource() === 'saved-tracks' ? 'saved-tracks' : this.trackIdsFile()
+  );
   protected readonly preparedDataset = signal<PreparedPlaylistDataset | null>(null);
   protected readonly dataset = computed(() => this.preparedDataset()?.dataset ?? null);
   protected readonly fileName = signal<string | null>(null);
@@ -74,6 +82,10 @@ class PlaylistGenerator {
   protected readonly generationStage = signal<PlaylistGenerationStage | null>(null);
   protected readonly generationCancelled = signal(false);
   protected readonly preparationProgress = computed<PlaylistPreparationProgress | null>(() => {
+    if (this.dataSource() === 'saved-tracks') {
+      return this.savedTracksProgress();
+    }
+
     const file = this.trackIdsFile();
     return file ? getPlaylistPreparationProgress(file, this.preparedBatches()) : null;
   });
@@ -85,8 +97,10 @@ class PlaylistGenerator {
 
   protected readonly canGenerate = computed(
     () =>
-      this.trackIdsFile() !== null &&
-      (this.dataset() === null || (this.dataset()?.tracks.length ?? 0) > 0) &&
+      (this.dataSource() === 'saved-tracks' || this.trackIdsFile() !== null) &&
+      (this.dataSource() === 'saved-tracks' ||
+        this.dataset() === null ||
+        (this.dataset()?.tracks.length ?? 0) > 0) &&
       this.criteria() !== null &&
       !this.isReadingFile() &&
       !this.isGenerating() &&
@@ -103,6 +117,30 @@ class PlaylistGenerator {
     speechiness: 'Udział mowy',
     liveness: 'Wykonanie na żywo',
   };
+
+  /**
+   * Zmienia źródło bez pobierania danych. Czyści przygotowanie, wynik, wybór i kryteria,
+   * ale zachowuje wczytany plik do powrotu oraz nieukończony zapis do wznowienia.
+   * Ignoruje zmianę podczas generowania, zapisu lub odczytu pliku.
+   */
+  protected changeDataSource(source: PlaylistDataSource): void {
+    if (
+      source === this.dataSource() ||
+      this.isGenerating() ||
+      this.isSaving() ||
+      this.isReadingFile()
+    ) {
+      return;
+    }
+
+    this.clearGeneration();
+    this.preparedBatches.set([]);
+    this.preparedDataset.set(null);
+    this.savedTracksProgress.set(null);
+    this.importError.set(null);
+    this.criteria.set(null);
+    this.dataSource.set(source);
+  }
 
   /**
    * Zapisuje kryteria i czyści wynik, wybór oraz zakończony wynik poprzedniego zapisu.
@@ -241,13 +279,18 @@ class PlaylistGenerator {
   }
 
   /**
-   * Dopiero po kliknięciu przygotowuje dane z ID i analizuje je według kryteriów.
+   * Dopiero po kliknięciu przygotowuje wybrane źródło i analizuje je według kryteriów.
    * Zachowuje przygotowany zbiór do kolejnych generowań bez ponownego pobierania.
    * Pobiera partie po 20 ID kolejno i zachowuje każdą zakończoną odpowiedź.
    * Ponowienie zaczyna od pierwszej niezakończonej partii. Po przygotowaniu
    * całego pliku raz uruchamia filtrowanie i ranking połączonego zbioru.
-   * Pomija wywołanie bez pliku, przy pustym przygotowanym zbiorze, niepoprawnym
-   * formularzu oraz podczas odczytu lub trwającego procesu.
+   * Zapisane utwory pobiera kolejno od offsetu 0, najwyżej do 500 pozycji, korzystając
+   * z nextOffset. Przerwane przygotowanie biblioteki zaczyna od początku.
+   * Kompletny niepusty zbiór obu źródeł wykorzystuje ponownie po zmianie kryteriów.
+   * Pusta biblioteka lub brak użytecznych pomiarów nie uruchamia rankingu;
+   * kolejne kliknięcie pozwala ponownie pobrać zapisane utwory.
+   * Pomija wywołanie bez źródła, przy pustym zbiorze pliku, niepoprawnym formularzu
+   * oraz podczas odczytu lub trwającego procesu.
    * Etap zmienia dopiero po zakończeniu pobierania lub otrzymaniu wyniku;
    * liczy wyłącznie ID z zakończonych partii, bez szacowania czasu.
    * Zapisuje ranking i odrzucenia albo komunikat błędu; pusty ranking jest poprawnym wynikiem.
@@ -255,19 +298,19 @@ class PlaylistGenerator {
    * Nie tworzy playlisty w Spotify.
    */
   protected generatePlaylist(): void {
-    const file = this.trackIdsFile();
     const criteria = this.criteria();
 
-    if (!file || !criteria || !this.canGenerate()) {
+    if (!criteria || !this.canGenerate()) {
       return;
     }
 
     this.clearGeneration();
     this.isGenerating.set(true);
 
-    const cachedDataset = this.preparedDataset();
+    const prepared = this.preparedDataset();
+    const cachedDataset = prepared?.dataset.tracks.length ? prepared : null;
     this.generationStage.set(cachedDataset ? 'analysis' : 'preparation');
-    const preparation = cachedDataset ? of(cachedDataset) : this.prepareRemainingBatches(file);
+    const preparation = cachedDataset ? of(cachedDataset) : this.prepareSelectedSource();
 
     this.generationSubscription = preparation
       .pipe(
@@ -295,8 +338,8 @@ class PlaylistGenerator {
         error: (error: unknown) => {
           const message =
             this.generationStage() === 'preparation'
-              ? getPreparationErrorMessage(error)
-              : getGenerationErrorMessage(error);
+              ? getPreparationErrorMessage(error, this.dataSource())
+              : getGenerationErrorMessage(error, this.dataSource());
           this.generationError.set(message);
         },
       });
@@ -304,7 +347,8 @@ class PlaylistGenerator {
 
   /**
    * Kończy oczekiwanie na bieżącą odpowiedź i nie wysyła kolejnych partii.
-   * Zachowuje ukończone partie i kryteria do wznowienia kolejnym kliknięciem.
+   * Zachowuje ukończone partie pliku i kryteria do wznowienia kolejnym kliknięciem.
+   * Przerwane pobieranie biblioteki zacznie od zera; kompletny zbiór pozostaje dostępny.
    * Nie gwarantuje zatrzymania pracy już rozpoczętej przez backend lub dostawców.
    */
   protected cancelGeneration(): void {
@@ -335,7 +379,12 @@ class PlaylistGenerator {
   protected async importDataset(event: Event): Promise<void> {
     const input = event.target;
 
-    if (!(input instanceof HTMLInputElement) || this.isReadingFile() || this.isSaving()) {
+    if (
+      !(input instanceof HTMLInputElement) ||
+      this.dataSource() !== 'file' ||
+      this.isReadingFile() ||
+      this.isSaving()
+    ) {
       return;
     }
 
@@ -384,6 +433,20 @@ class PlaylistGenerator {
       this.isReadingFile.set(false);
       input.value = '';
     }
+  }
+
+  /** Przygotowuje bieżące źródło; postęp biblioteki jest nieznany do pierwszej odpowiedzi. */
+  private prepareSelectedSource(): Observable<PreparedPlaylistDataset> {
+    if (this.dataSource() === 'saved-tracks') {
+      this.preparedDataset.set(null);
+      this.savedTracksProgress.set(null);
+      return prepareSavedTracksDataset(
+        (offset) => this.playlistGeneratorApi.prepareSavedTracksPage(offset),
+        (progress) => this.savedTracksProgress.set(progress)
+      );
+    }
+
+    return this.prepareRemainingBatches(this.trackIdsFile()!);
   }
 
   /**
@@ -438,19 +501,25 @@ class PlaylistGenerator {
 }
 
 /** Wybiera bezpieczny komunikat pobierania; nie wyświetla diagnostyki ani tokenów z odpowiedzi. */
-function getPreparationErrorMessage(error: unknown): string {
+function getPreparationErrorMessage(error: unknown, source: PlaylistDataSource): string {
   if (error instanceof HttpErrorResponse) {
     switch (error.status) {
       case 0:
         return 'Nie udało się połączyć z backendem. Sprawdź połączenie i ponów pobieranie.';
       case 400:
-        return 'Nie udało się przygotować zbioru. Sprawdź format pliku i identyfikatory Spotify.';
+        return source === 'saved-tracks'
+          ? 'Nie udało się przygotować zapisanych utworów. Spróbuj ponownie.'
+          : 'Nie udało się przygotować zbioru. Sprawdź format pliku i identyfikatory Spotify.';
       case 401:
         return 'Połącz ponownie konto Spotify i ponów pobieranie danych.';
       case 403:
-        return 'Spotify odmówiło dostępu do danych. Sprawdź uprawnienia połączonego konta.';
+        return source === 'saved-tracks'
+          ? 'Połącz ponownie Spotify i zezwól na odczyt zapisanych utworów.'
+          : 'Spotify odmówiło dostępu do danych. Sprawdź uprawnienia połączonego konta.';
       case 413:
-        return 'Plik jest zbyt duży. Wybierz mniejszy plik z maksymalnie 500 identyfikatorami.';
+        return source === 'saved-tracks'
+          ? 'Nie udało się przygotować zapisanych utworów. Spróbuj ponownie.'
+          : 'Plik jest zbyt duży. Wybierz mniejszy plik z maksymalnie 500 identyfikatorami.';
       case 429: {
         const header = error.headers.get('Retry-After')?.trim();
         const seconds = header ? Number(header) : null;
@@ -470,14 +539,16 @@ function getPreparationErrorMessage(error: unknown): string {
 }
 
 /** Wybiera komunikat dla błędu HTTP lub połączenia, bez ujawniania technicznej treści odpowiedzi. */
-function getGenerationErrorMessage(error: unknown): string {
+function getGenerationErrorMessage(error: unknown, source: PlaylistDataSource): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 400) {
       return 'Nie udało się wygenerować playlisty. Sprawdź format zbioru i ustawione kryteria.';
     }
 
     if (error.status === 413) {
-      return 'Przesłany zbiór jest zbyt duży. Wczytaj mniejszy plik i spróbuj ponownie.';
+      return source === 'saved-tracks'
+        ? 'Przesłany zbiór jest zbyt duży. Spróbuj ponownie z mniejszym zbiorem utworów.'
+        : 'Przesłany zbiór jest zbyt duży. Wczytaj mniejszy plik i spróbuj ponownie.';
     }
   }
 
