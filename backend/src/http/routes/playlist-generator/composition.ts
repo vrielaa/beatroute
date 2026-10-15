@@ -9,6 +9,8 @@ const playlistDatasetService = createPlaylistDatasetService({
   getAudioFeaturesBySpotifyIds:
     reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds,
   getCurrentUserSavedTracks: defaultSpotifyGateway.getCurrentUserSavedTracks,
+  getPlaylistMetadata: defaultSpotifyGateway.getPlaylistMetadata,
+  getPlaylistItemsPage: defaultSpotifyGateway.getPlaylistItemsPage,
 });
 
 /** Serwis zapisu prywatnych playlist korzystający z produkcyjnego gatewaya Spotify. */

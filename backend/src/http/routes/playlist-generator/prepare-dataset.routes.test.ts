@@ -458,6 +458,10 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
       },
     ]);
     const service = createPlaylistDatasetService({
+      getPlaylistMetadata:
+        vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
+      getPlaylistItemsPage:
+        vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
       getCurrentUserSavedTracks:
         vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
       getSpotifyTrackById,
@@ -618,6 +622,8 @@ describe("POST /api/playlist-generator/prepare-dataset", () => {
       const gateway = createSpotifyGateway({ fetchImpl: fetchMock, scheduler });
       const getAudioFeaturesBySpotifyIds = vi.fn();
       const service = createPlaylistDatasetService({
+        getPlaylistMetadata: gateway.getPlaylistMetadata,
+        getPlaylistItemsPage: gateway.getPlaylistItemsPage,
         getCurrentUserSavedTracks: gateway.getCurrentUserSavedTracks,
         getSpotifyTrackById: gateway.getSpotifyTrackById,
         getAudioFeaturesBySpotifyIds,
@@ -742,6 +748,10 @@ function createCachedPreparationApp() {
       }))
     );
   const service = createPlaylistDatasetService({
+    getPlaylistMetadata:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
+    getPlaylistItemsPage:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
     getCurrentUserSavedTracks:
       vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
     getSpotifyTrackById,

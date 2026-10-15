@@ -529,6 +529,10 @@ describe("saved tracks dataset preparation", () => {
 
 function createDependencies() {
   return {
+    getPlaylistMetadata:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
+    getPlaylistItemsPage:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
     getCurrentUserSavedTracks: vi
       .fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>()
       .mockResolvedValue(createPage()),

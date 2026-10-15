@@ -16,7 +16,18 @@ import type {
   PreparedPlaylistDataset,
   SkippedPlaylistTrack,
   PreparedSavedTracksPage,
+  PreparedPlaylistPage,
+  PlaylistSourceSelection,
 } from "./types.js";
+import type { SpotifyLibraryTrack } from "@integrations/spotify/spotify.types.js";
+
+/** Zmiana źródłowej playlisty uniemożliwiająca połączenie stron w jeden spójny zbiór. */
+class PlaylistSourceChangedError extends Error {
+  constructor() {
+    super("Playlista zmieniła się. Spróbuj ponownie.");
+    this.name = "PlaylistSourceChangedError";
+  }
+}
 
 /**
  * Poprawne metadane zachowane w lokalnym cache do czasu wygaśnięcia.
@@ -46,23 +57,25 @@ const AUDIO_FEATURE_KEYS: (keyof PlaylistAudioFeatures)[] = [
 ];
 
 /**
- * Tworzy serwis przygotowujący metadane i pomiary generatora z ID lub biblioteki Spotify.
+ * Tworzy serwis przygotowujący metadane i pomiary z ID, biblioteki lub playlisty Spotify.
  * Zależności odpowiadają wyłącznie za pobieranie danych; nie są wywoływane
  * przez filtrowanie i ranking. Serwis nie odczytuje plików ani zmiennych środowiska.
  * Wariant z ID zachowuje poprawne metadane w cache instancji przez 24 godziny,
  * do 1000 wpisów łącznie. Kontekst cache oddziela dane poszczególnych sesji.
- * Wariant biblioteki korzysta bezpośrednio z metadanych zwróconych na stronie
- * zapisanych utworów, bez odczytu i uzupełniania cache pojedynczych ID.
+ * Warianty biblioteki i playlisty korzystają bezpośrednio z metadanych zwróconych
+ * na stronie Spotify, bez odczytu i uzupełniania cache pojedynczych ID.
  * Odczyt metadanych z ID oddziela od prywatnego przygotowania pomiarów
  * i składania zbioru; ta część nie zależy od sposobu dostarczenia metadanych.
  *
- * @param dependencies - Odczyt pojedynczego utworu, strony biblioteki i cech audio.
+ * @param dependencies - Odczyt utworu, stron biblioteki i playlisty, jej wersji oraz cech audio.
  * @returns Serwis przygotowania zbioru, bez produkcyjnych zależności i stanu globalnego.
  */
 function createPlaylistDatasetService({
   getSpotifyTrackById,
   getAudioFeaturesBySpotifyIds,
   getCurrentUserSavedTracks,
+  getPlaylistMetadata,
+  getPlaylistItemsPage,
 }: PlaylistDatasetDependencies) {
   const metadataCache = new Map<string, CachedTrackMetadata>();
 
@@ -310,15 +323,82 @@ function createPlaylistDatasetService({
       offset,
     });
 
+    const prepared = await prepareSpotifyTracks(
+      page.items.map((item) => item.track)
+    );
+    const processedThrough = offset + page.items.length;
+    const preparationLimit = Math.min(page.total, 500);
+
+    return {
+      ...prepared,
+      pagination: {
+        offset,
+        processedItems: page.items.length,
+        totalItems: page.total,
+        nextOffset:
+          processedThrough < preparationLimit ? processedThrough : null,
+      },
+    };
+  }
+
+  /**
+   * Przygotowuje do 50 pozycji playlisty, najwyżej do 500. pozycji źródła.
+   * Porównuje wersję przed i po odczycie Spotify oraz z wersją pierwszej strony.
+   * Zmiana wersji przerywa proces przed pobieraniem pomiarów, bez częściowego wyniku.
+   * Dostęp sprawdza Spotify, nie porównanie właściciela z zalogowanym użytkownikiem.
+   * Metadane wykorzystuje bezpośrednio, bez odczytów pojedynczych utworów i cache ID.
+   *
+   * @param selection - ID playlisty, offset i wersja zachowana między stronami.
+   * @param accessToken - Token użytkownika uprawnionego do odczytu zawartości playlisty.
+   * @returns Przygotowana strona, aktualna nazwa playlisty i liczniki pozycji źródłowych.
+   * @throws PlaylistSourceChangedError Gdy nie można połączyć odczytów tej samej wersji.
+   */
+  async function preparePlaylistPage(
+    selection: PlaylistSourceSelection,
+    accessToken: string
+  ): Promise<PreparedPlaylistPage> {
+    const { playlistId, offset, snapshotId } = selection;
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset >= 500) {
+      throw new RangeError(
+        "Offset playlisty musi być liczbą całkowitą od 0 do 499"
+      );
+    }
+    const playlist = await getPlaylistMetadata(accessToken, playlistId);
+    if (snapshotId !== null && playlist.snapshotId !== snapshotId)
+      throw new PlaylistSourceChangedError();
+    const page = await getPlaylistItemsPage(accessToken, playlistId, {
+      limit: Math.min(50, 500 - offset),
+      offset,
+    });
+    const after = await getPlaylistMetadata(accessToken, playlistId);
+    if (after.snapshotId !== playlist.snapshotId)
+      throw new PlaylistSourceChangedError();
+    const prepared = await prepareSpotifyTracks(page.items);
+    const processedThrough = offset + page.items.length;
+    return {
+      playlist: after,
+      ...prepared,
+      pagination: {
+        offset,
+        processedItems: page.items.length,
+        totalItems: page.total,
+        nextOffset:
+          processedThrough < Math.min(page.total, 500)
+            ? processedThrough
+            : null,
+      },
+    };
+  }
+
+  /** Wspólne pomijanie, deduplikacja i przygotowanie pomiarów biblioteki oraz playlisty. */
+  async function prepareSpotifyTracks(items: (SpotifyLibraryTrack | null)[]) {
     const trackIds: string[] = [];
     const metadataById = new Map<string, PlaylistTrackMetadata>();
     const seenTrackIds = new Set<string>();
 
     let unavailableItemsCount = 0;
 
-    for (const item of page.items) {
-      const track = item.track;
-
+    for (const track of items) {
       if (
         track === null ||
         track.is_local === true ||
@@ -350,25 +430,10 @@ function createPlaylistDatasetService({
     }
 
     const preparedDataset = await prepareTracks(trackIds, metadataById);
-    const processedThrough = offset + page.items.length;
-    const preparationLimit = Math.min(page.total, 500);
-
-    const nextOffset =
-      processedThrough < preparationLimit ? processedThrough : null;
-
-    return {
-      preparedDataset,
-      pagination: {
-        offset,
-        processedItems: page.items.length,
-        totalItems: page.total,
-        nextOffset,
-      },
-      unavailableItemsCount,
-    };
+    return { preparedDataset, unavailableItemsCount };
   }
 
-  return { prepareDataset, prepareSavedTracksPage };
+  return { prepareDataset, prepareSavedTracksPage, preparePlaylistPage };
 }
 
 /** Przygotowuje przycięte nazwy; brak nazwy utworu lub jakiegokolwiek wykonawcy oznacza null. */
@@ -427,4 +492,4 @@ function normalizeUnitMeasurement(value: unknown): number | null {
     : null;
 }
 
-export { createPlaylistDatasetService };
+export { createPlaylistDatasetService, PlaylistSourceChangedError };

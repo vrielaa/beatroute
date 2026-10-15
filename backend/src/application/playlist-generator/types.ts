@@ -3,7 +3,11 @@ import type {
   PlaylistDataset,
 } from "@domain/playlist-generator/types.js";
 import type { TrackAudioFeaturesResult } from "@domain/tracks/types.js";
-import type { SpotifySavedTracksApiResponse } from "@integrations/spotify/spotify.types.js";
+import type {
+  SpotifySavedTracksApiResponse,
+  SpotifyGateway,
+  SpotifyPlaylistMetadata,
+} from "@integrations/spotify/spotify.types.js";
 
 /**
  * Plik JSON wskazujący utwory Spotify do przygotowania zbioru generatora.
@@ -170,8 +174,12 @@ type PreparedPlaylistDataset = {
  * błąd pojedynczego utworu jest wpisem wyniku, a awaria całego odczytu wyjątkiem.
  * @property getCurrentUserSavedTracks - Pobiera jedną stronę biblioteki z metadanymi
  * utworów i paginacją. Nie pobiera cech audio ani kolejnych stron.
+ * @property getPlaylistMetadata - Pobiera nazwę i aktualną wersję playlisty.
+ * @property getPlaylistItemsPage - Pobiera metadane jednej strony, zachowując niedostępne pozycje.
  */
 type PlaylistDatasetDependencies = {
+  getPlaylistMetadata: SpotifyGateway["getPlaylistMetadata"];
+  getPlaylistItemsPage: SpotifyGateway["getPlaylistItemsPage"];
   getSpotifyTrackById(
     spotifyId: string,
     accessToken: string
@@ -250,6 +258,40 @@ type PreparedSavedTracksPage = {
   unavailableItemsCount: number;
 };
 
+/**
+ * Wybór jednej strony źródłowej playlisty Spotify.
+ *
+ * @property playlistId - ID playlisty wskazanej przez użytkownika.
+ * @property offset - Indeks pierwszej pozycji, od 0 do 499.
+ * @property snapshotId - null dla pierwszej strony albo wersja zachowana z pierwszego odczytu.
+ */
+type PlaylistSourceSelection = {
+  playlistId: string;
+  offset: number;
+  snapshotId: string | null;
+};
+
+/**
+ * Przygotowana strona źródłowej playlisty, bez filtrowania i rankingu.
+ *
+ * @property playlist - Nazwa, ID i wersja niezmieniona podczas odczytu strony.
+ * @property preparedDataset - Przygotowane utwory oraz braki metadanych i pomiarów.
+ * @property pagination - Liczniki źródłowych pozycji: offset, processedItems, totalItems i nextOffset.
+ * Offset uwzględnia również niedostępne pozycje i duplikaty; kończy na 500. pozycji.
+ * @property unavailableItemsCount - Pozycje bez przydatnego utworu, niepowtarzające braków w preparedDataset.
+ */
+type PreparedPlaylistPage = {
+  playlist: SpotifyPlaylistMetadata;
+  preparedDataset: PreparedPlaylistDataset;
+  pagination: {
+    offset: number;
+    processedItems: number;
+    totalItems: number;
+    nextOffset: number | null;
+  };
+  unavailableItemsCount: number;
+};
+
 export type {
   PlaylistTrackIdsFile,
   PlaylistToSave,
@@ -265,4 +307,6 @@ export type {
   PlaylistSaveDependencies,
   SavedTracksPagination,
   PreparedSavedTracksPage,
+  PlaylistSourceSelection,
+  PreparedPlaylistPage,
 };

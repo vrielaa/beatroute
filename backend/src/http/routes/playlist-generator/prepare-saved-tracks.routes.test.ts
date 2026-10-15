@@ -373,6 +373,10 @@ describe("POST /api/playlist-generator/prepare-saved-tracks", () => {
         },
       ]);
     const service = createPlaylistDatasetService({
+      getPlaylistMetadata:
+        vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
+      getPlaylistItemsPage:
+        vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
       getSpotifyTrackById,
       getCurrentUserSavedTracks,
       getAudioFeaturesBySpotifyIds,

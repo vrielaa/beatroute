@@ -421,6 +421,10 @@ function createFile(spotifyTrackIds: string[]): PlaylistTrackIdsFile {
 
 function createDependencies() {
   return {
+    getPlaylistMetadata:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
+    getPlaylistItemsPage:
+      vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
     getCurrentUserSavedTracks:
       vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
     getSpotifyTrackById: vi
