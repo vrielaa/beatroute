@@ -219,9 +219,10 @@ describe('PlaylistGenerator generation', () => {
     }
 
     expect(details).toHaveLength(2);
-    expect(details.every((element) => !element.hasAttribute('open'))).toBe(true);
+    expect(getResultElements('app-playlist-ranked-track details')).toHaveLength(0);
 
     for (const detail of details) {
+      const wasOpen = detail.hasAttribute('open');
       const summary = detail.querySelector('summary');
 
       if (!summary) {
@@ -230,12 +231,12 @@ describe('PlaylistGenerator generation', () => {
 
       summary.click();
       fixture.detectChanges();
-      expect(detail.hasAttribute('open')).toBe(true);
+      expect(detail.hasAttribute('open')).toBe(!wasOpen);
       http.expectNone(() => true);
 
       summary.click();
       fixture.detectChanges();
-      expect(detail.hasAttribute('open')).toBe(false);
+      expect(detail.hasAttribute('open')).toBe(wasOpen);
       http.expectNone(() => true);
     }
 

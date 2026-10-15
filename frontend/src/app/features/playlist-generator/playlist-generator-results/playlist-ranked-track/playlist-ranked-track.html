@@ -5,33 +5,26 @@
       <h3>{{ evaluation().track.name }}</h3>
       <p class="track-artists">{{ artistNames() }}</p>
     </div>
-
-    <dl class="overall-match">
-      <dt>Ogólne dopasowanie do preferencji</dt>
-      <dd class="overall-match-value">
-        @if (evaluation().overallMatch !== null) {
-          {{ evaluation().overallMatch | percent: '1.0-1' }}
-        } @else if (evaluation().featureMatches.length === 0) {
-          Bez aktywnych preferencji
-        } @else {
-          Brak dostępnych pomiarów
-        }
-      </dd>
-    </dl>
   </header>
 
-  <details class="track-match-details">
-    <summary [attr.aria-label]="'Szczegóły dopasowania: ' + evaluation().track.name">
-      Szczegóły dopasowania
-    </summary>
-    <div class="track-match-content">
-      @if (evaluation().overallMatch === 0) {
-        <p class="zero-match-hint">
-          Utwór spełnia wymagania obowiązkowe. Preferencje wpływają na kolejność, nie na odrzucenie.
-        </p>
+  <dl class="overall-match">
+    <dt>Ogólne dopasowanie do preferencji</dt>
+    <dd class="overall-match-value">
+      @if (evaluation().overallMatch !== null) {
+        {{ evaluation().overallMatch | percent: '1.0-1' }}
+      } @else if (evaluation().featureMatches.length === 0) {
+        Bez aktywnych preferencji
+      } @else {
+        Brak dostępnych pomiarów
       }
+    </dd>
+  </dl>
 
-      <app-playlist-preference-matches [featureMatches]="evaluation().featureMatches" />
-    </div>
-  </details>
+  @if (evaluation().overallMatch === 0) {
+    <p class="zero-match-hint">
+      Utwór spełnia wymagania obowiązkowe. Preferencje wpływają na kolejność, nie na odrzucenie.
+    </p>
+  }
+
+  <app-playlist-preference-matches [featureMatches]="evaluation().featureMatches" />
 </article>

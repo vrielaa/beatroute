@@ -39,6 +39,50 @@ describe('PlaylistGeneratorResults', () => {
     expect(getText('.preference-score')).toBe('100%');
   });
 
+  it('starts with the entire accepted ranking expanded under a counted summary', () => {
+    renderResult({
+      rankedTracks: [createEvaluation('first', 'Pierwszy'), createEvaluation('second', 'Drugi')],
+      rejectedTracks: [],
+    });
+
+    expect(getAcceptedTracks().open).toBe(true);
+    expect(getText('.accepted-tracks-summary')).toBe('Dopuszczone utwory (2)');
+    expect(fixture.nativeElement.querySelector('.playlist-ranking').parentElement).toBe(
+      getAcceptedTracks()
+    );
+    expect(
+      fixture.nativeElement.querySelector('.playlist-selection').closest('details')
+    ).toBeNull();
+  });
+
+  it('collapses and expands the entire ranking without changing its order or scores', () => {
+    const result: GeneratedPlaylist = {
+      rankedTracks: [createEvaluation('zeta', 'Zeta', 0.25), createEvaluation('alfa', 'Alfa', 1)],
+      rejectedTracks: [createRejection('rejected', 'Odrzucony')],
+    };
+    const originalResult = structuredClone(result);
+    renderResult(result);
+    const summary = getAcceptedTracks().querySelector('summary');
+    if (!summary) throw new Error('Nie znaleziono nagłówka listy dopuszczonych utworów');
+
+    summary.click();
+    fixture.detectChanges();
+
+    expect(getAcceptedTracks().open).toBe(false);
+    expect(getRankingNames()).toEqual(['Zeta', 'Alfa']);
+    expect(getElements('.rejected-track')).toHaveLength(1);
+
+    summary.click();
+    fixture.detectChanges();
+
+    expect(getAcceptedTracks().open).toBe(true);
+    expect(getRankingNames()).toEqual(['Zeta', 'Alfa']);
+    expect(
+      getElements('.overall-match-value').map((element) => element.textContent.trim())
+    ).toEqual(['25%', '100%']);
+    expect(result).toEqual(originalResult);
+  });
+
   it('preserves backend order without sorting by name or recalculating positions from scores', () => {
     renderResult({
       rankedTracks: [createEvaluation('zeta', 'Zeta', 0.25), createEvaluation('alfa', 'Alfa', 1)],
@@ -94,6 +138,7 @@ describe('PlaylistGeneratorResults', () => {
     expect(getText('.generation-summary')).toContain('Odrzucone utwory: 2.');
     expect(getText('.empty-ranking')).toContain('Żaden utwór nie spełnia aktywnych wymagań.');
     expect(getElements('.playlist-ranking')).toHaveLength(0);
+    expect(getElements('.accepted-tracks')).toHaveLength(0);
     expect(getElements('app-playlist-ranked-track')).toHaveLength(0);
     expect(getElements('.rejected-track')).toHaveLength(2);
     expect(getElements('[role="alert"]')).toHaveLength(0);
@@ -254,6 +299,17 @@ describe('PlaylistGeneratorResults', () => {
 
   function getElements(selector: string): HTMLElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll(selector));
+  }
+
+  function getAcceptedTracks(): HTMLDetailsElement {
+    const details: HTMLDetailsElement | null =
+      fixture.nativeElement.querySelector('.accepted-tracks');
+
+    if (!details) {
+      throw new Error('Nie znaleziono zwijanej listy dopuszczonych utworów');
+    }
+
+    return details;
   }
 
   function getText(selector: string): string {

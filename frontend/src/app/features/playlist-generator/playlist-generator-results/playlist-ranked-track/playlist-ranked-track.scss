@@ -5,9 +5,9 @@
 
 .ranked-track {
   display: grid;
-  gap: 0.8rem;
+  gap: 1.2rem;
   min-width: 0;
-  padding: 1.2rem;
+  padding: 1.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -16,8 +16,8 @@
 header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.8rem 1rem;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .ranking-position {
@@ -48,46 +48,11 @@ dt {
 }
 
 .overall-match {
-  flex: 0 1 14rem;
   margin: 0;
-  margin-inline-start: auto;
-  text-align: end;
-}
-
-.overall-match dt {
-  font-size: var(--text-xs);
 }
 
 .overall-match-value {
-  margin: 0.2rem 0 0;
+  margin: 0.4rem 0 0;
   font-size: var(--text-lg);
   font-weight: var(--font-weight-semibold);
-}
-
-.track-match-details summary {
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.4rem 0;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.track-match-details summary:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-.track-match-content {
-  display: grid;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-}
-
-@media (max-width: 640px) {
-  .overall-match {
-    flex-basis: 100%;
-    margin-inline-start: 0;
-    text-align: start;
-  }
 }

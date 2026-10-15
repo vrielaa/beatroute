@@ -39,76 +39,57 @@ describe('PlaylistGeneratorResults manual selection', () => {
     expect(getCheckboxes().every((checkbox) => checkbox.disabled)).toBe(true);
   });
 
-  it('keeps Top N, ranking and disabled checkboxes unchanged when details are toggled', () => {
-    const result = createResult();
-    const originalResult = structuredClone(result);
-    renderResult(result);
-    setTrackCount('1');
-    const selectedTrackIdsChange = vi.fn();
-    fixture.componentInstance.selectedTrackIdsChange.subscribe(selectedTrackIdsChange);
+  it('keeps all track details available while changing the manual selection', () => {
+    renderResult(createResult());
+    selectMode('Ręcznie');
+    toggleTrack('track-1');
 
-    toggleDetails('track-3');
+    expect(fixture.nativeElement.querySelector('app-playlist-ranked-track details')).toBeNull();
+    expect(
+      fixture.nativeElement.querySelectorAll(
+        'app-playlist-ranked-track app-playlist-preference-matches'
+      )
+    ).toHaveLength(3);
+    expect(getCheckedIds()).toEqual(['track-2', 'track-3']);
+    toggleTrack('track-1');
 
-    expect(getDetails('track-3').open).toBe(true);
-    expect(getCheckedIds()).toEqual(['track-1']);
-    expect(getCountInput().value).toBe('1');
-    expect(getCheckboxes().every((checkbox) => checkbox.disabled)).toBe(true);
-
-    toggleDetails('track-3');
-
-    expect(getDetails('track-3').open).toBe(false);
-    expect(getCheckedIds()).toEqual(['track-1']);
-    expect(getRankingNames()).toEqual(['Utwór track-1', 'Utwór track-2', 'Utwór track-3']);
-    expect(result).toEqual(originalResult);
-    expect(selectedTrackIdsChange).not.toHaveBeenCalled();
+    expect(getCheckedIds()).toEqual(['track-1', 'track-2', 'track-3']);
   });
 
-  it.each(['track-1', 'track-3'])(
-    'preserves manual selection while opening and closing details of %s',
-    (trackId) => {
+  it.each(['Top N', 'Ręcznie'])(
+    'preserves %s selection when the entire ranking is collapsed and expanded',
+    (mode) => {
       renderResult(createResult());
       setTrackCount('2');
-      selectMode('Ręcznie');
+      if (mode === 'Ręcznie') {
+        selectMode(mode);
+        toggleTrack('track-1');
+        toggleTrack('track-3');
+      }
+      const selectedIds = getCheckedIds();
       const selectedTrackIdsChange = vi.fn();
       fixture.componentInstance.selectedTrackIdsChange.subscribe(selectedTrackIdsChange);
+      const details: HTMLDetailsElement | null =
+        fixture.nativeElement.querySelector('.accepted-tracks');
+      const summary = details?.querySelector('summary');
+      if (!details || !summary)
+        throw new Error('Nie znaleziono zwijanej listy dopuszczonych utworów');
 
-      toggleDetails(trackId);
+      summary.click();
+      fixture.detectChanges();
 
-      expect(getDetails(trackId).open).toBe(true);
-      expect(getCheckedIds()).toEqual(['track-1', 'track-2']);
-      expect(getSelectionCount()).toBe('Wybrano 2 ze 3.');
+      expect(details.open).toBe(false);
+      expect(getCheckedIds()).toEqual(selectedIds);
 
-      toggleDetails(trackId);
+      summary.click();
+      fixture.detectChanges();
 
-      expect(getDetails(trackId).open).toBe(false);
-      expect(getCheckedIds()).toEqual(['track-1', 'track-2']);
-      expect(getCheckbox(trackId).disabled).toBe(false);
+      expect(details.open).toBe(true);
+      expect(getCheckedIds()).toEqual(selectedIds);
+      expect(getCountInput().value).toBe('2');
       expect(selectedTrackIdsChange).not.toHaveBeenCalled();
     }
   );
-
-  it('keeps the checkbox outside details and retains an edited selection after collapsing', () => {
-    renderResult(createResult());
-    selectMode('Ręcznie');
-    const checkbox = getCheckbox('track-1');
-    expect(checkbox.closest('details')).toBeNull();
-    toggleDetails('track-1');
-
-    toggleTrack('track-1');
-
-    expect(getDetails('track-1').open).toBe(true);
-    expect(getCheckedIds()).toEqual(['track-2', 'track-3']);
-
-    toggleDetails('track-1');
-
-    expect(getDetails('track-1').open).toBe(false);
-    expect(getCheckedIds()).toEqual(['track-2', 'track-3']);
-
-    toggleTrack('track-1');
-
-    expect(getDetails('track-1').open).toBe(false);
-    expect(getCheckedIds()).toEqual(['track-1', 'track-2', 'track-3']);
-  });
 
   it('ignores a programmatically dispatched checkbox change in Top N', () => {
     renderResult(createResult());
@@ -352,27 +333,6 @@ describe('PlaylistGeneratorResults manual selection', () => {
 
   function toggleTrack(trackId: string): void {
     getCheckbox(trackId).click();
-    fixture.detectChanges();
-  }
-
-  function getDetails(trackId: string): HTMLDetailsElement {
-    const details = getCheckbox(trackId).closest('li')?.querySelector('details');
-
-    if (!details) {
-      throw new Error(`Nie znaleziono szczegółów utworu: ${trackId}`);
-    }
-
-    return details;
-  }
-
-  function toggleDetails(trackId: string): void {
-    const summary = getDetails(trackId).querySelector('summary');
-
-    if (!summary) {
-      throw new Error(`Nie znaleziono nagłówka szczegółów utworu: ${trackId}`);
-    }
-
-    summary.click();
     fixture.detectChanges();
   }
 

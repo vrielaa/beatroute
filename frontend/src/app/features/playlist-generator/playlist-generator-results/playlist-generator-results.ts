@@ -34,6 +34,8 @@ import { PlaylistRejectedTracks } from './playlist-rejected-tracks/playlist-reje
 /**
  * Łączy podsumowanie liczby utworów, ranking dopuszczonych utworów i listę odrzuceń.
  * Udostępnia wybór pierwszych N pozycji oraz ręczne zaznaczanie dopuszczonych utworów.
+ * Cały ranking jest początkowo rozwinięty i można go zwinąć natywnym elementem details.
+ * Zwijanie nie zmienia zaznaczeń; ustawienia wyboru pozostają poza zwijaną listą.
  * Zachowuje pełny ranking, kolejność, oceny i odrzucenia otrzymane z backendu;
  * nie wykonuje obliczeń dopasowania, zapytań HTTP ani zapisu w Spotify.
  */

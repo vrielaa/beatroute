@@ -22,25 +22,7 @@ describe('PlaylistRankedTrack', () => {
     expect(getText('.ranking-position')).toBe('Pozycja 3');
   });
 
-  it('starts with details collapsed while metadata, position and the overall score stay outside', () => {
-    renderTrack(createEvaluation());
-
-    const details = getDetails();
-    expect(details.open).toBe(false);
-    expect(details.hasAttribute('open')).toBe(false);
-    expect(getSummary().textContent.trim()).toBe('Szczegóły dopasowania');
-    expect(getSummary().getAttribute('aria-label')).toBe(
-      'Szczegóły dopasowania: Przykładowy utwór'
-    );
-    for (const selector of ['h3', '.track-artists', '.ranking-position', '.overall-match']) {
-      expect(fixture.nativeElement.querySelector(selector).closest('details')).toBeNull();
-    }
-    expect(
-      fixture.nativeElement.querySelector('app-playlist-preference-matches').closest('details')
-    ).toBe(details);
-  });
-
-  it('opens and closes native details without changing the supplied scores or measurements', () => {
+  it('shows measurements and scores immediately without an expandable details section', () => {
     const evaluation = createEvaluation({
       overallMatch: 0.42,
       featureMatches: [
@@ -51,10 +33,8 @@ describe('PlaylistRankedTrack', () => {
     const originalEvaluation = structuredClone(evaluation);
     renderTrack(evaluation);
 
-    getSummary().click();
-    fixture.detectChanges();
-
-    expect(getDetails().open).toBe(true);
+    expect(fixture.nativeElement.querySelector('details')).toBeNull();
+    expect(fixture.nativeElement.querySelector('summary')).toBeNull();
     expect(getText('app-playlist-preference-matches')).toContain(
       'Pomiary dostępne dla 1 z 2 aktywnych preferencji.'
     );
@@ -62,10 +42,6 @@ describe('PlaylistRankedTrack', () => {
     expect(getText('.preference-measurement')).toBe('0.8');
     expect(getText('.preference-score')).toBe('100%');
 
-    getSummary().click();
-    fixture.detectChanges();
-
-    expect(getDetails().open).toBe(false);
     expect(getText('.overall-match-value')).toBe('42%');
     expect(evaluation).toEqual(originalEvaluation);
   });
@@ -229,26 +205,6 @@ describe('PlaylistRankedTrack', () => {
     }
 
     return element.textContent.replace(/\s+/g, ' ').trim();
-  }
-
-  function getDetails(): HTMLDetailsElement {
-    const details: HTMLDetailsElement | null = fixture.nativeElement.querySelector('details');
-
-    if (!details) {
-      throw new Error('Nie znaleziono rozwijanych szczegółów dopasowania utworu');
-    }
-
-    return details;
-  }
-
-  function getSummary(): HTMLElement {
-    const summary = getDetails().querySelector('summary');
-
-    if (!summary) {
-      throw new Error('Nie znaleziono nagłówka szczegółów dopasowania utworu');
-    }
-
-    return summary;
   }
 });
 

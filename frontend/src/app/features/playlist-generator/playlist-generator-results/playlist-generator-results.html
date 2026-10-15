@@ -82,24 +82,30 @@
       }
     </fieldset>
 
-    <ol class="playlist-ranking" aria-label="Ranking dopuszczonych utworów">
-      @for (evaluation of result().rankedTracks; track evaluation.track.id; let index = $index) {
-        <li>
-          <label class="track-selection-toggle">
-            <input
-              #trackCheckbox
-              type="checkbox"
-              [value]="evaluation.track.id"
-              [checked]="selectedTrackIds().includes(evaluation.track.id)"
-              [disabled]="form.mode().value() !== 'manual'"
-              (change)="changeTrackSelection(evaluation.track.id, trackCheckbox.checked)"
-            />
-            <span>Uwzględnij w playliście: {{ evaluation.track.name }}</span>
-          </label>
-          <app-playlist-ranked-track [evaluation]="evaluation" [position]="index + 1" />
-        </li>
-      }
-    </ol>
+    <details class="accepted-tracks" open>
+      <summary class="accepted-tracks-summary">
+        <h3>Dopuszczone utwory ({{ result().rankedTracks.length }})</h3>
+      </summary>
+
+      <ol class="playlist-ranking" aria-label="Ranking dopuszczonych utworów">
+        @for (evaluation of result().rankedTracks; track evaluation.track.id; let index = $index) {
+          <li>
+            <label class="track-selection-toggle">
+              <input
+                #trackCheckbox
+                type="checkbox"
+                [value]="evaluation.track.id"
+                [checked]="selectedTrackIds().includes(evaluation.track.id)"
+                [disabled]="form.mode().value() !== 'manual'"
+                (change)="changeTrackSelection(evaluation.track.id, trackCheckbox.checked)"
+              />
+              <span>Uwzględnij w playliście: {{ evaluation.track.name }}</span>
+            </label>
+            <app-playlist-ranked-track [evaluation]="evaluation" [position]="index + 1" />
+          </li>
+        }
+      </ol>
+    </details>
   }
 
   <app-playlist-rejected-tracks [rejectedTracks]="result().rejectedTracks" />
