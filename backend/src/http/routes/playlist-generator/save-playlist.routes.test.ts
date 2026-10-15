@@ -405,6 +405,12 @@ function createDependencies() {
       createSpotifySession({ accessToken: "renewed-access-token" })
     );
   return {
+    prepareSavedTracksPage:
+      vi.fn<
+        Parameters<
+          typeof createPlaylistGeneratorRouter
+        >[0]["prepareSavedTracksPage"]
+      >(),
     prepareDataset: vi
       .fn<
         Parameters<typeof createPlaylistGeneratorRouter>[0]["prepareDataset"]

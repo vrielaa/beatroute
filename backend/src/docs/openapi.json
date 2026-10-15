@@ -724,6 +724,139 @@
         }
       }
     },
+    "/api/playlist-generator/prepare-saved-tracks": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "prepareSavedTracksPage",
+        "summary": "Prepare one page of the current user's saved tracks",
+        "description": "Requires a Spotify session with user-library-read. An expired token is refreshed before checking permissions. Uses only the session token; body tokens, user IDs, limits and metadata are ignored. Reads up to 50 library positions from offset, stopping at position 500. Uses metadata from that page without individual Spotify track reads, then obtains audio measurements from ReccoBeats. Skips null, local, explicitly unplayable and invalid-ID entries; removes duplicate IDs within this page, preserving source order. Duplicates are not counted as unavailable. Valid IDs with unusable metadata or no usable measurements are reported in preparedDataset.skippedTracks; partial measurements remain null and appear in incompleteTracks. processedItems counts all source positions in this page, including skipped entries and duplicates, not the number of prepared tracks. totalItems is the full Spotify library size and may exceed 500. nextOffset is null after the last available page or the 500-position cap. Does not follow the next page, filter requirements, rank tracks or create a playlist. An empty library is a successful result. Whole-request failures use the shared error contract, not an empty success. The frontend source-selection flow is not yet connected to this endpoint.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "description": "Explicit zero-based source offset; no default or string coercion. Maximum JSON body size is 1 MiB.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 499
+                  }
+                },
+                "required": ["offset"]
+              },
+              "example": { "offset": 0 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prepared page and source-position progress. An empty dataset is valid here but must not be passed to /generate. The example shows an empty library.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedSavedTracksPage"
+                },
+                "example": {
+                  "preparedDataset": {
+                    "dataset": { "version": 1, "tracks": [] },
+                    "skippedTracks": [],
+                    "incompleteTracks": []
+                  },
+                  "pagination": {
+                    "offset": 0,
+                    "processedItems": 0,
+                    "totalItems": 0,
+                    "nextOffset": null
+                  },
+                  "unavailableItemsCount": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid offset (VALIDATION_ERROR), or malformed JSON (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Spotify session is missing (SPOTIFY_AUTH_REQUIRED), cannot be renewed (SPOTIFY_REAUTH_REQUIRED), or Spotify rejects access (SPOTIFY_API_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Session lacks user-library-read (SPOTIFY_LIBRARY_PERMISSION_REQUIRED); reconnect Spotify to grant access. Also returned when Spotify denies the library read.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds the 1 MiB limit (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "An integration reached its request limit or a local Spotify cooldown rejected the operation. No partial page is returned.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying, when available.",
+                "schema": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application error or invalid Spotify OAuth request; diagnostic data is not returned.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Connection failure, invalid response or upstream error from Spotify or ReccoBeats.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "An integration is temporarily unavailable or Spotify is misconfigured.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Spotify or ReccoBeats did not respond within the request timeout.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/playlist-generator/generate": {
       "post": {
         "tags": ["Playlist generator"],
@@ -2013,6 +2146,50 @@
           }
         },
         "required": ["dataset", "skippedTracks", "incompleteTracks"]
+      },
+      "SavedTracksPagination": {
+        "type": "object",
+        "description": "Progress in source library positions, not prepared-track counts. Only the first 500 positions are processed; the full library size can be larger. A non-null nextOffset equals offset + processedItems and remains below min(totalItems, 500).",
+        "properties": {
+          "offset": { "type": "integer", "minimum": 0, "maximum": 499 },
+          "processedItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "description": "Positions read in this page, including unavailable items and duplicates. Not a cumulative count."
+          },
+          "totalItems": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Full Spotify library size before the 500-position cap."
+          },
+          "nextOffset": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 499,
+            "description": "Offset for the next request, or null when no more positions can be read."
+          }
+        },
+        "required": ["offset", "processedItems", "totalItems", "nextOffset"]
+      },
+      "PreparedSavedTracksPage": {
+        "type": "object",
+        "description": "One library page prepared for later generation. Does not contain tokens or raw provider diagnostics. At most 50 source positions are processed; the dataset can contain fewer or no tracks.",
+        "properties": {
+          "preparedDataset": {
+            "$ref": "#/components/schemas/PreparedPlaylistDataset"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/SavedTracksPagination"
+          },
+          "unavailableItemsCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50,
+            "description": "Null, local, explicitly unplayable or invalid-ID entries in this page. Excludes duplicates and IDs reported separately in preparedDataset.skippedTracks."
+          }
+        },
+        "required": ["preparedDataset", "pagination", "unavailableItemsCount"]
       },
       "PlaylistTempoRange": {
         "type": "object",

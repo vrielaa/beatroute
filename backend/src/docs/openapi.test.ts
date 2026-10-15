@@ -5,6 +5,7 @@ import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/d
 import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-generator/requirements.validator.js";
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "@http/routes/playlist-generator/track-ids.validator.js";
+import { parseSavedTracksOffset } from "@http/routes/playlist-generator/saved-tracks.validator.js";
 import { parsePlaylistToSave } from "@http/routes/playlist-generator/save-playlist.validator.js";
 import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
 import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
@@ -144,6 +145,109 @@ describe("playlist saving OpenAPI contract", () => {
     expect(operation.description).toContain(
       "an unconfirmed batch may already have been written"
     );
+  });
+});
+
+describe("saved tracks preparation OpenAPI contract", () => {
+  const operation =
+    document.paths["/api/playlist-generator/prepare-saved-tracks"].post;
+  const schemas = document.components.schemas;
+
+  it("requires a Spotify session and library-read permission with an explicit offset", () => {
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(operation.description).toContain("user-library-read");
+    expect(operation.requestBody.required).toBe(true);
+    const body = operation.requestBody.content["application/json"];
+    expect(body.schema.required).toEqual(["offset"]);
+    expect(body.schema.properties).toEqual({
+      offset: { type: "integer", minimum: 0, maximum: 499 },
+    });
+    expect(parseSavedTracksOffset(body.example)).toBe(0);
+  });
+
+  it("wraps the existing prepared dataset with page progress and unavailable counts", () => {
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/PreparedSavedTracksPage");
+    expect(schemas.PreparedSavedTracksPage.required).toEqual([
+      "preparedDataset",
+      "pagination",
+      "unavailableItemsCount",
+    ]);
+    expect(
+      schemas.PreparedSavedTracksPage.properties.preparedDataset.$ref
+    ).toBe("#/components/schemas/PreparedPlaylistDataset");
+    expect(schemas.PreparedSavedTracksPage.properties.pagination.$ref).toBe(
+      "#/components/schemas/SavedTracksPagination"
+    );
+    expect(schemas.SavedTracksPagination.required).toEqual([
+      "offset",
+      "processedItems",
+      "totalItems",
+      "nextOffset",
+    ]);
+    expect(
+      schemas.SavedTracksPagination.properties.processedItems.maximum
+    ).toBe(50);
+    expect(schemas.SavedTracksPagination.properties.nextOffset).toMatchObject({
+      type: ["integer", "null"],
+      minimum: 1,
+      maximum: 499,
+    });
+    expect(
+      schemas.SavedTracksPagination.properties.totalItems
+    ).not.toHaveProperty("maximum");
+  });
+
+  it("provides a consistent empty-library example without weakening generator validation", () => {
+    const example =
+      operation.responses["200"].content["application/json"].example;
+    expect(example).toEqual({
+      preparedDataset: {
+        dataset: { version: 1, tracks: [] },
+        skippedTracks: [],
+        incompleteTracks: [],
+      },
+      pagination: {
+        offset: 0,
+        processedItems: 0,
+        totalItems: 0,
+        nextOffset: null,
+      },
+      unavailableItemsCount: 0,
+    });
+    expect(() =>
+      parsePlaylistGeneratorDataset(example.preparedDataset.dataset)
+    ).toThrow();
+  });
+
+  it("documents permission errors, shared failures and Retry-After", () => {
+    expect(operation.responses["403"].description).toContain(
+      "SPOTIFY_LIBRARY_PERMISSION_REQUIRED"
+    );
+    expect(Object.keys(operation.responses).sort()).toEqual([
+      "200",
+      "400",
+      "401",
+      "403",
+      "413",
+      "429",
+      "500",
+      "502",
+      "503",
+      "504",
+    ]);
+    expect(operation.responses["429"].headers["Retry-After"].schema).toEqual({
+      type: "integer",
+      minimum: 0,
+    });
+    for (const [status, response] of Object.entries(operation.responses)) {
+      if (status !== "200") {
+        expect(response.content["application/json"].schema.$ref).toBe(
+          "#/components/schemas/ErrorResponse"
+        );
+      }
+    }
   });
 });
 

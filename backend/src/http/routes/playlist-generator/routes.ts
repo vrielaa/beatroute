@@ -4,6 +4,7 @@ import { parsePlaylistGeneratorDataset } from "@http/routes/playlist-generator/d
 import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-generator/requirements.validator.js";
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "./track-ids.validator.js";
+import { parseSavedTracksOffset } from "./saved-tracks.validator.js";
 import {
   parsePlaylistToSave,
   parsePlaylistResumeId,
@@ -20,12 +21,14 @@ import type { RequestHandler } from "express";
  * Typy operacji wynikają z implementacji, bez osobnych typów całych serwisów.
  *
  * @property prepareDataset - Uzupełnia zwalidowane ID o metadane i cechy audio.
+ * @property prepareSavedTracksPage - Przygotowuje jedną stronę zapisanych utworów Spotify.
  * @property savePlaylist - Zapisuje wybrane ID jako nową, prywatną playlistę.
  * @property resumePlaylist - Sprawdza istniejącą playlistę i dopisuje brakującą końcówkę wyboru.
  * @property authorize - Sprawdza i w razie potrzeby odnawia token w sesji Spotify.
  */
 type PlaylistGeneratorRouterDependencies = {
   prepareDataset: typeof playlistDatasetService.prepareDataset;
+  prepareSavedTracksPage: typeof playlistDatasetService.prepareSavedTracksPage;
   savePlaylist: typeof playlistSaveService.savePlaylist;
   resumePlaylist: typeof playlistSaveService.resumePlaylist;
   authorize: RequestHandler;
@@ -42,6 +45,16 @@ type PlaylistGeneratorRouterDependencies = {
  * ani body; odnowienie tokenu bez zmiany sesji zachowuje dostęp do wpisów.
  * Zwraca dataset, skippedTracks i incompleteTracks bez identyfikatora sesji.
  * Pusty przygotowany zbiór jest poprawnym wynikiem odczytu, ale nie wejściem generatora.
+ *
+ * Endpoint POST /prepare-saved-tracks wymaga sesji i uprawnienia user-library-read.
+ * Odczytuje z req.body offset: liczbę całkowitą od 0 do 499, bez konwersji tekstu.
+ * Token pobiera wyłącznie z req.session.spotify po wykonaniu authorize.
+ * Przygotowuje do 50 pozycji od podanego offsetu, najwyżej do 500. pozycji biblioteki.
+ * Metadane pochodzą z odczytanej strony Spotify, a cechy audio z ReccoBeats.
+ * Zwraca preparedDataset, pagination i unavailableItemsCount; pusta biblioteka
+ * jest poprawnym wynikiem. processedItems liczy pozycje bieżącej strony, także pominięte,
+ * a nextOffset wskazuje kolejną stronę albo null. Nie pobiera jej automatycznie,
+ * nie tworzy rankingu ani playlisty. Dodatkowe pola body są ignorowane.
  *
  * Endpoint POST /generate odczytuje trzy pola req.body:
  * - dataset: zbiór wersji 1, zawierający od 1 do 500 utworów z cechami audio;
@@ -78,6 +91,7 @@ type PlaylistGeneratorRouterDependencies = {
  */
 function createPlaylistGeneratorRouter({
   prepareDataset,
+  prepareSavedTracksPage,
   savePlaylist,
   resumePlaylist,
   authorize,
@@ -93,6 +107,27 @@ function createPlaylistGeneratorRouter({
     );
 
     res.json(preparedDataset);
+  });
+
+  router.post("/prepare-saved-tracks", authorize, async (req, res) => {
+    const spotifySession = req.session.spotify!;
+    const grantedScopes = (spotifySession.scope ?? "").split(/\s+/);
+
+    if (!grantedScopes.includes("user-library-read")) {
+      throw new HttpError(
+        403,
+        "SPOTIFY_LIBRARY_PERMISSION_REQUIRED",
+        "Połącz ponownie Spotify i zezwól na odczyt zapisanych utworów"
+      );
+    }
+
+    const offset = parseSavedTracksOffset(req.body);
+    const preparedPage = await prepareSavedTracksPage(
+      offset,
+      spotifySession.accessToken
+    );
+
+    res.json(preparedPage);
   });
 
   router.post("/generate", (req, res) => {
@@ -197,6 +232,7 @@ function createPlaylistGeneratorRouter({
 /** Router montowany w app.ts pod /api/playlist-generator. */
 const playlistGeneratorRouter = createPlaylistGeneratorRouter({
   prepareDataset: playlistDatasetService.prepareDataset,
+  prepareSavedTracksPage: playlistDatasetService.prepareSavedTracksPage,
   savePlaylist: playlistSaveService.savePlaylist,
   resumePlaylist: playlistSaveService.resumePlaylist,
   authorize: ensureSpotifyAccessToken,

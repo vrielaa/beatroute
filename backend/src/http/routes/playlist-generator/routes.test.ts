@@ -9,6 +9,43 @@ import type {
 } from "@domain/playlist-generator/types.js";
 
 describe("playlist dataset preparation in the actual app", () => {
+  it("mounts saved-track preparation with Spotify authorization", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/prepare-saved-tracks")
+      .send({ offset: 0 })
+      .expect(401, {
+        error: {
+          code: "SPOTIFY_AUTH_REQUIRED",
+          message: "Użytkownik nie jest zalogowany do Spotify",
+        },
+      });
+  });
+
+  it("rejects malformed JSON before preparing saved tracks", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/prepare-saved-tracks")
+      .set("Content-Type", "application/json")
+      .send('{"offset":')
+      .expect(400, {
+        error: {
+          code: "INVALID_JSON",
+          message: "Treść żądania nie jest poprawnym JSON-em",
+        },
+      });
+  });
+
+  it("applies the generator body limit to saved-track preparation", async () => {
+    await request(createTestApp())
+      .post("/api/playlist-generator/prepare-saved-tracks")
+      .send({ offset: 0, unused: "x".repeat(1024 * 1024) })
+      .expect(413, {
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Treść żądania przekracza dozwolony rozmiar",
+        },
+      });
+  });
+
   it("mounts the preparation endpoint with Spotify authorization", async () => {
     await request(createTestApp())
       .post("/api/playlist-generator/prepare-dataset")

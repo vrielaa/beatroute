@@ -44,6 +44,23 @@ The previous `tracks`/`audioFeatures` format is no longer accepted by the file
 picker. The [synthetic full dataset](examples/playlist-dataset.json) remains an
 internal example for testing the generator endpoint without provider calls.
 
+### Saved Spotify tracks — backend endpoint
+
+`POST /api/playlist-generator/prepare-saved-tracks` accepts `{ "offset": 0 }`.
+It requires a Spotify session with `user-library-read`; reconnect Spotify if the
+existing session lacks this permission. Tokens and user IDs are not accepted from
+the body. Each request prepares up to 50 library positions within the first 500,
+using metadata from the library response and audio measurements from ReccoBeats,
+without additional Spotify metadata requests for individual tracks.
+
+The response contains `preparedDataset`, `pagination` and `unavailableItemsCount`.
+`pagination.processedItems` counts source positions in the current page, including
+unavailable entries and duplicates, not just prepared tracks. Use `nextOffset`
+for the next request; `null` ends preparation at the library end or 500-position
+cap. An empty library returns an empty dataset, not an error. This endpoint does
+not rank tracks or save a playlist. The frontend source switch and sequential
+library-page preparation are not connected yet; the current UI still uses files.
+
 ### What happens after import
 
 1. Selecting a file reads and validates it locally, then displays the criteria
