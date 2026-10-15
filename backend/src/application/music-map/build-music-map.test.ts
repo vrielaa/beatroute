@@ -10,7 +10,7 @@ import type {
 } from "@integrations/spotify/spotify.types.js";
 
 describe("music map service", () => {
-  it("builds a map from Spotify tracks and ReccoBeats features", async () => {
+  it("prepares domain tracks and features from Spotify and ReccoBeats", async () => {
     const dependencies = createDependencies();
     const track = createSpotifyTrack("track-1");
     dependencies.spotifyGateway.getCurrentUserTopTracks.mockResolvedValue(
@@ -26,7 +26,6 @@ describe("music map service", () => {
       limit: 10,
       timeRange: "medium_term",
     });
-    const result = service.analyzeMusicMap(dataset, null);
 
     expect(
       dependencies.spotifyGateway.getCurrentUserTopTracks
@@ -37,27 +36,44 @@ describe("music map service", () => {
     expect(
       dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds
     ).toHaveBeenCalledWith(["track-1"]);
-    expect(result).toMatchObject({
+    expect(dataset.metadata).toEqual({
       requestedLimit: 10,
       timeRange: "medium_term",
       spotifyReturnedTracksCount: 1,
       spotifyTotalTracksCount: 25,
-      tracksWithAudioFeaturesCount: 1,
-      skippedTracksCount: 0,
     });
-    expect(result.points).toEqual([
-      expect.objectContaining({
+    expect(dataset.tracks).toEqual([
+      {
         id: "track-1",
         name: "Track track-1",
         artists: ["Artist"],
         album: "Album",
         imageUrl: "https://example.com/cover.jpg",
         spotifyUrl: "https://open.spotify.com/track/track-1",
-      }),
+      },
+    ]);
+    expect(dataset.audioFeatures).toEqual([
+      {
+        status: "found",
+        trackId: "track-1",
+        features: {
+          energy: 0.8,
+          danceability: 0.7,
+          valence: 0.65,
+          acousticness: 0.2,
+          instrumentalness: 0.1,
+          key: 4,
+          liveness: 0.15,
+          speechiness: 0.05,
+          mode: 1,
+          loudness: -5,
+          tempo: 125,
+        },
+      },
     ]);
   });
 
-  it("maps an audio provider failure to a skipped domain track", async () => {
+  it("maps an audio provider failure to a failed domain lookup", async () => {
     const dependencies = createDependencies();
     dependencies.spotifyGateway.getCurrentUserTopTracks.mockResolvedValue(
       createTopTracksResponse([createSpotifyTrack("missing")], 1)
@@ -77,14 +93,12 @@ describe("music map service", () => {
       limit: 10,
       timeRange: "medium_term",
     });
-    const result = service.analyzeMusicMap(dataset, null);
-
-    expect(result.points).toEqual([]);
-    expect(result.skippedTracks).toEqual([
-      expect.objectContaining({
-        id: "missing",
+    expect(dataset.audioFeatures).toEqual([
+      {
+        status: "failed",
+        trackId: "missing",
         reason: "ReccoBeats track not found",
-      }),
+      },
     ]);
   });
 
@@ -100,13 +114,12 @@ describe("music map service", () => {
       limit: 40,
       timeRange: "long_term",
     });
-    const result = service.analyzeMusicMap(dataset, null);
 
     expect(
       dependencies.reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds
     ).not.toHaveBeenCalled();
-    expect(result.points).toEqual([]);
-    expect(result.tracksWithAudioFeaturesCount).toBe(0);
+    expect(dataset.tracks).toEqual([]);
+    expect(dataset.audioFeatures).toEqual([]);
   });
 });
 

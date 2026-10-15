@@ -294,7 +294,9 @@ Production dependencies for Last.fm, track analysis, playlist preparation and sa
 Dashboard and music profile use `POST /api/tracks/analysis` to retrieve audio
 features and statistics calculated from the same provider results. The former
 batch `/audio-features` and `/audio-stats` endpoints have been removed; the
-single-track Soundcharts endpoint remains available.
+single-track Soundcharts endpoint remains available. Music-map data retrieval
+uses an application service, while its analysis router calls the domain function
+directly after validating the dataset.
 
 For playlists, `application/playlist-generator` prepares provider data and coordinates saving;
 `domain/playlist-generator` contains deterministic filtering and ranking.

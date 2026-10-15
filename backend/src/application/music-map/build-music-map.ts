@@ -1,7 +1,5 @@
-import { buildMusicMapResult } from "@domain/music-map/result.js";
 import type {
   MusicMapDataset,
-  MusicMapResult,
   MusicMapDataRequest,
   MusicMapTrack,
   TrackAudioFeaturesLookup,
@@ -19,23 +17,18 @@ type MusicMapDependencies = {
   reccoBeatsService: MusicMapAudioFeaturesReader;
 };
 
-/** Operacje udostępniane przez serwis mapy muzycznej. */
+/** Operacje pobierania danych źródłowych mapy muzycznej. */
 type MusicMapService = {
   /** Pobiera utwory i cechy audio potrzebne do kolejnych analiz. */
   getMusicMapDataset(request: MusicMapDataRequest): Promise<MusicMapDataset>;
-  /** Buduje mapę z wcześniej pobranego zbioru bez wywoływania zewnętrznych API. */
-  analyzeMusicMap(
-    dataset: MusicMapDataset,
-    clusterCount: number | null
-  ): MusicMapResult;
 };
 
 /**
- * Tworzy serwis łączący dane Spotify i ReccoBeats z analizą mapy muzycznej.
+ * Tworzy serwis łączący dane Spotify i ReccoBeats w zbiór do analizy mapy muzycznej.
  * Jawne zależności umożliwiają testowanie przepływu bez komunikacji z API.
  *
  * @param dependencies - Operacje Spotify i ReccoBeats wymagane przez serwis.
- * @returns Serwis udostępniający budowanie mapy muzycznej.
+ * @returns Serwis pobierający zbiór, bez wykonywania PCA ani klasteryzacji.
  */
 function createMusicMapService({
   spotifyGateway,
@@ -74,15 +67,7 @@ function createMusicMapService({
     };
   }
 
-  /** Przelicza klastry i PCA dla wcześniej pobranego zbioru danych. */
-  function analyzeMusicMap(
-    dataset: MusicMapDataset,
-    clusterCount: number | null
-  ): MusicMapResult {
-    return buildMusicMapResult(dataset, clusterCount);
-  }
-
-  return { getMusicMapDataset, analyzeMusicMap };
+  return { getMusicMapDataset };
 }
 
 /** Mapuje odpowiedź Spotify na niezależny od API model domenowy utworu. */

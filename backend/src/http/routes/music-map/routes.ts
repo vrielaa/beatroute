@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { buildMusicMapResult } from "@domain/music-map/result.js";
 import {
   createMusicMapService,
   type MusicMapService,
@@ -14,18 +15,16 @@ import type { RequestHandler } from "express";
 
 /** Zależności routera udostępniającego mapę muzyczną użytkownika. */
 type MusicMapRouterDependencies = {
-  /** Serwis pobierający dane i wykonujący analizę mapy muzycznej. */
-  musicMapService: Pick<
-    MusicMapService,
-    "analyzeMusicMap" | "getMusicMapDataset"
-  >;
+  /** Serwis pobierający dane źródłowe mapy muzycznej. */
+  musicMapService: MusicMapService;
   /** Middleware dopuszczający wyłącznie żądania z aktywną sesją Spotify. */
   authorize: RequestHandler;
 };
 
 /**
  * Tworzy router generujący mapę najczęściej słuchanych utworów użytkownika.
- * Parametry query są walidowane przed przekazaniem ich do przypadku użycia.
+ * Parametry query są walidowane przed pobraniem danych przez serwis aplikacyjny.
+ * Analiza sprawdzonego zbioru wywołuje bezpośrednio funkcję domenową.
  *
  * @param dependencies - Serwis mapy muzycznej i middleware autoryzacji.
  * @returns Router Express obsługujący endpoint mapy muzycznej.
@@ -50,7 +49,7 @@ function createMusicMapRouter({
   /** Ponownie analizuje przesłany zbiór bez wywoływania Spotify ani ReccoBeats. */
   router.post("/analysis", authorize, (req, res) => {
     const { dataset, clusterCount } = parseMusicMapAnalysisBody(req.body);
-    const result = musicMapService.analyzeMusicMap(dataset, clusterCount);
+    const result = buildMusicMapResult(dataset, clusterCount);
 
     res.json(result);
   });

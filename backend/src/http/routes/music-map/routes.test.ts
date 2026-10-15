@@ -4,6 +4,7 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import { errorHandler } from "@http/error-handler.js";
 import { createMusicMapRouter } from "./routes.js";
+import { MUSIC_MAP_FEATURE_KEYS } from "@domain/music-map/features.js";
 import type { MusicMapService } from "@application/music-map/build-music-map.js";
 import type {
   MusicMapDataset,
@@ -28,7 +29,6 @@ describe("music map routes", () => {
     expect(
       dependencies.musicMapService.getMusicMapDataset
     ).not.toHaveBeenCalled();
-    expect(dependencies.musicMapService.analyzeMusicMap).not.toHaveBeenCalled();
   });
 
   it("loads a dataset with defaults and the access token from the session", async () => {
@@ -76,7 +76,6 @@ describe("music map routes", () => {
     const dependencies = createDependencies();
     const dataset = createMusicMapDataset();
     const result = createMusicMapResult();
-    dependencies.musicMapService.analyzeMusicMap.mockReturnValue(result);
     const app = createTestApp(dependencies);
 
     const response = await request(app)
@@ -85,16 +84,76 @@ describe("music map routes", () => {
       .expect(200);
 
     expect(response.body).toEqual(result);
-    expect(dependencies.musicMapService.analyzeMusicMap).toHaveBeenCalledWith(
-      dataset,
-      3
-    );
     expect(
       dependencies.musicMapService.getMusicMapDataset
     ).not.toHaveBeenCalled();
   });
 
-  it("rejects an invalid analysis body before calling the service", async () => {
+  it("analyzes a track using the real domain function without loading provider data", async () => {
+    const dependencies = createDependencies();
+    const dataset = createMusicMapDataset();
+    dataset.tracks = [
+      {
+        id: "track-1",
+        name: "Track",
+        artists: ["Artist"],
+        album: null,
+        imageUrl: null,
+        spotifyUrl: null,
+      },
+    ];
+    dataset.audioFeatures = [
+      {
+        status: "found",
+        trackId: "track-1",
+        features: {
+          acousticness: 0.2,
+          danceability: 0.7,
+          energy: 0.8,
+          instrumentalness: 0.1,
+          liveness: 0.15,
+          speechiness: 0.05,
+          valence: 0.65,
+          loudness: -5,
+          tempo: 125,
+          key: 4,
+          mode: 1,
+        },
+      },
+    ];
+    dataset.metadata.spotifyReturnedTracksCount = 1;
+    dataset.metadata.spotifyTotalTracksCount = 1;
+    const app = createTestApp(dependencies);
+
+    const response = await request(app)
+      .post("/api/music-map/analysis")
+      .send({ dataset, clusterCount: 2 })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      requestedClusterCount: 2,
+      selectedClusterCount: 1,
+      tracksWithAudioFeaturesCount: 1,
+      skippedTracksCount: 0,
+      points: [
+        expect.objectContaining({
+          id: "track-1",
+          name: "Track",
+          cluster: 0,
+          x: 0,
+          y: 0,
+        }),
+      ],
+      clusters: [
+        expect.objectContaining({ trackIds: ["track-1"], tracksCount: 1 }),
+      ],
+    });
+    expect(
+      dependencies.musicMapService.getMusicMapDataset
+    ).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid analysis body without loading provider data", async () => {
     const dependencies = createDependencies();
     const app = createTestApp(dependencies);
 
@@ -104,7 +163,24 @@ describe("music map routes", () => {
       .expect(400);
 
     expect(response.body.error.code).toBe("VALIDATION_ERROR");
-    expect(dependencies.musicMapService.analyzeMusicMap).not.toHaveBeenCalled();
+    expect(
+      dependencies.musicMapService.getMusicMapDataset
+    ).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid cluster count for a valid dataset", async () => {
+    const dependencies = createDependencies();
+    const app = createTestApp(dependencies);
+
+    const response = await request(app)
+      .post("/api/music-map/analysis")
+      .send({ dataset: createMusicMapDataset(), clusterCount: -1 })
+      .expect(400);
+
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    expect(
+      dependencies.musicMapService.getMusicMapDataset
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -123,7 +199,6 @@ function createDependencies() {
   return {
     musicMapService: {
       getMusicMapDataset: vi.fn<MusicMapService["getMusicMapDataset"]>(),
-      analyzeMusicMap: vi.fn<MusicMapService["analyzeMusicMap"]>(),
     },
     authorize,
   };
@@ -173,7 +248,7 @@ function createMusicMapResult(): MusicMapResult {
     selectedClusterCountSource: "fallback",
     appliedClusterCount: 0,
     candidateClusterResults: [],
-    featureKeys: [],
+    featureKeys: MUSIC_MAP_FEATURE_KEYS,
     activeFeatureKeys: [],
     explainedVariance: [],
     tracksWithAudioFeaturesCount: 0,
