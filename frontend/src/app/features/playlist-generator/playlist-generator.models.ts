@@ -73,7 +73,7 @@ type PlaylistDataset = {
 /**
  * Utwór pominięty podczas pobierania danych, nie przez wymagania użytkownika.
  *
- * @property spotifyId - Identyfikator z pliku użytkownika.
+ * @property spotifyId - Identyfikator utworu z wybranego źródła danych.
  * @property reason - metadata-unavailable oznacza brak wymaganych metadanych Spotify;
  * audio-features-unavailable oznacza nieudany odczyt lub brak wszystkich użytecznych pomiarów.
  */
@@ -137,16 +137,19 @@ type PreparedSavedTracksPage = {
 };
 
 /**
- * Postęp przygotowania bieżącego pliku, liczony wyłącznie z zakończonych partii.
+ * Postęp przygotowania pliku albo biblioteki Spotify, liczony z zakończonych partii.
  * Nie szacuje pracy wewnątrz trwającego żądania ani czasu pozostałego do końca.
- * Przetworzone ID obejmują zarówno przygotowane, jak i pominięte utwory.
+ * Przetworzone pozycje obejmują przygotowane i pominięte utwory oraz powtórzenia
+ * w bibliotece. Ich liczba nie musi być sumą unikalnych utworów i pominięć.
  *
- * @property processedTracks - Liczba ID z partii, których odpowiedzi już otrzymano.
- * @property totalTracks - Liczba unikalnych ID w bieżącym pliku.
- * @property preparedTracks - Liczba utworów z metadanymi i użytecznymi pomiarami.
- * @property skippedTracks - Liczba utworów pominiętych podczas przygotowania danych.
+ * @property processedTracks - Liczba ID z pliku albo pozycji biblioteki z ukończonych partii.
+ * @property totalTracks - Liczba unikalnych ID pliku albo pozycji biblioteki, najwyżej 500.
+ * @property preparedTracks - Liczba unikalnych utworów z metadanymi i użytecznymi pomiarami.
+ * @property skippedTracks - Unikalne pominięte ID; dla biblioteki licznik obejmuje też
+ * niedostępne pozycje bez ID w odpowiedzi. Nie obejmuje ID ostatecznie przygotowanych.
  * @property completedBatches - Liczba zakończonych partii, także z pustym zbiorem.
- * @property totalBatches - Liczba partii potrzebnych do przygotowania całego pliku.
+ * @property totalBatches - Liczba ukończonych i pozostałych partii. Dla biblioteki pozostałe
+ * partie są wyliczane przy założeniu stron po 50 pozycji, aż nextOffset wskaże koniec.
  */
 type PlaylistPreparationProgress = {
   processedTracks: number;
