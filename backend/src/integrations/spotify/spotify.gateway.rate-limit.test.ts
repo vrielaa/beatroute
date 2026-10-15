@@ -61,6 +61,43 @@ describe("production Spotify gateway request rate", () => {
     );
   });
 
+  it("shares the production rate limit between saved tracks and other reads", async () => {
+    const page = {
+      href: "https://api.spotify.com/v1/me/tracks?limit=50&offset=0",
+      items: [],
+      total: 0,
+      limit: 50,
+      offset: 0,
+      next: null,
+      previous: null,
+    };
+    const startTimes: number[] = [];
+    fetchMock.mockImplementation(async (url) => {
+      startTimes.push(Date.now());
+      return jsonResponse(String(url).includes("/me/tracks?") ? page : profile);
+    });
+    const results = Promise.all([
+      gateway.getCurrentUserSavedTracks("library-token", {
+        limit: 50,
+        offset: 0,
+      }),
+      gateway.getCurrentUserProfile("profile-token"),
+    ]);
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(startTimes).toEqual([0]);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://api.spotify.com/v1/me/tracks?limit=50&offset=0"
+    );
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(results).resolves.toEqual([page, profile]);
+    expect(startTimes).toEqual([0, 1_000]);
+  });
+
   it("counts retry attempts against the same rate limit", async () => {
     const startTimes: number[] = [];
     fetchMock.mockImplementation(async () => {

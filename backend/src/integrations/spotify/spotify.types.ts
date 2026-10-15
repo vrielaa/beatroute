@@ -36,24 +36,31 @@ type SpotifyAlbumApiResponse = {
   images: SpotifyImage[];
 };
 
-/** Dane pojedynczego utworu zwracane przez Spotify Web API. */
+/**
+ * Dane pojedynczego utworu zwracane przez Spotify Web API.
+ *
+ * @property id - Identyfikator utworu w Spotify.
+ * @property name - Nazwa utworu.
+ * @property artists - Artyści wykonujący utwór.
+ * @property album - Album zawierający utwór.
+ * @property duration_ms - Czas trwania w milisekundach.
+ * @property track_number - Pozycja utworu na albumie.
+ * @property popularity - Popularność, jeśli Spotify ją udostępnia.
+ * @property external_urls - Publiczne odnośniki do utworu.
+ * @property is_local - Informacja o pliku lokalnym, jeśli została podana.
+ * @property is_playable - Dostępność odtwarzania, jeśli została podana.
+ */
 type SpotifyTrackApiResponse = {
-  /** Identyfikator utworu w Spotify. */
   id: string;
-  /** Nazwa utworu. */
   name: string;
-  /** Artyści wykonujący utwór. */
   artists: SpotifyArtistReference[];
-  /** Album zawierający utwór. */
   album: SpotifyAlbumApiResponse;
-  /** Czas trwania utworu w milisekundach. */
   duration_ms: number;
-  /** Pozycja utworu na albumie. */
   track_number: number;
-  /** Popularność utworu w skali Spotify. */
   popularity?: number;
-  /** Publiczne odnośniki do utworu. */
   external_urls: SpotifyExternalUrls;
+  is_local?: boolean;
+  is_playable?: boolean;
 };
 
 /** Liczba obserwujących zasób Spotify. */
@@ -152,6 +159,8 @@ type SpotifyApiConfiguration = {
  * @property getCurrentUserTopTracks - Pobiera najczęściej słuchane utwory użytkownika.
  * @property getCurrentUserTopArtists - Pobiera najczęściej słuchanych artystów użytkownika.
  * @property getCurrentUserProfile - Pobiera profil zalogowanego użytkownika.
+ * @property getCurrentUserSavedTracks - Pobiera jedną stronę zapisanych utworów
+ * wraz z metadanymi; wymaga user-library-read i nie pobiera kolejnych stron.
  * @property createPlaylist - Tworzy pustą, prywatną playlistę na koncie użytkownika.
  * @property addTracksToPlaylist - Dopisuje od 1 do 100 utworów do istniejącej playlisty w podanej kolejności.
  * @property getPlaylistContents - Odczytuje do 500 pozycji playlisty, zachowując kolejność i braki ID.
@@ -185,6 +194,10 @@ type SpotifyGateway = {
     accessToken: string,
     playlistId: string
   ): Promise<SpotifyPlaylistContents>;
+  getCurrentUserSavedTracks(
+    accessToken: string,
+    selection: SpotifyPageSelection
+  ): Promise<SpotifySavedTracksApiResponse>;
 };
 
 /** Skrócone dane utworu zwracane przez endpoint łączący Spotify z Last.fm. */
@@ -240,6 +253,58 @@ type SpotifyPlaylistContents = {
   snapshotId: string;
 };
 
+/**
+ * Parametry odczytu jednej strony zasobów Spotify.
+ * Nie określają łącznej liczby pozycji w bibliotece ani limitu całego generatora.
+ *
+ * @property limit - Żądana liczba pozycji na stronie; dla zapisanych utworów od 1 do 50.
+ * @property offset - Nieujemny indeks pierwszej pozycji, liczony od zera.
+ */
+type SpotifyPageSelection = {
+  limit: number;
+  offset: number;
+};
+
+/**
+ * Dane utworu potrzebne podczas przygotowania zbioru z biblioteki Spotify.
+ * Gateway sprawdza typy tych pól, bez wymagania pozostałych danych pełnego
+ * utworu Spotify. Niepuste nazwy i przydatność utworu ocenia przygotowanie zbioru.
+ * Ten typ nie zawiera pomiarów audio.
+ *
+ * @property id - Identyfikator utworu Spotify.
+ * @property name - Nazwa utworu.
+ * @property artists - Wykonawcy opisani nazwami.
+ * @property is_local - Informacja, czy utwór jest plikiem lokalnym.
+ * @property is_playable - Informacja o dostępności odtwarzania, jeśli została podana.
+ */
+type SpotifyLibraryTrack = {
+  id: string;
+  name: string;
+  artists: SpotifyArtistReference[];
+  is_local?: boolean;
+  is_playable?: boolean;
+};
+
+/**
+ * Pozycja w bibliotece zapisanych utworów.
+ * Gateway zachowuje ją w całości, nie zastępuje samym polem track.
+ *
+ * @property added_at - Data zapisania utworu; gateway sprawdza typ string, nie format daty.
+ * @property track - Dane utworu albo null, gdy są niedostępne. Brak danych utworu
+ * nie usuwa pozycji ani daty zapisu z odpowiedzi.
+ */
+type SpotifySavedTrackApiResponse = {
+  added_at: string;
+  track: SpotifyLibraryTrack | null;
+};
+
+/**
+ * Jedna strona zapisanych utworów po sprawdzeniu kontraktu przez gateway.
+ * Pusta biblioteka ma items: [], total: 0 oraz next i previous ustawione na null.
+ * Linki paginacji mogą być null i nie są automatycznie odczytywane.
+ */
+type SpotifySavedTracksApiResponse = SpotifyPage<SpotifySavedTrackApiResponse>;
+
 export type {
   SpotifyTimeRange,
   SpotifyExternalUrls,
@@ -260,4 +325,8 @@ export type {
   SpotifyPlaylistApiResponse,
   SpotifyPlaylistSnapshotApiResponse,
   SpotifyPlaylistContents,
+  SpotifySavedTrackApiResponse,
+  SpotifySavedTracksApiResponse,
+  SpotifyPageSelection,
+  SpotifyLibraryTrack,
 };

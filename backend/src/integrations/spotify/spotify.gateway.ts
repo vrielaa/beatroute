@@ -10,6 +10,10 @@ import type {
   SpotifyTopTracksApiResponse,
   SpotifyTrackApiResponse,
   SpotifyUserProfileApiResponse,
+  SpotifyPageSelection,
+  SpotifySavedTracksApiResponse,
+  SpotifySavedTrackApiResponse,
+  SpotifyLibraryTrack,
 } from "@integrations/spotify/spotify.types.js";
 
 import {
@@ -201,6 +205,109 @@ function createSpotifyGateway({
   }
 
   /**
+   * Pobiera jedną stronę zapisanych utworów zalogowanego użytkownika.
+   * Wymaga tokenu z uprawnieniem user-library-read. Korzysta ze wspólnego
+   * schedulera, timeoutu i polityki retry odczytów, bez ponawiania odpowiedzi 429.
+   * Sprawdza strukturę strony, zgodność limitu i offsetu z żądaniem oraz pola
+   * utworów zadeklarowane w SpotifyLibraryTrack. Błędna odpowiedź 200 jest
+   * błędem integracji; jej treść nie trafia do danych błędu.
+   * Zachowuje kolejność, duplikaty, daty zapisu i pozycje z track: null.
+   * Nie przycina nazw, nie filtruje utworów lokalnych lub nieodtwarzalnych
+   * ani nie wymaga niepustych metadanych; ocena ich przydatności należy do
+   * przygotowania zbioru. Nie pobiera osobno metadanych ani cech audio.
+   * Nie odczytuje następnej strony i nie podąża za adresami next lub previous.
+   *
+   * @param accessToken - Token użytkownika z dostępem do zapisanych utworów.
+   * @param selection - Żądany rozmiar strony od 1 do 50 oraz nieujemny offset.
+   * @returns Strona z pozycjami biblioteki, licznikami i linkami paginacji.
+   * @throws SpotifyApiError Gdy odczyt zawiedzie lub odpowiedź nie spełnia kontraktu.
+   */
+  async function getCurrentUserSavedTracks(
+    accessToken: string,
+    selection: SpotifyPageSelection
+  ): Promise<SpotifySavedTracksApiResponse> {
+    const params = new URLSearchParams({
+      limit: String(selection.limit),
+      offset: String(selection.offset),
+    });
+
+    const data = await request<unknown>(
+      `/me/tracks?${params.toString()}`,
+      accessToken,
+      "Nie udało się pobrać zapisanych utworów ze Spotify"
+    );
+
+    if (!isObject(data) || Array.isArray(data)) {
+      throw invalidSavedTracksResponse();
+    }
+
+    const items = data["items"];
+    const total = data["total"];
+    const limit = data["limit"];
+    const offset = data["offset"];
+
+    const href = data["href"];
+    const next = data["next"];
+    const previous = data["previous"];
+
+    if (
+      !Array.isArray(items) ||
+      typeof total !== "number" ||
+      !Number.isSafeInteger(total) ||
+      total < 0
+    ) {
+      throw invalidSavedTracksResponse();
+    }
+
+    const hasUnexpectedEmptyPage =
+      items.length === 0 && selection.offset < total;
+
+    const isPaginationValid =
+      limit === selection.limit &&
+      offset === selection.offset &&
+      items.length <= selection.limit &&
+      selection.offset + items.length <= total;
+
+    if (!items.every(isSavedTrackItem)) {
+      throw invalidSavedTracksResponse();
+    }
+
+    if (!isPaginationValid || hasUnexpectedEmptyPage) {
+      throw invalidSavedTracksResponse();
+    }
+
+    if (
+      typeof limit !== "number" ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      typeof offset !== "number" ||
+      !Number.isSafeInteger(offset) ||
+      offset < 0
+    ) {
+      throw invalidSavedTracksResponse();
+    }
+
+    const arePageLinksValid =
+      typeof href === "string" &&
+      (next === null || typeof next === "string") &&
+      (previous === null || typeof previous === "string");
+
+    if (!arePageLinksValid) {
+      throw invalidSavedTracksResponse();
+    }
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      href,
+      next,
+      previous,
+    };
+  }
+
+  /**
    * Tworzy pustą, prywatną playlistę na koncie zalogowanego użytkownika.
    * Wymaga tokenu użytkownika z uprawnieniem `playlist-modify-private`.
    * Zapis POST nie jest automatycznie ponawiany, aby uniknąć tworzenia duplikatów.
@@ -339,6 +446,7 @@ function createSpotifyGateway({
     createPlaylist,
     addTracksToPlaylist,
     getPlaylistContents,
+    getCurrentUserSavedTracks,
   };
 }
 
@@ -404,10 +512,81 @@ function readPlaylistTrackId(value: unknown): string | null {
   return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id) ? id : null;
 }
 
+/**
+ * Sprawdza obecność tekstowej daty zapisu i poprawnych danych utworu albo track: null.
+ * Nie sprawdza formatu daty. Niedostępny utwór jest poprawną pozycją odpowiedzi,
+ * niezależnie od daty jego zapisania; nie oznacza to dopuszczenia go do generatora.
+ */
+function isSavedTrackItem(
+  value: unknown
+): value is SpotifySavedTrackApiResponse {
+  if (!isObject(value) || Array.isArray(value)) {
+    return false;
+  }
+
+  if (typeof value["added_at"] !== "string") {
+    return false;
+  }
+
+  const track = value["track"];
+
+  return track === null || isSpotifyLibraryTrack(track);
+}
+
+/**
+ * Sprawdza typy ID, nazwy, nazw wykonawców i opcjonalnych flag dostępności.
+ * Nie waliduje formatu Spotify ID, nie wymaga niepustych tekstów ani listy
+ * wykonawców. Dodatkowe pola Spotify pozostawia bez zmian i ich nie sprawdza.
+ */
+function isSpotifyLibraryTrack(value: unknown): value is SpotifyLibraryTrack {
+  if (!isObject(value) || Array.isArray(value)) {
+    return false;
+  }
+
+  const id = value["id"];
+  const name = value["name"];
+  const artists = value["artists"];
+  const isLocal = value["is_local"];
+  const isPlayable = value["is_playable"];
+
+  if (
+    typeof id !== "string" ||
+    typeof name !== "string" ||
+    !Array.isArray(artists)
+  ) {
+    return false;
+  }
+
+  const hasValidArtists = artists.every(
+    (artist) =>
+      isObject(artist) &&
+      !Array.isArray(artist) &&
+      typeof artist["name"] === "string"
+  );
+
+  const hasValidLocalFlag =
+    isLocal === undefined || typeof isLocal === "boolean";
+
+  const hasValidPlayableFlag =
+    isPlayable === undefined || typeof isPlayable === "boolean";
+
+  return hasValidArtists && hasValidLocalFlag && hasValidPlayableFlag;
+}
+
 /** Nie ujawnia odpowiedzi API, gdy zawartość playlisty nie może być bezpiecznie ustalona. */
 function invalidPlaylistResponse(): SpotifyApiError {
   return new SpotifyApiError(
     "Nie udało się jednoznacznie odczytać zawartości playlisty. Spróbuj ponownie.",
+    200,
+    null,
+    { category: "invalid-response" }
+  );
+}
+
+/** Tworzy błąd bez ujawniania niepoprawnej odpowiedzi Spotify. */
+function invalidSavedTracksResponse(): SpotifyApiError {
+  return new SpotifyApiError(
+    "Spotify zwróciło niepoprawną odpowiedź zapisanych utworów",
     200,
     null,
     { category: "invalid-response" }
