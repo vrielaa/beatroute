@@ -11,6 +11,7 @@ import type {
   PlaylistSaveProgress,
   PreparedPlaylistDataset,
   SavedPlaylist,
+  PreparedSavedTracksPage,
 } from './playlist-generator.models';
 
 @Injectable({ providedIn: 'root' })
@@ -106,6 +107,29 @@ class PlaylistGeneratorApiService {
           return saved;
         })
       );
+  }
+
+  /**
+   * Przygotowuje jedną stronę zapisanych utworów Spotify.
+   * Wymaga sesji z uprawnieniem user-library-read, przesyłanej jako cookie.
+   * Wysyła tylko offset; backend ustala rozmiar strony do 50 pozycji
+   * i ogranicza przygotowanie do pierwszych 500 pozycji biblioteki.
+   * Nie pobiera kolejnych stron, nie uruchamia rankingu ani nie zapisuje playlisty.
+   *
+   * Żądanie rozpoczyna się dopiero przy subskrypcji. Odpowiedź, także z pustym
+   * zbiorem, jest przekazywana bez zmian. Błędy zachowują treść i Retry-After;
+   * POST nie jest automatycznie ponawiany. Anulowanie subskrypcji przerywa
+   * oczekiwanie w przeglądarce, ale backend może dokończyć rozpoczęty odczyt.
+   *
+   * @param offset - Pozycja początkowa od 0 do 499, sprawdzana przez backend.
+   * @returns Przygotowane dane strony oraz postęp odczytu.
+   */
+  public prepareSavedTracksPage(offset: number): Observable<PreparedSavedTracksPage> {
+    return this.http.post<PreparedSavedTracksPage>(
+      '/api/playlist-generator/prepare-saved-tracks',
+      { offset },
+      { withCredentials: true }
+    );
   }
 }
 
