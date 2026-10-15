@@ -3,7 +3,13 @@ import session from "express-session";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPlaylistDatasetService } from "@application/playlist-generator/playlist-dataset.service.js";
-import type { PlaylistDatasetDependencies } from "@application/playlist-generator/types.js";
+import { createPlaylistSaveService } from "@application/playlist-generator/playlist-save.service.js";
+import type {
+  PlaylistDatasetDependencies,
+  PlaylistSaveDependencies,
+  PreparedPlaylistDataset,
+} from "@application/playlist-generator/types.js";
+import type { SpotifyLibraryTrack } from "@integrations/spotify/spotify.types.js";
 import { createReccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
 import type { ReccoBeatsGateway } from "@integrations/reccobeats/reccobeats.gateway.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
@@ -221,6 +227,138 @@ describe("Spotify ID file to playlist through actual services and HTTP", () => {
   });
 });
 
+describe("Spotify playlist to a new playlist through actual services and HTTP", () => {
+  it("prepares 115 positions, filters before ranking and writes only Top 50 to a new playlist", async () => {
+    const {
+      browser,
+      getSpotifyTrackById,
+      getPlaylistMetadata,
+      getPlaylistItemsPage,
+      gateway,
+      writes,
+    } = createFlow();
+    const sourceId = "P".repeat(22);
+    const source: (SpotifyLibraryTrack | null)[] = Array.from(
+      { length: 115 },
+      (_, index) => ({
+        id: String(index).padStart(22, "0"),
+        name: ` Song ${index} `,
+        artists: [{ name: " Artist " }],
+      })
+    );
+    source[3] = null;
+    source[10] = { ...source[10]!, is_local: true };
+    source[50] = source[0]!;
+    const missingId = String(7).padStart(22, "0");
+    const incompleteTempoId = String(8).padStart(22, "0");
+    const wrongTempoId = String(2).padStart(22, "0");
+    getPlaylistMetadata.mockResolvedValue({
+      id: sourceId,
+      name: "Source",
+      snapshotId: "source-version",
+    });
+    getPlaylistItemsPage.mockImplementation(
+      async (_token, _id, { offset, limit }) => ({
+        items: source.slice(offset, offset + limit),
+        offset,
+        total: source.length,
+      })
+    );
+    gateway.findTracksBySpotifyIds.mockImplementation(async (ids) =>
+      ids.filter((id) => id !== missingId).map(createCatalogTrack)
+    );
+    gateway.getTrackAudioFeatures.mockImplementation(async (id) =>
+      createAudio(
+        id === `recco-${incompleteTempoId}`
+          ? null
+          : id === `recco-${wrongTempoId}`
+            ? 100
+            : 128,
+        0.9
+      )
+    );
+    await browser.post("/test/login").expect(204);
+    const preparedPages: PreparedPlaylistDataset[] = [];
+    let offset: number | null = 0;
+    let snapshotId: string | null = null;
+    while (offset !== null) {
+      const response: request.Response = await browser
+        .post("/api/playlist-generator/prepare-playlist")
+        .send({ playlistId: sourceId, offset, snapshotId })
+        .expect(200);
+      preparedPages.push(response.body.preparedDataset);
+      snapshotId = response.body.playlist.snapshotId;
+      offset = response.body.pagination.nextOffset;
+    }
+    expect(
+      getPlaylistItemsPage.mock.calls.map(([, , selection]) => selection.offset)
+    ).toEqual([0, 50, 100]);
+    expect(getSpotifyTrackById).not.toHaveBeenCalled();
+    const uniqueTracks = new Map(
+      preparedPages
+        .flatMap((prepared) => prepared.dataset.tracks)
+        .map((track) => [track.id, track])
+    );
+    expect(uniqueTracks.size).toBe(111);
+    expect(preparedPages.flatMap((prepared) => prepared.skippedTracks)).toEqual(
+      [{ spotifyId: missingId, reason: "audio-features-unavailable" }]
+    );
+    expect(
+      preparedPages.flatMap((prepared) => prepared.incompleteTracks)
+    ).toEqual([{ spotifyId: incompleteTempoId, missingFeatures: ["tempo"] }]);
+    const generated = await browser
+      .post("/api/playlist-generator/generate")
+      .send({
+        dataset: { version: 1, tracks: Array.from(uniqueTracks.values()) },
+        requirements: {
+          tempoRange: null,
+          targetBpm: 128,
+          maxSpeechiness: null,
+          maxLiveness: null,
+        },
+        preferences: {
+          energy: "high",
+          danceability: null,
+          valence: null,
+          acousticness: null,
+          instrumentalness: null,
+        },
+      })
+      .expect(200);
+    expect(generated.body.rankedTracks).toHaveLength(109);
+    expect(
+      generated.body.rejectedTracks.map(
+        (item: { track: { id: string } }) => item.track.id
+      )
+    ).toEqual([wrongTempoId, incompleteTempoId]);
+    const selectedIds = generated.body.rankedTracks
+      .slice(0, 50)
+      .map((item: { track: { id: string } }) => item.track.id);
+    expect(selectedIds).not.toContain(wrongTempoId);
+    expect(selectedIds).not.toContain(incompleteTempoId);
+    await browser
+      .post("/api/playlist-generator/save")
+      .send({ name: "From source", trackIds: selectedIds })
+      .expect(201, {
+        id: "new-playlist",
+        name: "From source",
+        spotifyUrl: "https://open.spotify.com/playlist/new-playlist",
+        trackCount: 50,
+      });
+    expect(writes.createPlaylist).toHaveBeenCalledExactlyOnceWith(
+      "session-token",
+      "From source"
+    );
+    expect(writes.addTracksToPlaylist).toHaveBeenCalledExactlyOnceWith(
+      "session-token",
+      "new-playlist",
+      selectedIds
+    );
+    expect(writes.getPlaylistContents).not.toHaveBeenCalled();
+    expect(getPlaylistItemsPage).toHaveBeenCalledTimes(3);
+  });
+});
+
 function createFlow() {
   const getSpotifyTrackById = vi
     .fn<PlaylistDatasetDependencies["getSpotifyTrackById"]>()
@@ -231,11 +369,30 @@ function createFlow() {
     getTrackAudioFeatures: vi.fn<ReccoBeatsGateway["getTrackAudioFeatures"]>(),
   };
   const audioService = createReccoBeatsService({ reccoBeatsGateway: gateway });
+  const getPlaylistMetadata =
+    vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>();
+  const getPlaylistItemsPage =
+    vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>();
+  const writes = {
+    createPlaylist: vi
+      .fn<PlaylistSaveDependencies["createPlaylist"]>()
+      .mockImplementation(async (_token, name) => ({
+        id: "new-playlist",
+        name,
+        external_urls: {
+          spotify: "https://open.spotify.com/playlist/new-playlist",
+        },
+      })),
+    addTracksToPlaylist: vi
+      .fn<PlaylistSaveDependencies["addTracksToPlaylist"]>()
+      .mockResolvedValue({ snapshot_id: "saved-version" }),
+    getPlaylistContents:
+      vi.fn<PlaylistSaveDependencies["getPlaylistContents"]>(),
+  };
+  const saveService = createPlaylistSaveService(writes);
   const datasetService = createPlaylistDatasetService({
-    getPlaylistMetadata:
-      vi.fn<PlaylistDatasetDependencies["getPlaylistMetadata"]>(),
-    getPlaylistItemsPage:
-      vi.fn<PlaylistDatasetDependencies["getPlaylistItemsPage"]>(),
+    getPlaylistMetadata,
+    getPlaylistItemsPage,
     getCurrentUserSavedTracks:
       vi.fn<PlaylistDatasetDependencies["getCurrentUserSavedTracks"]>(),
     getSpotifyTrackById,
@@ -256,7 +413,7 @@ function createFlow() {
       accessToken: "session-token",
       refreshToken: "refresh-token",
       expiresAt: 4_600_000,
-      scope: "user-top-read",
+      scope: "user-top-read playlist-read-private playlist-modify-private",
       tokenType: "Bearer",
     };
     res.sendStatus(204);
@@ -267,10 +424,8 @@ function createFlow() {
       prepareDataset: datasetService.prepareDataset,
       prepareSavedTracksPage: datasetService.prepareSavedTracksPage,
       preparePlaylistPage: datasetService.preparePlaylistPage,
-      savePlaylist: vi
-        .fn()
-        .mockRejectedValue(new Error("Unexpected playlist save")),
-      resumePlaylist: vi.fn(),
+      savePlaylist: saveService.savePlaylist,
+      resumePlaylist: saveService.resumePlaylist,
       authorize: createEnsureSpotifyAccessToken({
         refresh: async () => {
           throw new Error("Unexpected refresh");
@@ -280,7 +435,14 @@ function createFlow() {
     })
   );
   app.use(errorHandler);
-  return { browser: request.agent(app), getSpotifyTrackById, gateway };
+  return {
+    browser: request.agent(app),
+    getSpotifyTrackById,
+    getPlaylistMetadata,
+    getPlaylistItemsPage,
+    gateway,
+    writes,
+  };
 }
 
 function createCatalogTrack(spotifyId: string) {

@@ -1,13 +1,13 @@
 # Ustalenia generatora playlist
 
-Uzgodnione 8 października 2026 r., format importu zmieniony 11 października 2026 r.
+Uzgodnione 8 października 2026 r., trzy źródła wdrożone 15 października 2026 r.
 Dokument opisuje uzgodnione wymagania i stan ich wdrożenia. Funkcje docelowe,
 które nie są jeszcze dostępne, są oznaczone w opisie. Projekt jest pracą inżynierską;
 rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
 
 ## Źródła danych
 
-Docelowo użytkownik wybiera jedno z trzech źródeł:
+Użytkownik wybiera jedno z trzech wdrożonych źródeł:
 
 1. Plik JSON zawierający wyłącznie identyfikatory utworów Spotify.
    Użytkownik nie dostarcza nazw, artystów ani pomiarów cech audio.
@@ -21,6 +21,31 @@ Wybór pliku tylko odczytuje i sprawdza ID lokalnie. Metadane i pomiary pobieram
 dopiero po kliknięciu „Generuj playlistę”. Udane przygotowanie zachowujemy w pamięci;
 kolejne generowania dla innych kryteriów korzystają z tego samego zbioru, bez ponownego
 pobierania danych z API. Zmiana kryteriów nie uruchamia procesu automatycznie.
+
+### Odczyt biblioteki i playlisty Spotify
+
+Oba źródła są przygotowywane stronami do 50 pozycji, najwyżej do pierwszej 500. pozycji. Limit dotyczy pozycji źródłowych, także niedostępnych i powtórzonych,
+nie docelowej liczby utworów. Nie doszukujemy zastępstw poza wybranym zbiorem.
+Metadane wykorzystujemy bezpośrednio ze stron Spotify, bez osobnego odczytu
+każdego utworu. Pomiary pochodzą z ReccoBeats. Wspólna kolejka frontendu
+w playlist-spotify-preparation.ts łączy strony, usuwa powtórzone ID i liczy postęp.
+Ranking uruchamiamy raz, dopiero po ukończeniu całego przygotowania.
+
+Pole „ID lub link do playlisty” przyjmuje samo ID lub standardowy link
+https://open.spotify.com/playlist/ID_PLAYLISTY. Hint: „Podaj ID lub link do playlisty,
+której jesteś właścicielem lub współtwórcą.” Wpisywanie i wybór źródła nie wywołują API.
+Frontend wyciąga ID, a backend przyjmuje tylko ID, nigdy URL do pobrania.
+
+POST /api/playlist-generator/prepare-playlist wymaga playlist-read-private
+i pól playlistId, offset oraz snapshotId. Pierwsza strona ma offset: 0
+i snapshotId: null; kolejne przekazują wersję otrzymaną na początku.
+Backend sprawdza ją przed i po odczycie strony Spotify. Zmiana wersji kończy
+proces błędem 409 PLAYLIST_SOURCE_CHANGED, bez rankingu częściowych danych.
+Biblioteka korzysta z POST /api/playlist-generator/prepare-saved-tracks,
+z offsetem i uprawnieniem user-library-read. Błąd lub anulowanie odczytu obu
+źródeł oznacza ponowne przygotowanie od offsetu 0 po następnym kliknięciu.
+Kompletny niepusty zbiór pozostaje w pamięci do kolejnych kryteriów.
+Zmiana ID lub źródła usuwa dane, wynik i wybór; nie usuwa nieukończonego zapisu.
 
 ## Format pliku wejściowego
 
@@ -63,9 +88,9 @@ nie jest już formatem importu w UI; pozostaje wewnętrznym modelem generatora.
 ### Przygotowanie zbioru z ID
 
 Serwis createPlaylistDatasetService w
-backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje dwie
-jawne zależności: odczyt metadanych pojedynczego utworu Spotify i odczyt cech
-audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
+backend/src/application/playlist-generator/playlist-dataset.service.ts przyjmuje
+jawne operacje odczytu: pojedynczego utworu, strony biblioteki, metadanych i strony
+playlisty oraz cech audio wskazanych ID. Nie importuje produkcyjnych klientów ani konfiguracji.
 Produkcyjne zależności są składane w http/routes/playlist-generator/composition.ts.
 Przygotowanie zbioru jest dostępne przez API i uruchamiane przyciskiem generowania w UI.
 
@@ -164,9 +189,8 @@ Animacja uwzględnia prefers-reduced-motion, a etap jest ogłaszany przez role=s
 Nieużywany frontendowy parser pełnego zbioru i jego testy zostały usunięte.
 Pozostał parser pliku z ID; backendowy dataset.validator.ts nadal
 sprawdza kompletny zbiór przesyłany do /generate. UI nie importuje gotowego zbioru
-i nie ma jeszcze trybu offline. Wybór utworów do zapisu w Spotify, sam zapis,
-zapisane utwory Spotify i playlisty
-użytkownika pozostają etapami dalszego rozwoju, poza zakończoną migracją importu.
+i nie ma jeszcze trybu offline. Zapisane utwory, playlisty właściciela lub
+współtwórcy oraz wybór i zapis wyniku w Spotify są już wdrożone.
 
 ## Wewnętrzny zbiór generatora
 
@@ -232,7 +256,7 @@ Preferencje odpowiadają na pytanie: „Który z dopuszczonych utworów pasuje b
 
 | Cecha            | Ustawienie                               | Działanie                        |
 | ---------------- | ---------------------------------------- | -------------------------------- |
-| tempo            | Zakres BPM albo konkretne BPM           | Obowiązkowy filtr, jeśli aktywny |
+| tempo            | Zakres BPM albo konkretne BPM            | Obowiązkowy filtr, jeśli aktywny |
 | speechiness      | Opcjonalna maksymalna wartość            | Obowiązkowy filtr, jeśli aktywny |
 | liveness         | Opcjonalna maksymalna wartość            | Obowiązkowy filtr, jeśli aktywny |
 | energy           | Niska / średnia / wysoka / bez znaczenia | Preferencja rozmyta              |
@@ -319,12 +343,12 @@ wynik filtrowania:
 
 Kody przyczyn mają następujące znaczenie:
 
-| Kod                 | Dopuszczalne cechy           | Znaczenie                                     |
-| ------------------- | ---------------------------- | --------------------------------------------- |
-| missing-measurement | tempo, speechiness, liveness | Brak pomiaru potrzebnego do aktywnego warunku |
-| outside-range       | tempo                        | Tempo poniżej minimum lub powyżej maksimum    |
+| Kod                 | Dopuszczalne cechy           | Znaczenie                                        |
+| ------------------- | ---------------------------- | ------------------------------------------------ |
+| missing-measurement | tempo, speechiness, liveness | Brak pomiaru potrzebnego do aktywnego warunku    |
+| outside-range       | tempo                        | Tempo poniżej minimum lub powyżej maksimum       |
 | tempo-mismatch      | tempo                        | Tempo po zaokrągleniu różni się od wybranego BPM |
-| above-maximum       | speechiness, liveness        | Pomiar większy niż ustawione maksimum         |
+| above-maximum       | speechiness, liveness        | Pomiar większy niż ustawione maksimum            |
 
 Przykładowa przyczyna: `{ "feature": "tempo", "code": "outside-range" }`.
 Domena zwraca kod, a interfejs wyświetla odpowiedni komunikat dla użytkownika. Wyłączony
@@ -453,7 +477,7 @@ reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żą
 - Lista do zapisu zawiera tylko wybrane ID, zawsze w kolejności rankingu,
   nie w kolejności zaznaczania. Każde ID występuje w niej najwyżej raz.
 - Zmiana trybu, limitu lub zaznaczeń nie pobiera danych, nie wywołuje generatora
-  i nie tworzy playlisty. Zapis będzie osobną czynnością po kliknięciu przycisku.
+  i nie tworzy playlisty. Zapis jest osobną czynnością po kliknięciu przycisku.
 - Domyślnie aktywny jest „Top N”, z N równym liczbie dopuszczonych utworów.
 - Pusty ranking nie daje możliwości wyboru ani zapisu. Dla istniejącego wyniku
   licznik pokazuje np. „Wybrano 50 ze 100”.
@@ -488,10 +512,10 @@ reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żą
 ## Wynik i zakres pierwszej wersji
 
 - Przy każdym wyniku pokazujemy pomiary, spełnione wymagania i uzasadnienie rankingu.
-- Docelowy zapis to nowa playlista na koncie Spotify z wybranymi utworami,
-  nie eksport wyniku do pliku JSON ani pobieranie nagrań. Zapis nie jest jeszcze wdrożony.
-- Playlista będzie tworzona po osobnym kliknięciu zapisu, nie automatycznie przy
-  generowaniu wyniku. Początkowo planujemy playlisty prywatne.
+- Zapis tworzy nową prywatną playlistę na koncie Spotify z wybranymi utworami,
+  nie eksportuje wyniku do JSON-a i nie pobiera nagrań. Nie modyfikuje źródłowej playlisty.
+- Playlista jest tworzona po osobnym kliknięciu zapisu, nie automatycznie przy
+  generowaniu wyniku. Nieukończony zapis można wznowić dla tej samej playlisty.
 - `key`, `mode`, `timeSignature` i `loudness` nie są kryteriami pierwszej wersji generatora.
 - Progi speechiness i liveness ograniczają pomiary, nie gwarantują braku wokalu
   ani braku wykonania koncertowego.

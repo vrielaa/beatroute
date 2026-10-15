@@ -43,6 +43,9 @@ describe("playlist source OpenAPI contract", () => {
     expect(
       document.components.schemas.PlaylistSourceSelection.required
     ).toEqual(["playlistId", "offset", "snapshotId"]);
+    expect(
+      document.components.schemas.PlaylistSourceSelection.oneOf
+    ).toHaveLength(2);
     expect(document.components.schemas.PreparedPlaylistPage.required).toEqual([
       "playlist",
       "preparedDataset",

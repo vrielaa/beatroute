@@ -205,6 +205,119 @@ describe('PlaylistGenerator playlist source', () => {
     http.expectNone(analysisUrl);
   });
 
+  it.each(['top', 'manual'])(
+    'saves only the %s selection without reading providers again',
+    (mode) => {
+      const tracks = showRankedResult();
+      let selectedIds: string[];
+      if (mode === 'top') {
+        const count = getInput('playlist-top-track-count');
+        count.value = '1';
+        count.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+        selectedIds = [tracks[0].id];
+      } else {
+        const modes: NodeListOf<HTMLButtonElement> =
+          fixture.nativeElement.querySelectorAll('.selection-modes button');
+        const manual = Array.from(modes).find(
+          (element) => element.textContent?.trim() === 'Ręcznie'
+        );
+        if (!manual) throw new Error('Nie znaleziono trybu ręcznego');
+        manual.click();
+        fixture.detectChanges();
+        const checkboxes: NodeListOf<HTMLInputElement> = fixture.nativeElement.querySelectorAll(
+          '.track-selection-toggle input'
+        );
+        checkboxes[0].click();
+        checkboxes[1].click();
+        checkboxes[1].click();
+        fixture.detectChanges();
+        selectedIds = [tracks[1].id, tracks[2].id];
+      }
+      startSave();
+      const save = http.expectOne('/api/playlist-generator/save');
+      expect(save.request.body).toEqual({ name: 'From playlist', trackIds: selectedIds });
+      expect(input().disabled).toBe(true);
+      fixture.componentInstance['updatePlaylistId']('Q'.repeat(22));
+      expect(fixture.componentInstance['playlistId']()).toBe(playlistId);
+      http.expectNone(() => true);
+      save.flush(
+        {
+          id: 'new-playlist',
+          name: 'From playlist',
+          spotifyUrl: 'https://open.spotify.com/playlist/new-playlist',
+          trackCount: selectedIds.length,
+        },
+        { status: 201, statusText: 'Created' }
+      );
+      fixture.detectChanges();
+      expect(text()).toContain('Playlista zapisana');
+      expect(input().disabled).toBe(false);
+      http.expectNone(() => true);
+    }
+  );
+
+  it('preserves a partial save after changing the source ID and resumes the original target', () => {
+    showRankedResult();
+    startSave();
+    const progress = {
+      id: 'new-playlist',
+      name: 'From playlist',
+      spotifyUrl: 'https://open.spotify.com/playlist/new-playlist',
+      confirmedTrackCount: 0,
+      requestedTrackCount: 3,
+    };
+    http
+      .expectOne('/api/playlist-generator/save')
+      .flush(
+        { error: { code: 'PLAYLIST_SAVE_INCOMPLETE', details: { progress } } },
+        { status: 429, statusText: 'Incomplete' }
+      );
+    fixture.detectChanges();
+    expect(fixture.componentInstance['partialSaveProgress']()).toEqual(progress);
+    setReference('Q'.repeat(22));
+    expect(fixture.componentInstance['result']()).toBeNull();
+    expect(fixture.componentInstance['partialSaveProgress']()).toEqual(progress);
+    button('playlist-resume-save').click();
+    fixture.detectChanges();
+    const resume = http.expectOne('/api/playlist-generator/resume-save');
+    expect(resume.request.body).toEqual({ playlistId: 'new-playlist' });
+    http.expectNone(sourceUrl);
+    http.expectNone(analysisUrl);
+    resume.flush({
+      id: 'new-playlist',
+      name: 'From playlist',
+      spotifyUrl: progress.spotifyUrl,
+      trackCount: 3,
+    });
+    fixture.detectChanges();
+    expect(fixture.componentInstance['partialSaveProgress']()).toBeNull();
+    expect(text()).toContain('Playlista zapisana');
+  });
+
+  function showRankedResult() {
+    setReference(playlistId);
+    generate();
+    const prepared = page(0, 3, 3);
+    http.expectOne(sourceUrl).flush(prepared);
+    const tracks = prepared.preparedDataset.dataset.tracks;
+    http.expectOne(analysisUrl).flush({
+      rankedTracks: tracks.map((track) => ({ track, overallMatch: null, featureMatches: [] })),
+      rejectedTracks: [],
+    });
+    fixture.detectChanges();
+    return tracks;
+  }
+
+  function startSave() {
+    const name = getInput('playlist-save-name');
+    name.value = 'From playlist';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    button('playlist-save').click();
+    fixture.detectChanges();
+  }
+
   function completeGeneration() {
     generate();
     http.expectOne(sourceUrl).flush(page(0, 1, 1));
@@ -212,9 +325,11 @@ describe('PlaylistGenerator playlist source', () => {
     fixture.detectChanges();
   }
   function input(): HTMLInputElement {
-    const element = fixture.nativeElement.querySelector('#playlist-source-reference');
-    if (!(element instanceof HTMLInputElement))
-      throw new Error('Nie znaleziono pola źródłowej playlisty');
+    return getInput('playlist-source-reference');
+  }
+  function getInput(id: string): HTMLInputElement {
+    const element = fixture.nativeElement.querySelector(`#${id}`);
+    if (!(element instanceof HTMLInputElement)) throw new Error(`Nie znaleziono pola ${id}`);
     return element;
   }
   function setReference(reference: string) {

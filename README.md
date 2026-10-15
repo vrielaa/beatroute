@@ -8,8 +8,8 @@ with clustering.
 
 The current version includes Spotify login, a user profile, top tracks and
 artists, audio-feature statistics, Last.fm genres, a music map and a working
-playlist generator based on an imported file of Spotify track IDs or the user's
-saved Spotify tracks. Importing an owned/collaborative playlist is not implemented yet.
+playlist generator with three sources: an imported file of Spotify track IDs,
+the user's saved Spotify tracks, and a playlist they own or collaborate on.
 
 Track-category percentages are calculated only from available measurements
 of the relevant feature. No measurements produce `null` (shown as "Brak danych"),
@@ -133,8 +133,58 @@ the imported ID file for returning to file mode. Switching is locked during file
 reading, generation and saving. Pending partial saves survive a source change and
 can still be resumed using the original selection in the backend session.
 
-Both sources use the same ranking, Top N/manual selection and Spotify save flow
-described below. There is no separate library ranking algorithm or save endpoint.
+### Owned or collaborative Spotify playlist
+
+Select **Playlista Spotify** and enter its ID or a standard Spotify playlist link,
+for example `https://open.spotify.com/playlist/ID_PLAYLISTY`. Sharing parameters
+and the optional `intl-pl` language prefix are ignored when extracting the ID;
+its letter case is preserved. Other domains, track links and shortened links are
+not accepted. Entering or changing the reference does not request provider data.
+The field explains that the user must own or collaborate on the playlist.
+Following another user's playlist alone is not sufficient.
+
+`POST /api/playlist-generator/prepare-playlist` accepts:
+
+```json
+{
+  "playlistId": "2DsAx0MIcI0oyB8AV8ndn2",
+  "offset": 0,
+  "snapshotId": null
+}
+```
+
+It requires a Spotify session with `playlist-read-private`, already included in
+the login scopes. Existing sessions without it must reconnect. Only canonical
+IDs are accepted by the backend; it never fetches a URL supplied by the user.
+Spotify verifies access rather than the application comparing owner IDs, which
+would incorrectly exclude collaborators.
+
+Each request reads up to 50 source positions within the first 500, uses their
+metadata directly, and obtains measurements from ReccoBeats. It returns the same
+prepared data and source-position counters as library preparation, plus
+`playlist: { id, name, snapshotId }`. Episodes, local and unavailable items are
+counted as unavailable; duplicate IDs do not duplicate the final ranking.
+The limit applies to source positions, not a target of 500 usable tracks.
+No replacement tracks are searched for outside the source playlist.
+
+The UI requests pages sequentially only after **Generuj playlistę**, forwards
+the first version with subsequent offsets, reports completed-page progress, and
+ranks the combined dataset once. The backend compares the playlist version
+before and after each Spotify page read. A changed version returns
+`409 PLAYLIST_SOURCE_CHANGED` before requesting measurements; interrupted or
+failed collection restarts at offset zero. Empty playlists, missing measurements,
+missing permissions, denied access and API failures have distinct messages.
+
+Changing criteria reuses a complete nonempty dataset. Changing the playlist ID
+clears the previous dataset, criteria, ranking and selection. Changing only the
+sharing URL for the same ID does not invalidate them. Switching sources retains
+the typed reference but clears prepared data. Pending partial saves remain
+available for resumption independently of the current source.
+
+All three sources use the same ranking, Top N/manual selection and Spotify save
+flow described below. Saving creates a new private playlist and never modifies
+the source playlist. There is no separate ranking algorithm or save endpoint
+for either Spotify source.
 
 ### What happens after import
 
@@ -165,7 +215,7 @@ described below. There is no separate library ranking algorithm or save endpoint
    retrieve measurements or recalculate scores. Success shows the playlist link
    and confirmed track count. Another save requires an explicit new action.
 
-Frontend tests cover saved-track preparation, ranking-response handling, Top N
+Frontend tests cover Spotify-source preparation, ranking-response handling, Top N
 and manual selection, saving and resuming a partial save after changing sources.
 They use real components and Signal Forms with mocked HTTP responses, not live
 Spotify writes; backend/domain behaviour is verified separately by backend tests.
@@ -302,10 +352,10 @@ links and counts before showing success. Connection failures and timeouts warn
 that the playlist may already exist. Leaving the view stops local waiting but
 does not undo a backend write, so wait for its response before navigating away.
 
-### Scope still planned
+### Current scope and limitations
 
-Only the Spotify-ID file source is currently available. Saved Spotify tracks and
-user-owned/collaborated playlists are planned sources, not implemented options.
+The Spotify-ID file, saved-track library and owned/collaborative playlist sources
+are implemented. Provider-backed sources prepare at most 500 source positions.
 The output is a new private Spotify playlist, not a JSON export. Top N and manual
 selection, the Signal Forms save form and complete/partial-save presentation are
 implemented. Saving requires a user session with `playlist-modify-private`;
