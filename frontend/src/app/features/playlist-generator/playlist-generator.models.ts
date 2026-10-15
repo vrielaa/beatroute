@@ -15,8 +15,8 @@ type PlaylistTrackIdsFile = {
   spotifyTrackIds: string[];
 };
 
-/** Źródło zbioru generatora: plik z ID albo zapisane utwory aktualnego użytkownika Spotify. */
-type PlaylistDataSource = 'file' | 'saved-tracks';
+/** Źródło zbioru: plik z ID, zapisane utwory albo playlista właściciela lub współtwórcy. */
+type PlaylistDataSource = 'file' | 'saved-tracks' | 'playlist';
 
 /**
  * Osiem pomiarów cech audio przyjmowanych przez generator playlist.
@@ -111,24 +111,24 @@ type PreparedPlaylistDataset = {
 };
 
 /**
- * Jedna przygotowana strona zapisanych utworów Spotify, bez rankingu i tokenów.
+ * Wspólne dane przygotowanej strony biblioteki lub playlisty Spotify, bez rankingu i tokenów.
  * Duplikaty są usuwane w obrębie strony; łączenie stron wymaga sprawdzenia ID.
  *
  * @property preparedDataset - Utwory z metadanymi i pomiarami oraz informacje o brakach.
  * Pusty zbiór jest poprawnym wynikiem przygotowania, ale nie wejściem generatora.
- * @property pagination - Postęp odczytu pozycji biblioteki, nie licznik przygotowanych utworów.
+ * @property pagination - Postęp odczytu pozycji źródła, nie licznik przygotowanych utworów.
  * @property pagination.offset - Indeks pierwszej odczytanej pozycji, od 0 do 499.
  * @property pagination.processedItems - Liczba pozycji bieżącej strony, do 50,
  * także niedostępnych i powtórzonych. Nie jest sumą wszystkich stron.
- * @property pagination.totalItems - Pełna liczba zapisanych pozycji według Spotify;
+ * @property pagination.totalItems - Pełna liczba pozycji źródła według Spotify;
  * może przekraczać limit przygotowania pierwszych 500 pozycji.
  * @property pagination.nextOffset - Początek kolejnej strony albo null po końcu
- * biblioteki lub osiągnięciu limitu 500 pozycji.
+ * źródła lub osiągnięciu limitu 500 pozycji.
  * @property unavailableItemsCount - Liczba pozycji niedostępnych, lokalnych,
  * jawnie nieodtwarzalnych lub z błędnym ID. Nie obejmuje duplikatów ani pominięć
  * opisanych w preparedDataset.skippedTracks.
  */
-type PreparedSavedTracksPage = {
+type PreparedSpotifyTracksPage = {
   preparedDataset: PreparedPlaylistDataset;
   pagination: {
     offset: number;
@@ -162,16 +162,8 @@ type PlaylistSourceSelection = {
  * @property unavailableItemsCount - Liczba niedostępnych, lokalnych i innych niż utwór pozycji.
  * Nie obejmuje duplikatów ani pominięć zapisanych w preparedDataset.skippedTracks.
  */
-type PreparedPlaylistPage = {
+type PreparedPlaylistPage = PreparedSpotifyTracksPage & {
   playlist: { id: string; name: string; snapshotId: string };
-  preparedDataset: PreparedPlaylistDataset;
-  pagination: {
-    offset: number;
-    processedItems: number;
-    totalItems: number;
-    nextOffset: number | null;
-  };
-  unavailableItemsCount: number;
 };
 
 /**
@@ -463,7 +455,7 @@ export type {
   SkippedPlaylistTrack,
   IncompletePlaylistTrack,
   PreparedPlaylistDataset,
-  PreparedSavedTracksPage,
+  PreparedSpotifyTracksPage,
   PlaylistPreparationProgress,
   PlaylistGenerationStage,
   TempoRange,

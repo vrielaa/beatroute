@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  getSavedTracksPreparationProgress,
-  mergeSavedTracksPages,
-} from './playlist-saved-tracks-preparation';
-import type { PlaylistTrack, PreparedSavedTracksPage } from '../playlist-generator.models';
+  getSpotifyPreparationProgress,
+  mergePreparedSpotifyPages,
+} from './playlist-spotify-preparation';
+import type { PlaylistTrack, PreparedSpotifyTracksPage } from '../playlist-generator.models';
 
-describe('mergeSavedTracksPages', () => {
+describe('mergePreparedSpotifyPages', () => {
   it('returns a fresh empty dataset before receiving any pages', () => {
-    const first = mergeSavedTracksPages([]);
-    const second = mergeSavedTracksPages([]);
+    const first = mergePreparedSpotifyPages([]);
+    const second = mergePreparedSpotifyPages([]);
 
     expect(first).toEqual({
       dataset: { version: 1, tracks: [] },
@@ -33,7 +33,7 @@ describe('mergeSavedTracksPages', () => {
     ];
     const third = createPage(4, 2, 6);
 
-    const merged = mergeSavedTracksPages([first, second, third]);
+    const merged = mergePreparedSpotifyPages([first, second, third]);
 
     expect(merged).toEqual({
       dataset: {
@@ -70,7 +70,7 @@ describe('mergeSavedTracksPages', () => {
       { spotifyId: createId(0), missingFeatures: ['valence'] },
     ];
 
-    const merged = mergeSavedTracksPages([first, second]);
+    const merged = mergePreparedSpotifyPages([first, second]);
 
     expect(merged.dataset.tracks).toEqual([
       first.preparedDataset.dataset.tracks[0],
@@ -88,7 +88,7 @@ describe('mergeSavedTracksPages', () => {
       { spotifyId: createId(0), missingFeatures: ['valence'] },
     ];
 
-    const merged = mergeSavedTracksPages([first, second]);
+    const merged = mergePreparedSpotifyPages([first, second]);
 
     expect(merged.dataset.tracks).toEqual(first.preparedDataset.dataset.tracks);
     expect(merged.incompleteTracks).toEqual([]);
@@ -105,7 +105,7 @@ describe('mergeSavedTracksPages', () => {
         { spotifyId: createId(0), reason: 'audio-features-unavailable' },
       ];
 
-      const merged = mergeSavedTracksPages([first, second]);
+      const merged = mergePreparedSpotifyPages([first, second]);
 
       expect(merged.dataset.tracks).toEqual(available.preparedDataset.dataset.tracks);
       expect(merged.skippedTracks).toEqual([]);
@@ -124,7 +124,7 @@ describe('mergeSavedTracksPages', () => {
       { spotifyId: createId(2), reason: 'metadata-unavailable' },
     ];
 
-    const merged = mergeSavedTracksPages([first, second]);
+    const merged = mergePreparedSpotifyPages([first, second]);
 
     expect(merged.dataset.tracks).toEqual([]);
     expect(merged.skippedTracks).toEqual([
@@ -137,7 +137,7 @@ describe('mergeSavedTracksPages', () => {
     const upperCaseId = 'A'.repeat(22);
     const lowerCaseId = 'a'.repeat(22);
 
-    const merged = mergeSavedTracksPages([
+    const merged = mergePreparedSpotifyPages([
       createPage(0, 1, 2, [upperCaseId]),
       createPage(1, 1, 2, [lowerCaseId]),
     ]);
@@ -158,7 +158,7 @@ describe('mergeSavedTracksPages', () => {
     const pages = [first, second];
     const original = structuredClone(pages);
 
-    const merged = mergeSavedTracksPages(pages);
+    const merged = mergePreparedSpotifyPages(pages);
     merged.dataset.tracks.pop();
     merged.skippedTracks.pop();
     merged.incompleteTracks.pop();
@@ -173,7 +173,7 @@ describe('mergeSavedTracksPages', () => {
   it('merges all ten pages within the 500-position limit without dropping or reordering tracks', () => {
     const pages = Array.from({ length: 10 }, (_, index) => createPage(index * 50, 50, 750));
 
-    const merged = mergeSavedTracksPages(pages);
+    const merged = mergePreparedSpotifyPages(pages);
 
     expect(merged.dataset.tracks.map((track) => track.id)).toEqual(
       Array.from({ length: 500 }, (_, index) => createId(index))
@@ -183,13 +183,13 @@ describe('mergeSavedTracksPages', () => {
   });
 });
 
-describe('getSavedTracksPreparationProgress', () => {
+describe('getSpotifyPreparationProgress', () => {
   it('keeps the library size unknown until the first response', () => {
-    expect(getSavedTracksPreparationProgress([])).toBeNull();
+    expect(getSpotifyPreparationProgress([])).toBeNull();
   });
 
   it('counts an empty library response as one completed page and zero positions', () => {
-    expect(getSavedTracksPreparationProgress([createPage(0, 0, 0)])).toEqual({
+    expect(getSpotifyPreparationProgress([createPage(0, 0, 0)])).toEqual({
       processedTracks: 0,
       totalTracks: 0,
       preparedTracks: 0,
@@ -208,7 +208,7 @@ describe('getSavedTracksPreparationProgress', () => {
     ({ completedPages, processedTracks }) => {
       const pages = [createPage(0, 50, 132), createPage(50, 50, 132), createPage(100, 32, 132)];
 
-      expect(getSavedTracksPreparationProgress(pages.slice(0, completedPages))).toEqual({
+      expect(getSpotifyPreparationProgress(pages.slice(0, completedPages))).toEqual({
         processedTracks,
         totalTracks: 132,
         preparedTracks: processedTracks,
@@ -223,7 +223,7 @@ describe('getSavedTracksPreparationProgress', () => {
     const page = createPage(0, 50, 60, []);
     page.unavailableItemsCount = 50;
 
-    expect(getSavedTracksPreparationProgress([page])).toEqual({
+    expect(getSpotifyPreparationProgress([page])).toEqual({
       processedTracks: 50,
       totalTracks: 60,
       preparedTracks: 0,
@@ -231,7 +231,7 @@ describe('getSavedTracksPreparationProgress', () => {
       completedBatches: 1,
       totalBatches: 2,
     });
-    expect(mergeSavedTracksPages([page]).skippedTracks).toEqual([]);
+    expect(mergePreparedSpotifyPages([page]).skippedTracks).toEqual([]);
   });
 
   it('counts all source positions but only unique prepared and skipped IDs', () => {
@@ -246,7 +246,7 @@ describe('getSavedTracksPreparationProgress', () => {
     ];
     second.unavailableItemsCount = 1;
 
-    expect(getSavedTracksPreparationProgress([first, second])).toEqual({
+    expect(getSpotifyPreparationProgress([first, second])).toEqual({
       processedTracks: 7,
       totalTracks: 7,
       preparedTracks: 2,
@@ -264,7 +264,7 @@ describe('getSavedTracksPreparationProgress', () => {
     first.unavailableItemsCount = 1;
     const second = createPage(2, 1, 3, [createId(0)]);
 
-    expect(getSavedTracksPreparationProgress([first, second])).toEqual({
+    expect(getSpotifyPreparationProgress([first, second])).toEqual({
       processedTracks: 3,
       totalTracks: 3,
       preparedTracks: 1,
@@ -275,7 +275,7 @@ describe('getSavedTracksPreparationProgress', () => {
   });
 
   it('caps the target at 500 positions rather than the complete library size', () => {
-    expect(getSavedTracksPreparationProgress([createPage(0, 50, 750)])).toEqual({
+    expect(getSpotifyPreparationProgress([createPage(0, 50, 750)])).toEqual({
       processedTracks: 50,
       totalTracks: 500,
       preparedTracks: 50,
@@ -290,7 +290,7 @@ describe('getSavedTracksPreparationProgress', () => {
       createPage(index * 50, 50, 750, [createId(0)])
     );
 
-    expect(getSavedTracksPreparationProgress(pages)).toEqual({
+    expect(getSpotifyPreparationProgress(pages)).toEqual({
       processedTracks: 500,
       totalTracks: 500,
       preparedTracks: 1,
@@ -303,7 +303,7 @@ describe('getSavedTracksPreparationProgress', () => {
   it('uses actual page sizes rather than assuming that each completed page contained 50 positions', () => {
     const pages = [createPage(0, 10, 132), createPage(10, 20, 132)];
 
-    expect(getSavedTracksPreparationProgress(pages)).toEqual({
+    expect(getSpotifyPreparationProgress(pages)).toEqual({
       processedTracks: 30,
       totalTracks: 132,
       preparedTracks: 30,
@@ -316,7 +316,7 @@ describe('getSavedTracksPreparationProgress', () => {
   it('uses the latest library size and stops counting remaining pages at nextOffset null', () => {
     const pages = [createPage(0, 50, 100), createPage(50, 20, 70)];
 
-    expect(getSavedTracksPreparationProgress(pages)).toEqual({
+    expect(getSpotifyPreparationProgress(pages)).toEqual({
       processedTracks: 70,
       totalTracks: 70,
       preparedTracks: 70,
@@ -330,13 +330,13 @@ describe('getSavedTracksPreparationProgress', () => {
     const pages = [createPage(0, 50, 100)];
     const original = structuredClone(pages);
 
-    const firstProgress = getSavedTracksPreparationProgress(pages);
-    const secondProgress = getSavedTracksPreparationProgress(pages);
+    const firstProgress = getSpotifyPreparationProgress(pages);
+    const secondProgress = getSpotifyPreparationProgress(pages);
 
     expect(firstProgress).toEqual(secondProgress);
     expect(firstProgress).not.toBe(secondProgress);
     expect(pages).toEqual(original);
-    expect(getSavedTracksPreparationProgress([])).toBeNull();
+    expect(getSpotifyPreparationProgress([])).toBeNull();
   });
 });
 
@@ -345,7 +345,7 @@ function createPage(
   processedItems: number,
   totalItems: number,
   trackIds = Array.from({ length: processedItems }, (_, index) => createId(offset + index))
-): PreparedSavedTracksPage {
+): PreparedSpotifyTracksPage {
   const processedThrough = offset + processedItems;
 
   return {

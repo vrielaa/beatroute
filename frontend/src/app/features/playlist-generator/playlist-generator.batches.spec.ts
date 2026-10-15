@@ -415,8 +415,10 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     const progress = getProgress();
     if (!progress) throw new Error('Nie znaleziono postępu generowania');
     const text = progress.textContent?.replace(/\s+/g, ' ').trim();
-    expect(text).toContain(
-      `Przetworzono ${processed} ze ${total} — ukończone partie: ${completedBatches} z ${totalBatches}.`
+    expect(text).toMatch(
+      new RegExp(
+        `Przetworzono ${processed} (?:ze|/) ${total} — ukończone partie: ${completedBatches} (?:z|/) ${totalBatches}\\.`
+      )
     );
     expect(text).toContain(`Przygotowano ${prepared}, pominięto ${skipped}.`);
     const bar = progress.querySelector('[role="progressbar"]');

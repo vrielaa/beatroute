@@ -11,7 +11,7 @@ import type {
   PlaylistToSave,
   PlaylistSaveProgress,
   PreparedPlaylistDataset,
-  PreparedSavedTracksPage,
+  PreparedSpotifyTracksPage,
   SavedPlaylist,
   PreparedPlaylistPage,
 } from './playlist-generator.models';
@@ -218,11 +218,11 @@ describe('PlaylistGeneratorApiService', () => {
       expect(request.request.body).toEqual({ offset });
       expect(request.request.withCredentials).toBe(true);
       expect(request.request.headers.has('Authorization')).toBe(false);
-      request.flush(createPreparedSavedTracksPage(offset));
+      request.flush(createPreparedSpotifyTracksPage(offset));
     });
 
     it('passes tracks, missing measurements, skipped IDs and pagination through unchanged', () => {
-      const response = createPreparedSavedTracksPage();
+      const response = createPreparedSpotifyTracksPage();
       response.preparedDataset.skippedTracks = [
         { spotifyId: '4U4LEUWV8sFtos5PdjfDA7', reason: 'audio-features-unavailable' },
       ];
@@ -243,7 +243,7 @@ describe('PlaylistGeneratorApiService', () => {
     });
 
     it('does not request another page when the response contains nextOffset', () => {
-      const response = createPreparedSavedTracksPage();
+      const response = createPreparedSpotifyTracksPage();
       response.pagination = {
         offset: 0,
         processedItems: 1,
@@ -260,7 +260,7 @@ describe('PlaylistGeneratorApiService', () => {
     });
 
     it('returns an empty library as success, preserving nextOffset null', () => {
-      const response: PreparedSavedTracksPage = {
+      const response: PreparedSpotifyTracksPage = {
         preparedDataset: {
           dataset: { version: 1, tracks: [] },
           skippedTracks: [],
@@ -775,7 +775,7 @@ describe('PlaylistGeneratorApiService', () => {
   );
 });
 
-function createPreparedSavedTracksPage(offset = 0): PreparedSavedTracksPage {
+function createPreparedSpotifyTracksPage(offset = 0): PreparedSpotifyTracksPage {
   const track = {
     ...createRequest().dataset.tracks[0],
     id: '3sNVsP50132BTNlImLx70i',

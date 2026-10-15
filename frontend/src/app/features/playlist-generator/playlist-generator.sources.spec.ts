@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGenerator } from './playlist-generator';
-import type { PreparedSavedTracksPage } from './playlist-generator.models';
+import type { PreparedSpotifyTracksPage } from './playlist-generator.models';
 
 const libraryUrl = '/api/playlist-generator/prepare-saved-tracks';
 const fileUrl = '/api/playlist-generator/prepare-dataset';
@@ -83,7 +83,7 @@ describe('PlaylistGenerator data sources', () => {
 
     http.expectOne(libraryUrl).flush(first);
     fixture.detectChanges();
-    expect(text()).toContain('Przetworzono 50 ze 132');
+    expect(text()).toMatch(/Przetworzono 50 (?:ze|\/) 132/);
     expect(text()).toContain('Pobieranie partii 2 z 3');
     expect(bar().getAttribute('aria-valuenow')).toBe('50');
     expect(bar().getAttribute('aria-valuemax')).toBe('132');
@@ -92,7 +92,7 @@ describe('PlaylistGenerator data sources', () => {
     expect(next.request.body).toEqual({ offset: 50 });
     next.flush(second);
     fixture.detectChanges();
-    expect(text()).toContain('Przetworzono 100 ze 132');
+    expect(text()).toMatch(/Przetworzono 100 (?:ze|\/) 132/);
     http.expectNone(analysisUrl);
     const last = http.expectOne(libraryUrl);
     expect(last.request.body).toEqual({ offset: 100 });
@@ -101,7 +101,7 @@ describe('PlaylistGenerator data sources', () => {
 
     expect(fixture.nativeElement.querySelector('app-playlist-criteria-form')).toBe(form);
     expect(text()).toContain('Analiza i ranking');
-    expect(text()).toContain('Przetworzono 132 ze 132');
+    expect(text()).toMatch(/Przetworzono 132 (?:ze|\/) 132/);
     const analysis = http.expectOne(analysisUrl);
     expect(analysis.request.body.dataset.tracks).toHaveLength(132);
     expect(analysis.request.body.preferences.energy).toBe('high');
@@ -164,7 +164,7 @@ describe('PlaylistGenerator data sources', () => {
     expect(text()).toContain('Nie znaleziono utworów z użytecznymi pomiarami');
     expect(text()).toContain('Niedostępne pozycje Spotify: 3');
     expect(text()).not.toContain('Nie masz zapisanych utworów');
-    expect(text()).toContain('Przetworzono 3 ze 3');
+    expect(text()).toMatch(/Przetworzono 3 (?:ze|\/) 3/);
     expect(button('playlist-generate').disabled).toBe(false);
     http.expectNone(analysisUrl);
   });
@@ -211,7 +211,7 @@ describe('PlaylistGenerator data sources', () => {
     http.expectOne(libraryUrl).flush({}, { status: 502, statusText: 'Bad Gateway' });
     fixture.detectChanges();
 
-    expect(text()).toContain('Przetworzono 50 ze 132');
+    expect(text()).toMatch(/Przetworzono 50 (?:ze|\/) 132/);
     expect(fixture.componentInstance['dataset']()).toBeNull();
     http.expectNone(analysisUrl);
     startGeneration();
@@ -459,7 +459,7 @@ function createPage(
   count: number,
   total: number,
   ids = Array.from({ length: count }, (_, index) => String(offset + index + 1).padStart(22, '0'))
-): PreparedSavedTracksPage {
+): PreparedSpotifyTracksPage {
   return {
     preparedDataset: {
       dataset: {

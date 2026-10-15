@@ -10,7 +10,7 @@ import { PlaylistSaveStore } from './playlist-save.store';
 import type {
   GeneratedPlaylist,
   PlaylistDataset,
-  PreparedSavedTracksPage,
+  PreparedSpotifyTracksPage,
 } from './playlist-generator.models';
 
 const saveUrl = '/api/playlist-generator/save';
@@ -706,7 +706,7 @@ describe('PlaylistGenerator saving', () => {
 
     for (let offset = 0; offset < dataset.tracks.length; offset += 2) {
       const tracks = dataset.tracks.slice(offset, offset + 2);
-      const page: PreparedSavedTracksPage = {
+      const page: PreparedSpotifyTracksPage = {
         preparedDataset: {
           dataset: { version: 1, tracks },
           skippedTracks: [],

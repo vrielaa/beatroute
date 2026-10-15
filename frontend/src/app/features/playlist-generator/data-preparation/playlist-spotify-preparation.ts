@@ -5,15 +5,18 @@ import type {
   PlaylistPreparationProgress,
   PlaylistTrack,
   PreparedPlaylistDataset,
-  PreparedSavedTracksPage,
+  PreparedSpotifyTracksPage,
+  PreparedPlaylistPage,
+  PlaylistSourceSelection,
   SkippedPlaylistTrack,
 } from '../playlist-generator.models';
 
-const SAVED_TRACKS_PAGE_SIZE = 50;
-const MAX_SAVED_TRACKS_POSITIONS = 500;
+const SPOTIFY_PAGE_SIZE = 50;
+const MAX_SOURCE_POSITIONS = 500;
 
 /**
- * Przygotowuje bibliotekę od offsetu 0, pobierając kolejne strony pojedynczo.
+ * Przygotowuje zbiór ze stron Spotify od offsetu 0, pobieranych pojedynczo.
+ * Sposób odczytu biblioteki albo playlisty ustala requestPage, nie ta kolejka.
  * Następny offset odczytuje z odpowiedzi, bez zakładania pełnych stron po 50 pozycji.
  * Kończy przy nextOffset: null; nie uruchamia rankingu ani zapisu playlisty.
  * Zabezpiecza się przed powtórzeniem, cofnięciem lub wyjściem offsetu poza limit 500.
@@ -21,7 +24,7 @@ const MAX_SAVED_TRACKS_POSITIONS = 500;
  * Każda subskrypcja rozpoczyna nowy proces z własnymi stronami i licznikami.
  * Samo wywołanie funkcji nie pobiera danych. Po każdej odpowiedzi przekazuje
  * postęp, ale pełny zbiór emituje tylko raz, po zakończeniu wszystkich stron.
- * Pusta biblioteka jest sukcesem. Błąd przerywa proces bez emisji częściowego zbioru
+ * Puste źródło jest sukcesem. Błąd przerywa proces bez emisji częściowego zbioru
  * i bez automatycznego ponowienia; ponowna subskrypcja zaczyna od offsetu 0.
  * Anulowanie subskrypcji przerywa oczekujące żądanie i nie wysyła kolejnych.
  * Nie gwarantuje zatrzymania pracy już rozpoczętej przez backend.
@@ -30,20 +33,20 @@ const MAX_SAVED_TRACKS_POSITIONS = 500;
  * @param onProgress - Opcjonalny odbiorca liczników po ukończeniu każdej strony.
  * @returns Jeden połączony, zdeduplikowany zbiór albo błąd, bez przechowywania cache.
  */
-function prepareSavedTracksDataset(
-  requestPage: (offset: number) => Observable<PreparedSavedTracksPage>,
+function prepareSpotifyTracksDataset(
+  requestPage: (offset: number) => Observable<PreparedSpotifyTracksPage>,
   onProgress?: (progress: PlaylistPreparationProgress) => void
 ): Observable<PreparedPlaylistDataset> {
   return defer(() => {
-    const completedPages: PreparedSavedTracksPage[] = [];
+    const completedPages: PreparedSpotifyTracksPage[] = [];
 
-    function preparePage(offset: number): Observable<PreparedSavedTracksPage> {
+    function preparePage(offset: number): Observable<PreparedSpotifyTracksPage> {
       return defer(() => requestPage(offset)).pipe(
-        throwIfEmpty(() => new Error('Nie otrzymano strony zapisanych utworów')),
+        throwIfEmpty(() => new Error('Nie otrzymano strony utworów Spotify')),
         tap((page) => {
-          validateSavedTracksPageOffset(page, offset);
+          validateSpotifyPageOffset(page, offset);
           completedPages.push(page);
-          const progress = getSavedTracksPreparationProgress(completedPages);
+          const progress = getSpotifyPreparationProgress(completedPages);
 
           if (progress) {
             onProgress?.(progress);
@@ -58,13 +61,13 @@ function prepareSavedTracksDataset(
         return nextOffset === null ? EMPTY : preparePage(nextOffset);
       }, 1),
       last(),
-      map(() => mergeSavedTracksPages(completedPages))
+      map(() => mergePreparedSpotifyPages(completedPages))
     );
   });
 }
 
 /**
- * Łączy przygotowane strony biblioteki w jeden zbiór, bez pobierania danych i rankingu.
+ * Łączy przygotowane strony źródła Spotify w jeden zbiór, bez pobierania danych i rankingu.
  * Zachowuje pierwszy przygotowany utwór o danym ID oraz jego informacje o brakach.
  * Nie zastępuje go późniejszym odczytem ani nie miesza pomiarów różnych wystąpień.
  * Wielkość liter w ID ma znaczenie. Powtórzone pominięcia zachowuje tylko raz,
@@ -78,7 +81,7 @@ function prepareSavedTracksDataset(
  * @returns Unikalne utwory w kolejności pierwszego przygotowania, pominięcia i braki.
  * Bez stron zwraca nowy, pusty zbiór wersji 1.
  */
-function mergeSavedTracksPages(pages: PreparedSavedTracksPage[]): PreparedPlaylistDataset {
+function mergePreparedSpotifyPages(pages: PreparedSpotifyTracksPage[]): PreparedPlaylistDataset {
   const tracksById = new Map<string, PlaylistTrack>();
   const skippedTracksById = new Map<string, SkippedPlaylistTrack>();
   const incompleteTracksById = new Map<string, IncompletePlaylistTrack>();
@@ -135,8 +138,8 @@ function mergeSavedTracksPages(pages: PreparedSavedTracksPage[]): PreparedPlayli
  * @returns Liczniki zgodne ze wspólnym modelem postępu albo null przed pierwszą odpowiedzią,
  * gdy rozmiar biblioteki jest jeszcze nieznany. Nie oznacza to pustej biblioteki.
  */
-function getSavedTracksPreparationProgress(
-  pages: PreparedSavedTracksPage[]
+function getSpotifyPreparationProgress(
+  pages: PreparedSpotifyTracksPage[]
 ): PlaylistPreparationProgress | null {
   const lastPage = pages.at(-1);
 
@@ -144,8 +147,8 @@ function getSavedTracksPreparationProgress(
     return null;
   }
 
-  const prepared = mergeSavedTracksPages(pages);
-  const totalTracks = Math.min(lastPage.pagination.totalItems, MAX_SAVED_TRACKS_POSITIONS);
+  const prepared = mergePreparedSpotifyPages(pages);
+  const totalTracks = Math.min(lastPage.pagination.totalItems, MAX_SOURCE_POSITIONS);
   const processedItems = pages.reduce((sum, page) => sum + page.pagination.processedItems, 0);
   const processedTracks = Math.min(processedItems, totalTracks);
   const unavailableItemsCount = pages.reduce((sum, page) => sum + page.unavailableItemsCount, 0);
@@ -158,16 +161,20 @@ function getSavedTracksPreparationProgress(
     preparedTracks: prepared.dataset.tracks.length,
     skippedTracks: prepared.skippedTracks.length + unavailableItemsCount,
     completedBatches: pages.length,
-    totalBatches: pages.length + Math.ceil(remainingPositions / SAVED_TRACKS_PAGE_SIZE),
+    totalBatches: pages.length + Math.ceil(remainingPositions / SPOTIFY_PAGE_SIZE),
   };
 }
 
 /** Sprawdza zgodność offsetu strony i bezpieczny postęp kolejnych żądań, bez walidacji utworów. */
-function validateSavedTracksPageOffset(
-  page: PreparedSavedTracksPage,
-  requestedOffset: number
-): void {
+function validateSpotifyPageOffset(page: PreparedSpotifyTracksPage, requestedOffset: number): void {
   const { offset, processedItems, totalItems, nextOffset } = page.pagination;
+  const hasInvalidCounters =
+    !Number.isSafeInteger(totalItems) ||
+    totalItems < 0 ||
+    !Number.isSafeInteger(processedItems) ||
+    processedItems < 0 ||
+    processedItems > SPOTIFY_PAGE_SIZE ||
+    requestedOffset + processedItems > Math.min(totalItems, MAX_SOURCE_POSITIONS);
   const hasInvalidNextOffset =
     nextOffset !== null &&
     (!Number.isSafeInteger(nextOffset) ||
@@ -177,9 +184,61 @@ function validateSavedTracksPageOffset(
   const hasPrematureEnd =
     nextOffset === null && requestedOffset + processedItems < Math.min(totalItems, 500);
 
-  if (offset !== requestedOffset || hasInvalidNextOffset || hasPrematureEnd) {
-    throw new Error('Niepoprawna kolejność stron zapisanych utworów');
+  if (offset !== requestedOffset || hasInvalidCounters || hasInvalidNextOffset || hasPrematureEnd) {
+    throw new Error('Niepoprawna kolejność stron utworów Spotify');
   }
 }
 
-export { prepareSavedTracksDataset, mergeSavedTracksPages, getSavedTracksPreparationProgress };
+/**
+ * Przygotowuje playlistę przez wspólną kolejkę stron Spotify, zachowując jej pierwszą wersję.
+ * Przed każdym kolejnym żądaniem przekazuje tę wersję, a odpowiedzi sprawdza również lokalnie.
+ * Każda subskrypcja zaczyna od offsetu 0 i snapshotId: null. Błąd albo anulowanie
+ * nie emituje częściowego zbioru; ponowienie nie kontynuuje niestabilnych stron źródła.
+ *
+ * @param playlistId - Sprawdzone ID źródłowej playlisty.
+ * @param requestPage - Jedno żądanie przygotowanej strony, bez automatycznych ponowień.
+ * @param onProgress - Opcjonalny odbiorca liczników ukończonych stron.
+ * @param onPlaylist - Opcjonalny odbiorca metadanych odczytanej playlisty.
+ * @returns Jeden połączony zbiór po zakończeniu wszystkich stron, bez rankingu i zapisu.
+ */
+function preparePlaylistDataset(
+  playlistId: string,
+  requestPage: (selection: PlaylistSourceSelection) => Observable<PreparedPlaylistPage>,
+  onProgress?: (progress: PlaylistPreparationProgress) => void,
+  onPlaylist?: (playlist: PreparedPlaylistPage['playlist']) => void
+): Observable<PreparedPlaylistDataset> {
+  return defer(() => {
+    let snapshotId: string | null = null;
+    let totalItems: number | null = null;
+    return prepareSpotifyTracksDataset(
+      (offset) =>
+        requestPage({ playlistId, offset, snapshotId }).pipe(
+          tap((page) => {
+            const playlist = page.playlist;
+            if (
+              !playlist ||
+              playlist.id !== playlistId ||
+              typeof playlist.name !== 'string' ||
+              typeof playlist.snapshotId !== 'string' ||
+              !playlist.snapshotId.trim() ||
+              (snapshotId !== null && playlist.snapshotId !== snapshotId) ||
+              (totalItems !== null && page.pagination.totalItems !== totalItems)
+            ) {
+              throw new Error('Niepoprawna wersja źródłowej playlisty');
+            }
+            snapshotId = playlist.snapshotId;
+            totalItems = page.pagination.totalItems;
+            onPlaylist?.(playlist);
+          })
+        ),
+      onProgress
+    );
+  });
+}
+
+export {
+  prepareSpotifyTracksDataset,
+  preparePlaylistDataset,
+  mergePreparedSpotifyPages,
+  getSpotifyPreparationProgress,
+};

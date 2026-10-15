@@ -11,7 +11,7 @@ import type {
   PlaylistSaveProgress,
   PreparedPlaylistDataset,
   SavedPlaylist,
-  PreparedSavedTracksPage,
+  PreparedSpotifyTracksPage,
   PlaylistSourceSelection,
   PreparedPlaylistPage,
 } from './playlist-generator.models';
@@ -126,8 +126,8 @@ class PlaylistGeneratorApiService {
    * @param offset - Pozycja początkowa od 0 do 499, sprawdzana przez backend.
    * @returns Przygotowane dane strony oraz postęp odczytu.
    */
-  public prepareSavedTracksPage(offset: number): Observable<PreparedSavedTracksPage> {
-    return this.http.post<PreparedSavedTracksPage>(
+  public prepareSavedTracksPage(offset: number): Observable<PreparedSpotifyTracksPage> {
+    return this.http.post<PreparedSpotifyTracksPage>(
       '/api/playlist-generator/prepare-saved-tracks',
       { offset },
       { withCredentials: true }

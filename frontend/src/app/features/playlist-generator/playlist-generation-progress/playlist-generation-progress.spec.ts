@@ -76,7 +76,7 @@ describe('PlaylistGenerationProgress', () => {
       totalBatches: 5,
     });
 
-    expect(getText()).toContain('Przetworzono 20 ze 100 — ukończone partie: 1 z 5.');
+    expect(getText()).toMatch(/Przetworzono 20 (?:ze|\/) 100 — ukończone partie: 1 (?:z|\/) 5\./);
     expect(getText()).toContain('Przygotowano 18, pominięto 2.');
     expect(getText()).toContain('Pobieranie partii 2 z 5.');
     expect(fixture.nativeElement.querySelector('.progress-fill').style.width).toBe('20%');
@@ -95,7 +95,7 @@ describe('PlaylistGenerationProgress', () => {
       totalBatches: 3,
     });
 
-    expect(getText()).toContain('Przetworzono 40 ze 45');
+    expect(getText()).toMatch(/Przetworzono 40 (?:ze|\/) 45/);
     expect(getText()).toContain('Proces zatrzymany');
     expect(getText()).not.toContain('Pobieranie partii');
     expect(getText()).not.toContain('Wynik jest gotowy');

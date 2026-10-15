@@ -6,15 +6,15 @@ import type { Observable } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGeneratorApiService } from '../playlist-generator-api.service';
-import { prepareSavedTracksDataset } from './playlist-saved-tracks-preparation';
-import type { PlaylistTrack, PreparedSavedTracksPage } from '../playlist-generator.models';
+import { prepareSpotifyTracksDataset } from './playlist-spotify-preparation';
+import type { PlaylistTrack, PreparedSpotifyTracksPage } from '../playlist-generator.models';
 
 const endpoint = '/api/playlist-generator/prepare-saved-tracks';
 
-describe('prepareSavedTracksDataset', () => {
+describe('prepareSpotifyTracksDataset', () => {
   let api: PlaylistGeneratorApiService;
   let http: HttpTestingController;
-  let requestPage: (offset: number) => Observable<PreparedSavedTracksPage>;
+  let requestPage: (offset: number) => Observable<PreparedSpotifyTracksPage>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -33,7 +33,7 @@ describe('prepareSavedTracksDataset', () => {
   it('does not request pages or report progress before subscription', () => {
     const progress = vi.fn();
 
-    prepareSavedTracksDataset(requestPage, progress);
+    prepareSpotifyTracksDataset(requestPage, progress);
 
     expect(requestPage).not.toHaveBeenCalled();
     expect(progress).not.toHaveBeenCalled();
@@ -46,7 +46,7 @@ describe('prepareSavedTracksDataset', () => {
     const complete = vi.fn();
     const progress = vi.fn();
     const pages = [createPage(0, 50, 132), createPage(50, 50, 132), createPage(100, 32, 132)];
-    prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error, complete });
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error, complete });
 
     for (const [index, page] of pages.entries()) {
       const request = http.expectOne(endpoint);
@@ -84,7 +84,7 @@ describe('prepareSavedTracksDataset', () => {
 
   it('follows the returned nextOffset rather than adding 50', () => {
     const next = vi.fn();
-    prepareSavedTracksDataset(requestPage).subscribe(next);
+    prepareSpotifyTracksDataset(requestPage).subscribe(next);
 
     http.expectOne(endpoint).flush(createPage(0, 2, 3));
     const second = http.expectOne(endpoint);
@@ -103,7 +103,7 @@ describe('prepareSavedTracksDataset', () => {
     const error = vi.fn();
     const complete = vi.fn();
     const progress = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error, complete });
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error, complete });
 
     http.expectOne(endpoint).flush(createPage(0, 0, 0));
 
@@ -130,7 +130,7 @@ describe('prepareSavedTracksDataset', () => {
     page.unavailableItemsCount = 3;
     const next = vi.fn();
     const progress = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe(next);
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe(next);
 
     http.expectOne(endpoint).flush(page);
 
@@ -158,7 +158,7 @@ describe('prepareSavedTracksDataset', () => {
     const second = createPage(2, 2, 4, [createId(0), createId(1)]);
     const next = vi.fn();
     const progress = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe(next);
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe(next);
 
     http.expectOne(endpoint).flush(first);
     expect(next).not.toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe('prepareSavedTracksDataset', () => {
   it('stops after ten pages at the 500-position cap even if the library contains 750 items', () => {
     const next = vi.fn();
     const progress = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe(next);
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe(next);
 
     for (let offset = 0; offset < 500; offset += 50) {
       const request = http.expectOne(endpoint);
@@ -215,7 +215,7 @@ describe('prepareSavedTracksDataset', () => {
       const complete = vi.fn();
       const progress = vi.fn();
       const body = { error: { code: 'PREPARATION_ERROR', message: 'Nie udało się pobrać strony' } };
-      prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error, complete });
+      prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error, complete });
 
       http.expectOne(endpoint).flush(body, {
         status,
@@ -244,7 +244,7 @@ describe('prepareSavedTracksDataset', () => {
       const error = vi.fn();
       const complete = vi.fn();
       const progress = vi.fn();
-      prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error, complete });
+      prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error, complete });
 
       for (let offset = 0; offset < failedOffset; offset += 50) {
         http.expectOne(endpoint).flush(createPage(offset, 50, 132));
@@ -271,7 +271,7 @@ describe('prepareSavedTracksDataset', () => {
     const next = vi.fn();
     const error = vi.fn();
     const progress = vi.fn();
-    const preparation = prepareSavedTracksDataset(requestPage, progress);
+    const preparation = prepareSpotifyTracksDataset(requestPage, progress);
     preparation.subscribe({ next, error });
     http.expectOne(endpoint).flush(createPage(0, 1, 2));
     http.expectOne(endpoint).flush({}, { status: 503, statusText: 'Unavailable' });
@@ -305,7 +305,7 @@ describe('prepareSavedTracksDataset', () => {
       const error = vi.fn();
       const complete = vi.fn();
       const progress = vi.fn();
-      const subscription = prepareSavedTracksDataset(requestPage, progress).subscribe({
+      const subscription = prepareSpotifyTracksDataset(requestPage, progress).subscribe({
         next,
         error,
         complete,
@@ -328,7 +328,7 @@ describe('prepareSavedTracksDataset', () => {
   );
 
   it('also restarts from zero after cancellation', () => {
-    const preparation = prepareSavedTracksDataset(requestPage);
+    const preparation = prepareSpotifyTracksDataset(requestPage);
     const first = preparation.subscribe();
     http.expectOne(endpoint).flush(createPage(0, 50, 132));
     const pending = http.expectOne(endpoint);
@@ -359,7 +359,7 @@ describe('prepareSavedTracksDataset', () => {
       });
       const next = vi.fn();
       const error = vi.fn();
-      prepareSavedTracksDataset(requestPage, progress)
+      prepareSpotifyTracksDataset(requestPage, progress)
         .pipe(takeUntil(stop))
         .subscribe({ next, error });
 
@@ -381,7 +381,7 @@ describe('prepareSavedTracksDataset', () => {
     });
     const next = vi.fn();
     const error = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error });
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error });
 
     http.expectOne(endpoint).flush(createPage(0, 50, 132));
 
@@ -393,7 +393,7 @@ describe('prepareSavedTracksDataset', () => {
 
   it('isolates completed pages and progress between simultaneous subscriptions', () => {
     const progress = vi.fn();
-    const preparation = prepareSavedTracksDataset(requestPage, progress);
+    const preparation = prepareSpotifyTracksDataset(requestPage, progress);
     const firstResult = vi.fn();
     const secondResult = vi.fn();
     preparation.subscribe(firstResult);
@@ -426,7 +426,7 @@ describe('prepareSavedTracksDataset', () => {
     });
     const next = vi.fn();
     const error = vi.fn();
-    const preparation = prepareSavedTracksDataset(request);
+    const preparation = prepareSpotifyTracksDataset(request);
     expect(request).not.toHaveBeenCalled();
 
     preparation.subscribe({ next, error });
@@ -445,11 +445,11 @@ describe('prepareSavedTracksDataset', () => {
       const error = vi.fn();
       const progress = vi.fn();
 
-      prepareSavedTracksDataset(request, progress).subscribe({ next, error });
+      prepareSpotifyTracksDataset(request, progress).subscribe({ next, error });
 
       expect(next).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledOnce();
-      expect(error.mock.calls[0][0].message).toBe('Nie otrzymano strony zapisanych utworów');
+      expect(error.mock.calls[0][0].message).toBe('Nie otrzymano strony utworów Spotify');
       expect(progress).toHaveBeenCalledTimes(hasFirstPage ? 1 : 0);
     }
   );
@@ -462,14 +462,14 @@ describe('prepareSavedTracksDataset', () => {
       const next = vi.fn();
       const error = vi.fn();
       const progress = vi.fn();
-      prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error });
+      prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error });
 
       http.expectOne(endpoint).flush(response);
 
       expect(next).not.toHaveBeenCalled();
       expect(progress).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledOnce();
-      expect(error.mock.calls[0][0].message).toBe('Niepoprawna kolejność stron zapisanych utworów');
+      expect(error.mock.calls[0][0].message).toBe('Niepoprawna kolejność stron utworów Spotify');
       expect(requestPage).toHaveBeenCalledExactlyOnceWith(0);
       http.expectNone(() => true);
     }
@@ -479,7 +479,7 @@ describe('prepareSavedTracksDataset', () => {
     const progress = vi.fn();
     const next = vi.fn();
     const error = vi.fn();
-    prepareSavedTracksDataset(requestPage, progress).subscribe({ next, error });
+    prepareSpotifyTracksDataset(requestPage, progress).subscribe({ next, error });
 
     http.expectOne(endpoint).flush(createPage(50, 50, 132));
 
@@ -496,7 +496,7 @@ function createPage(
   processedItems: number,
   totalItems: number,
   trackIds = Array.from({ length: processedItems }, (_, index) => createId(offset + index))
-): PreparedSavedTracksPage {
+): PreparedSpotifyTracksPage {
   const processedThrough = offset + processedItems;
   return {
     preparedDataset: {
