@@ -186,6 +186,177 @@ function snapshotResponse(snapshotId = "snapshot-1"): Response {
   return Response.json({ snapshot_id: snapshotId });
 }
 
+describe("Spotify playlist source", () => {
+  it("reads only the required metadata and keeps the playlist version", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        id: "source",
+        name: "Summer",
+        snapshot_id: "version-1",
+        owner: { id: "someone-else" },
+      })
+    );
+    const gateway = createSpotifyGateway({ fetchImpl });
+    await expect(
+      gateway.getPlaylistMetadata("token", "source")
+    ).resolves.toEqual({
+      id: "source",
+      name: "Summer",
+      snapshotId: "version-1",
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.spotify.com/v1/playlists/source?fields=id,name,snapshot_id"
+    );
+  });
+
+  it.each([
+    {},
+    { id: "other", name: "Summer", snapshot_id: "version" },
+    { id: "source", name: null, snapshot_id: "version" },
+    { id: "source", name: "Summer", snapshot_id: " " },
+  ])(
+    "rejects invalid metadata without exposing the payload: %j",
+    async (data) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(Response.json(data));
+      await expect(
+        createSpotifyGateway({ fetchImpl }).getPlaylistMetadata(
+          "token",
+          "source"
+        )
+      ).rejects.toMatchObject({ category: "invalid-response", data: null });
+    }
+  );
+
+  it("reads one page, preserves source positions and does not follow next URLs", async () => {
+    const track = {
+      type: "track",
+      id: "a".repeat(22),
+      name: "Song",
+      artists: [{ name: "Artist" }],
+    };
+    const items = [
+      { is_local: false, item: track },
+      { is_local: false, item: null },
+      { is_local: true, item: { id: null } },
+      { is_local: false, item: { type: "episode" } },
+      { is_local: false, item: { ...track, is_playable: false } },
+      { is_local: false, item: { ...track, id: null } },
+    ];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        items,
+        total: 900,
+        offset: 50,
+        next: "https://untrusted.test",
+        previous: null,
+      })
+    );
+    const gateway = createSpotifyGateway({ fetchImpl });
+    await expect(
+      gateway.getPlaylistItemsPage("token", "source/id", {
+        limit: 50,
+        offset: 50,
+      })
+    ).resolves.toEqual({
+      items: [track, null, null, null, null, null],
+      total: 900,
+      offset: 50,
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "https://api.spotify.com/v1/playlists/source%2Fid/items?limit=50&offset=50"
+    );
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+      method: "GET",
+      headers: { Authorization: "Bearer token" },
+    });
+  });
+
+  it("accepts an empty playlist", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ items: [], offset: 0, total: 0 }));
+    await expect(
+      createSpotifyGateway({ fetchImpl }).getPlaylistItemsPage("token", "id", {
+        limit: 50,
+        offset: 0,
+      })
+    ).resolves.toEqual({ items: [], offset: 0, total: 0 });
+  });
+
+  it.each([
+    {},
+    { items: [], offset: 0, total: 1 },
+    { items: [], offset: 1, total: 0 },
+    { items: [], offset: 0, total: 0.5 },
+    { items: [], offset: 0, total: -1 },
+    { items: [null], offset: 0, total: 1 },
+    { items: [{ is_local: false, track: {} }], offset: 0, total: 1 },
+    {
+      items: [{ is_local: false, item: { type: "track", id: "id" } }],
+      offset: 0,
+      total: 1,
+    },
+    {
+      items: [
+        {
+          is_local: false,
+          item: { type: "track", id: "id", name: "Song", artists: [{}] },
+        },
+      ],
+      offset: 0,
+      total: 1,
+    },
+    {
+      items: Array.from({ length: 51 }, () => ({
+        is_local: false,
+        item: null,
+      })),
+      offset: 0,
+      total: 51,
+    },
+  ])(
+    "rejects inconsistent pages or broken track metadata: %j",
+    async (page) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(Response.json(page));
+      await expect(
+        createSpotifyGateway({ fetchImpl }).getPlaylistItemsPage(
+          "token",
+          "id",
+          { limit: 50, offset: 0 }
+        )
+      ).rejects.toMatchObject({ category: "invalid-response", data: null });
+    }
+  );
+
+  it.each([401, 403, 404, 429])(
+    "preserves HTTP %i and Retry-After",
+    async (status) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          Response.json(
+            { error: { message: "Denied" } },
+            { status, headers: { "Retry-After": "60" } }
+          )
+        );
+      await expect(
+        createSpotifyGateway({ fetchImpl }).getPlaylistItemsPage(
+          "token",
+          "id",
+          { limit: 50, offset: 0 }
+        )
+      ).rejects.toMatchObject({ status, retryAfterSeconds: 60 });
+      expect(fetchImpl).toHaveBeenCalledOnce();
+    }
+  );
+});
+
 function pageResponse(ids: string[], offset: number, total: number): Response {
   return Response.json({
     items: ids.map((id) => ({ is_local: false, item: { type: "track", id } })),

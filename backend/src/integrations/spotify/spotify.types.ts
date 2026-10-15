@@ -171,6 +171,8 @@ type SpotifyApiConfiguration = {
  * @property createPlaylist - Tworzy pustą, prywatną playlistę na koncie użytkownika.
  * @property addTracksToPlaylist - Dopisuje od 1 do 100 utworów do istniejącej playlisty w podanej kolejności.
  * @property getPlaylistContents - Odczytuje do 500 pozycji playlisty, zachowując kolejność i braki ID.
+ * @property getPlaylistMetadata - Pobiera ID, nazwę i wersję playlisty źródłowej.
+ * @property getPlaylistItemsPage - Pobiera jedną stronę utworów, zachowując pominięte pozycje jako null.
  */
 type SpotifyGateway = {
   getSpotifyTrackById(
@@ -201,6 +203,15 @@ type SpotifyGateway = {
     accessToken: string,
     playlistId: string
   ): Promise<SpotifyPlaylistContents>;
+  getPlaylistMetadata(
+    accessToken: string,
+    playlistId: string
+  ): Promise<SpotifyPlaylistMetadata>;
+  getPlaylistItemsPage(
+    accessToken: string,
+    playlistId: string,
+    selection: SpotifyPageSelection
+  ): Promise<SpotifyPlaylistTrackPage>;
   getCurrentUserSavedTracks(
     accessToken: string,
     selection: SpotifyPageSelection
@@ -261,6 +272,34 @@ type SpotifyPlaylistContents = {
 };
 
 /**
+ * Metadane potrzebne do przygotowania zbioru z jednej wersji playlisty.
+ *
+ * @property id - Identyfikator odczytanej playlisty.
+ * @property name - Nazwa playlisty wyświetlana użytkownikowi.
+ * @property snapshotId - Wersja zawartości, porównywana podczas odczytu kolejnych stron.
+ */
+type SpotifyPlaylistMetadata = {
+  id: string;
+  name: string;
+  snapshotId: string;
+};
+
+/**
+ * Jedna strona playlisty z danymi utworów, bez automatycznego odczytu następnej strony.
+ * Gateway wyciąga pole item z odpowiedzi Spotify. Nie deklaruje pełnego modelu API.
+ *
+ * @property items - Utwory albo null dla niedostępnych, lokalnych i innych niż utwór pozycji.
+ * Każda pozycja źródłowa pozostaje na swoim miejscu, także po pominięciu jej danych.
+ * @property offset - Indeks pierwszej pozycji tej strony.
+ * @property total - Liczba wszystkich pozycji playlisty, nie tylko przydatnych utworów.
+ */
+type SpotifyPlaylistTrackPage = {
+  items: (SpotifyLibraryTrack | null)[];
+  offset: number;
+  total: number;
+};
+
+/**
  * Parametry odczytu jednej strony zasobów Spotify.
  * Nie określają łącznej liczby pozycji w bibliotece ani limitu całego generatora.
  *
@@ -273,7 +312,7 @@ type SpotifyPageSelection = {
 };
 
 /**
- * Dane utworu potrzebne podczas przygotowania zbioru z biblioteki Spotify.
+ * Dane utworu potrzebne podczas przygotowania zbioru z biblioteki lub playlisty Spotify.
  * Gateway sprawdza typy tych pól, bez wymagania pozostałych danych pełnego
  * utworu Spotify. Niepuste nazwy i przydatność utworu ocenia przygotowanie zbioru.
  * Ten typ nie zawiera pomiarów audio.
@@ -332,6 +371,8 @@ export type {
   SpotifyPlaylistApiResponse,
   SpotifyPlaylistSnapshotApiResponse,
   SpotifyPlaylistContents,
+  SpotifyPlaylistMetadata,
+  SpotifyPlaylistTrackPage,
   SpotifySavedTrackApiResponse,
   SpotifySavedTracksApiResponse,
   SpotifyPageSelection,

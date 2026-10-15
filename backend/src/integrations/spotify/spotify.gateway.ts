@@ -4,6 +4,8 @@ import type {
   SpotifyGateway,
   SpotifyPlaylistApiResponse,
   SpotifyPlaylistContents,
+  SpotifyPlaylistMetadata,
+  SpotifyPlaylistTrackPage,
   SpotifyPlaylistSnapshotApiResponse,
   SpotifyTopArtistsApiResponse,
   SpotifyTopItemsSelection,
@@ -395,63 +397,118 @@ function createSpotifyGateway({
     accessToken: string,
     playlistId: string
   ): Promise<SpotifyPlaylistContents> {
-    const endpoint = `/playlists/${encodeURIComponent(playlistId)}`;
-    const snapshotId = await readSnapshot();
+    const snapshotId = await readPlaylistSnapshot(accessToken, playlistId);
     const trackIds: (string | null)[] = [];
     let total: number | null = null;
 
     do {
       const offset = trackIds.length;
-      const page = await request<unknown>(
-        `${endpoint}/items?limit=50&offset=${offset}`,
-        accessToken,
-        "Nie udało się odczytać zawartości playlisty"
-      );
+      const page = await readPlaylistItemsPage(accessToken, playlistId, {
+        limit: 50,
+        offset,
+      });
 
-      if (
-        !isObject(page) ||
-        !Array.isArray(page["items"]) ||
-        !Number.isInteger(page["total"]) ||
-        typeof page["total"] !== "number" ||
-        page["total"] < 0 ||
-        page["total"] > 500 ||
-        page["offset"] !== offset ||
-        page["items"].length > 50 ||
-        (total !== null && page["total"] !== total) ||
-        (page["items"].length === 0 && offset < page["total"]) ||
-        offset + page["items"].length > page["total"]
-      ) {
+      if (page.total > 500 || (total !== null && page.total !== total)) {
         throw invalidPlaylistResponse();
       }
 
-      total = page["total"];
-      trackIds.push(...page["items"].map(readPlaylistTrackId));
+      total = page.total;
+      trackIds.push(...page.items.map(readPlaylistTrackId));
     } while (trackIds.length < total);
 
-    if ((await readSnapshot()) !== snapshotId) {
+    if ((await readPlaylistSnapshot(accessToken, playlistId)) !== snapshotId) {
       throw invalidPlaylistResponse();
     }
 
     return { trackIds, snapshotId };
+  }
 
-    /** Sprawdza identyfikator wersji bez pobierania pełnych metadanych playlisty. */
-    async function readSnapshot(): Promise<string> {
-      const data = await request<unknown>(
-        `${endpoint}?fields=snapshot_id`,
-        accessToken,
-        "Nie udało się sprawdzić wersji playlisty"
-      );
+  /** Pobiera tylko wersję; wspólny walidator nie ujawnia niepoprawnej odpowiedzi API. */
+  async function readPlaylistSnapshot(
+    accessToken: string,
+    playlistId: string
+  ): Promise<string> {
+    const data = await request<unknown>(
+      `/playlists/${encodeURIComponent(playlistId)}?fields=snapshot_id`,
+      accessToken,
+      "Nie udało się sprawdzić wersji playlisty"
+    );
+    return readPlaylistSnapshotId(data);
+  }
 
-      if (
-        !isObject(data) ||
-        typeof data["snapshot_id"] !== "string" ||
-        !data["snapshot_id"]
-      ) {
-        throw invalidPlaylistResponse();
-      }
-
-      return data["snapshot_id"];
+  /**
+   * Pobiera ID, nazwę i wersję playlisty, bez jej zawartości i bez sprawdzania właściciela.
+   * Dostęp do pozycji weryfikuje Spotify przy odczycie strony; inny właściciel nie
+   * wyklucza współtwórcy. Nie odczytuje profilu ani pozostałych playlist użytkownika.
+   */
+  async function getPlaylistMetadata(
+    accessToken: string,
+    playlistId: string
+  ): Promise<SpotifyPlaylistMetadata> {
+    const data = await request<unknown>(
+      `/playlists/${encodeURIComponent(playlistId)}?fields=id,name,snapshot_id`,
+      accessToken,
+      "Nie udało się odczytać playlisty"
+    );
+    const snapshotId = readPlaylistSnapshotId(data);
+    if (
+      !isObject(data) ||
+      data["id"] !== playlistId ||
+      typeof data["name"] !== "string"
+    ) {
+      throw invalidPlaylistResponse();
     }
+    return { id: playlistId, name: data["name"], snapshotId };
+  }
+
+  /**
+   * Odczytuje jedną stronę z metadanymi do generatora. Zachowuje pozycje jako null
+   * dla podcastów, plików lokalnych i niedostępnych utworów. Sprawdza używane pola,
+   * ale nie wymaga pozostałych danych pełnego utworu. Nie pobiera kolejnej strony.
+   */
+  async function getPlaylistItemsPage(
+    accessToken: string,
+    playlistId: string,
+    selection: SpotifyPageSelection
+  ): Promise<SpotifyPlaylistTrackPage> {
+    const page = await readPlaylistItemsPage(
+      accessToken,
+      playlistId,
+      selection
+    );
+    return { ...page, items: page.items.map(readPlaylistSourceTrack) };
+  }
+
+  /** Wspólny odczyt i kontrola paginacji importu oraz wznawiania zapisu, bez mapowania pozycji. */
+  async function readPlaylistItemsPage(
+    accessToken: string,
+    playlistId: string,
+    selection: SpotifyPageSelection
+  ): Promise<{ items: unknown[]; offset: number; total: number }> {
+    const params = new URLSearchParams({
+      limit: String(selection.limit),
+      offset: String(selection.offset),
+    });
+    const data = await request<unknown>(
+      `/playlists/${encodeURIComponent(playlistId)}/items?${params}`,
+      accessToken,
+      "Nie udało się odczytać zawartości playlisty"
+    );
+    if (!isObject(data) || Array.isArray(data)) throw invalidPlaylistResponse();
+    const { items, offset, total } = data;
+    if (
+      !Array.isArray(items) ||
+      typeof total !== "number" ||
+      !Number.isSafeInteger(total) ||
+      total < 0 ||
+      offset !== selection.offset ||
+      items.length > selection.limit ||
+      offset + items.length > total ||
+      (items.length === 0 && offset < total)
+    ) {
+      throw invalidPlaylistResponse();
+    }
+    return { items, offset, total };
   }
 
   return {
@@ -462,6 +519,8 @@ function createSpotifyGateway({
     createPlaylist,
     addTracksToPlaylist,
     getPlaylistContents,
+    getPlaylistMetadata,
+    getPlaylistItemsPage,
     getCurrentUserSavedTracks,
   };
 }
@@ -596,6 +655,47 @@ function readPlaylistTrackId(value: unknown): string | null {
   const id = isObject(linkedFrom) ? linkedFrom["id"] : item["id"];
 
   return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id) ? id : null;
+}
+
+/** Odczytuje wersję wspólną dla importu playlisty i kontroli częściowego zapisu. */
+function readPlaylistSnapshotId(value: unknown): string {
+  if (
+    !isObject(value) ||
+    typeof value["snapshot_id"] !== "string" ||
+    !value["snapshot_id"].trim()
+  ) {
+    throw invalidPlaylistResponse();
+  }
+  return value["snapshot_id"];
+}
+
+/** Oddziela poprawne pominięcia od naruszenia kontraktu metadanych utworu Spotify. */
+function readPlaylistSourceTrack(value: unknown): SpotifyLibraryTrack | null {
+  if (
+    !isObject(value) ||
+    Array.isArray(value) ||
+    typeof value["is_local"] !== "boolean" ||
+    !("item" in value)
+  ) {
+    throw invalidPlaylistResponse();
+  }
+  const item = value["item"];
+  if (value["is_local"] || item === null) return null;
+  if (
+    !isObject(item) ||
+    Array.isArray(item) ||
+    typeof item["type"] !== "string"
+  )
+    throw invalidPlaylistResponse();
+  if (
+    item["type"] !== "track" ||
+    item["is_local"] === true ||
+    item["is_playable"] === false
+  )
+    return null;
+  if (item["id"] === null) return null;
+  if (!isSpotifyLibraryTrack(item)) throw invalidPlaylistResponse();
+  return item;
 }
 
 /**
