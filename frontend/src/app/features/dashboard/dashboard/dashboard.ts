@@ -44,6 +44,7 @@ class Dashboard {
   public readonly audioFeatures = this.tracksStore.audioFeatures;
   public readonly isAudioStatsLoading = this.tracksStore.isAudioStatsLoading;
   public readonly tracksLoadState = this.tracksStore.loadState;
+  public readonly tracksProgress = this.tracksStore.progress;
   public readonly tracksFeedbackMessage = this.tracksStore.feedbackMessage;
   public readonly hasTracksError = this.tracksStore.hasError;
   public readonly tracksFoundRatio = this.tracksStore.tracksFoundRatio;

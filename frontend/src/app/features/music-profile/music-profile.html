@@ -1,38 +1,40 @@
-@if (tracksFeedbackMessage(); as message) {
-<app-listening-tracks-feedback
-  [message]="message"
-  [hasError]="hasTracksError()"
-  (retryRequested)="retryTracks()"
-></app-listening-tracks-feedback>
-} @if (tracksLoadState() === 'loading' || tracksLoadState() === 'ready') {
-<app-average-bpm
-  class="card"
-  [averageBpm]="averageBpm()"
-  [isLoading]="isAudioStatsLoading()"
-></app-average-bpm>
+@if (tracksFeedbackMessage() || tracksProgress()) {
+  <app-listening-tracks-feedback
+    [message]="tracksFeedbackMessage()"
+    [progress]="tracksProgress()"
+    [hasError]="hasTracksError()"
+    (retryRequested)="retryTracks()"
+  ></app-listening-tracks-feedback>
+}
+@if (tracksLoadState() === 'loading' || tracksLoadState() === 'ready') {
+  <app-average-bpm
+    class="card"
+    [averageBpm]="averageBpm()"
+    [isLoading]="isAudioStatsLoading()"
+  ></app-average-bpm>
 
-<app-average-audio-features
-  class="card"
-  [audioStats]="audioStats()"
-  [isLoading]="isAudioStatsLoading()"
-></app-average-audio-features>
+  <app-average-audio-features
+    class="card"
+    [audioStats]="audioStats()"
+    [isLoading]="isAudioStatsLoading()"
+  ></app-average-audio-features>
 
-<app-track-category-statistics
-  class="card"
-  [audioStats]="audioStats()"
-  [isLoading]="isAudioStatsLoading()"
-></app-track-category-statistics>
+  <app-track-category-statistics
+    class="card"
+    [audioStats]="audioStats()"
+    [isLoading]="isAudioStatsLoading()"
+  ></app-track-category-statistics>
 
-<app-audio-features-profile
-  class="card"
-  [audioStats]="audioStats()"
-  [isLoading]="isAudioStatsLoading()"
-></app-audio-features-profile>
+  <app-audio-features-profile
+    class="card"
+    [audioStats]="audioStats()"
+    [isLoading]="isAudioStatsLoading()"
+  ></app-audio-features-profile>
 
-<app-audio-features-comparison
-  class="card"
-  [tracks]="topTracks()?.items ?? []"
-  [audioFeatures]="audioFeatures()"
-  [isLoading]="isAudioStatsLoading()"
-></app-audio-features-comparison>
+  <app-audio-features-comparison
+    class="card"
+    [tracks]="topTracks()?.items ?? []"
+    [audioFeatures]="audioFeatures()"
+    [isLoading]="isAudioStatsLoading()"
+  ></app-audio-features-comparison>
 }

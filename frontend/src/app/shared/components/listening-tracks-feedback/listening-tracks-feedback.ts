@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import type { TopTracksProgress } from '@core/api/tracks/top-tracks.models';
 
 /** Wspólny komunikat dashboardu i profilu; ponowienie jest dostępne tylko przy awarii. */
 @Component({
@@ -8,7 +9,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class ListeningTracksFeedback {
-  public readonly message = input.required<string>();
+  public readonly message = input<string | null>(null);
+  public readonly progress = input<TopTracksProgress | null>(null);
   public readonly hasError = input(false);
   public readonly retryRequested = output<void>();
 }

@@ -1,203 +1,163 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
-import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
 import { ListeningTracksStore } from './listening-tracks.store';
-import type { TopTracksResponse } from '@core/api/spotify/spotify.models';
-import type { AudioStats, TrackAnalysisResponse } from '@core/api/tracks/audio-features.models';
+import { TopTracksCollector } from './top-tracks-collector.service';
+import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
+import type { TopTracksCollection } from '@core/api/tracks/top-tracks.models';
+import type { AudioStats } from '@core/api/tracks/audio-features.models';
 
 describe('ListeningTracksStore', () => {
-  const spotifyApi = { getTopTracks: vi.fn() };
-  const trackAnalysisApi = {
-    getTracksAnalysis: vi.fn(),
-  };
+  const collector = { collect: vi.fn() };
+  const api = { getStatistics: vi.fn(), getTracksAnalysis: vi.fn() };
   let store: ListeningTracksStore;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     TestBed.configureTestingModule({
       providers: [
         ListeningTracksStore,
-        { provide: SpotifyApiService, useValue: spotifyApi },
-        { provide: TrackAnalysisApiService, useValue: trackAnalysisApi },
+        { provide: TopTracksCollector, useValue: collector },
+        { provide: TrackAnalysisApiService, useValue: api },
       ],
     });
     store = TestBed.inject(ListeningTracksStore);
   });
-
   afterEach(() => vi.restoreAllMocks());
 
-  it('loads tracks, statistics and individual audio features', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1'])));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValue(
-      of({
-        stats: createAudioStats(),
-        audioFeatures: [{ spotifyId: 'track-1', tempo: 120 }],
+  it('updates batch progress and summarizes only the completed combined dataset', () => {
+    const source = new Subject<TopTracksCollection>();
+    collector.collect.mockReturnValue(source);
+    api.getStatistics.mockReturnValue(of(stats()));
+    store.load('short_term', 10);
+    source.next(collection(['one'], false, 3));
+    expect(store.progress()?.skippedItems).toBe(2);
+    expect(api.getStatistics).not.toHaveBeenCalled();
+    source.next(collection(['one', 'two'], true, 4));
+    expect(api.getStatistics).toHaveBeenCalledExactlyOnceWith([
+      { spotifyId: 'one', tempo: 120 },
+      { spotifyId: 'two', tempo: 120 },
+    ]);
+    expect(api.getTracksAnalysis).not.toHaveBeenCalled();
+    expect(store.topTracks()?.items).toHaveLength(2);
+    expect(store.loadState()).toBe('ready');
+    expect(store.averageBpm()).toBe(120);
+    expect(collector.collect).toHaveBeenCalledWith('short_term', 10, 'statistics');
+  });
+
+  it('distinguishes an empty source from missing measurements', () => {
+    collector.collect.mockReturnValueOnce(of(collection([], true, 0, 0)));
+    store.load('short_term', 10);
+    expect(store.loadState()).toBe('no-tracks');
+    collector.collect.mockReturnValueOnce(of(collection([], true, 10, 10)));
+    store.load('short_term', 10);
+    expect(store.loadState()).toBe('no-audio-features');
+    expect(store.hasError()).toBe(false);
+    expect(api.getStatistics).not.toHaveBeenCalled();
+  });
+
+  it('treats a batch failure as an error without adding missing tracks', () => {
+    const source = new Subject<TopTracksCollection>();
+    collector.collect.mockReturnValue(source);
+    store.load('short_term', 10);
+    source.next(collection(['one'], false, 3));
+    source.error(
+      new HttpErrorResponse({
+        status: 429,
+        error: { error: { details: { integration: 'reccobeats' } } },
       })
     );
-
-    store.load('short_term', 10);
-
-    expect(store.topTracks()?.items[0].id).toBe('track-1');
-    expect(store.audioStats()?.averageBpm).toBe(120);
-    expect(store.audioFeatures()).toEqual([{ spotifyId: 'track-1', tempo: 120 }]);
-    expect(store.isAudioStatsLoading()).toBe(false);
-    expect(store.loadState()).toBe('ready');
-    expect(store.feedbackMessage()).toBeNull();
-    expect(store.hasError()).toBe(false);
-    expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledOnce();
-    expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledWith(['track-1']);
-  });
-
-  it('does not request analysis for an empty Spotify result', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks([])));
-
-    store.load('medium_term', 10);
-
-    expect(trackAnalysisApi.getTracksAnalysis).not.toHaveBeenCalled();
-    expect(store.audioStats()).toBeNull();
-    expect(store.isAudioStatsLoading()).toBe(false);
-    expect(store.loadState()).toBe('no-tracks');
-    expect(store.feedbackMessage()).toContain('Brak utworów');
-    expect(store.hasError()).toBe(false);
-  });
-
-  it('clears analysis data after a loading failure', () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    spotifyApi.getTopTracks.mockReturnValue(throwError(() => new Error('Spotify unavailable')));
-
-    try {
-      store.load('short_term', 10);
-
-      expect(store.topTracks()).toBeNull();
-      expect(store.audioStats()).toBeNull();
-      expect(store.audioFeatures()).toEqual([]);
-      expect(store.isAudioStatsLoading()).toBe(false);
-      expect(store.loadState()).toBe('tracks-error');
-      expect(store.hasError()).toBe(true);
-      expect(store.feedbackMessage()).toContain('Nie udało się pobrać najczęściej');
-    } finally {
-      consoleError.mockRestore();
-    }
-  });
-
-  it('keeps Spotify tracks and reports an analysis failure separately', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const tracks = createTopTracks(['track-1']);
-    spotifyApi.getTopTracks.mockReturnValue(of(tracks));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValue(throwError(() => new Error('Unavailable')));
-
-    store.load('short_term', 10);
-
-    expect(store.topTracks()).toEqual(tracks);
-    expect(store.audioStats()).toBeNull();
-    expect(store.audioFeatures()).toEqual([]);
     expect(store.loadState()).toBe('audio-error');
-    expect(store.hasError()).toBe(true);
-    expect(store.feedbackMessage()).toContain('cech audio i statystyk');
-    expect(store.isAudioStatsLoading()).toBe(false);
-  });
-
-  it('reports unavailable measurements without treating a successful response as an error', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1'])));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValue(
-      of({
-        stats: createEmptyAudioStats(),
-        audioFeatures: [{ spotifyId: 'track-1', error: 'Not found' }],
-      })
-    );
-
-    store.load('short_term', 10);
-
-    expect(store.loadState()).toBe('no-audio-features');
-    expect(store.hasError()).toBe(false);
-    expect(store.feedbackMessage()).toContain('Nie znaleziono pomiarów');
+    expect(store.progress()?.skippedItems).toBe(2);
+    expect(store.progress()?.complete).toBe(false);
     expect(store.topTracks()?.items).toHaveLength(1);
+    expect(api.getStatistics).not.toHaveBeenCalled();
   });
 
-  it('reports no measurements even when an audio record was found but all features are null', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1'])));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValue(
-      of({
-        stats: { ...createEmptyAudioStats(), trackCount: 1, foundTracksCount: 1 },
-        audioFeatures: [{ spotifyId: 'track-1', tempo: null }],
-      })
-    );
-
+  it('reports a Spotify failure separately', () => {
+    collector.collect.mockReturnValue(throwError(() => new Error('Spotify unavailable')));
     store.load('short_term', 10);
-
-    expect(store.loadState()).toBe('no-audio-features');
-  });
-
-  it('accepts zero-valued measurements and partially missing audio data', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1', 'track-2'])));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValue(
-      of({
-        stats: { ...createEmptyAudioStats(), averageEnergy: 0, foundTracksCount: 1 },
-        audioFeatures: [
-          { spotifyId: 'track-1', energy: 0 },
-          { spotifyId: 'track-2', error: 'Not found' },
-        ],
-      })
-    );
-
-    store.load('short_term', 10);
-
-    expect(store.loadState()).toBe('ready');
-    expect(store.tracksFoundRatio()?.audioDataTracksCount).toBe(1);
-  });
-
-  it('clears previous data and errors as soon as a new load starts', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    spotifyApi.getTopTracks.mockReturnValueOnce(throwError(() => new Error('Unavailable')));
-    store.load('short_term', 10);
-    spotifyApi.getTopTracks.mockReturnValueOnce(new Subject<TopTracksResponse>());
-
-    const subscription = store.load('long_term', 20);
-
-    expect(store.loadState()).toBe('loading');
-    expect(store.hasError()).toBe(false);
-    expect(store.feedbackMessage()).toBeNull();
+    expect(store.loadState()).toBe('tracks-error');
     expect(store.topTracks()).toBeNull();
+    expect(store.hasError()).toBe(true);
+  });
+
+  it('does not publish partial statistics after a summary failure', () => {
+    collector.collect.mockReturnValue(of(collection(['one'], true, 1)));
+    api.getStatistics.mockReturnValue(throwError(() => new Error('Unavailable')));
+    store.load('short_term', 10);
+    expect(store.loadState()).toBe('audio-error');
+    expect(store.topTracks()?.items).toHaveLength(1);
     expect(store.audioStats()).toBeNull();
     expect(store.audioFeatures()).toEqual([]);
-    subscription.unsubscribe();
   });
 
-  it('does not apply analysis from an unsubscribed request after filters change', () => {
-    const previousAnalysis = new Subject<TrackAnalysisResponse>();
-    spotifyApi.getTopTracks.mockReturnValueOnce(of(createTopTracks(['old-track'])));
-    trackAnalysisApi.getTracksAnalysis.mockReturnValueOnce(previousAnalysis);
-    const previousSubscription = store.load('short_term', 10);
-    previousSubscription.unsubscribe();
-    spotifyApi.getTopTracks.mockReturnValueOnce(of(createTopTracks([])));
+  it('does not apply cancelled statistics responses after filters change', () => {
+    const pending = new Subject<AudioStats>();
+    collector.collect.mockReturnValueOnce(of(collection(['old'], true, 1)));
+    api.getStatistics.mockReturnValueOnce(pending);
+    const previous = store.load('short_term', 10);
+    previous.unsubscribe();
+    collector.collect.mockReturnValueOnce(of(collection([], true, 0, 0)));
     store.load('long_term', 20);
-
-    previousAnalysis.next({ stats: createAudioStats(), audioFeatures: [] });
-
+    pending.next(stats());
     expect(store.loadState()).toBe('no-tracks');
     expect(store.audioStats()).toBeNull();
   });
 
-  it('requests a reload without starting an unmanaged subscription', () => {
-    const initialVersion = store.reloadVersion();
-
+  it('resets previous data and requests an explicit reload without subscribing on its own', () => {
+    collector.collect.mockReturnValueOnce(of(collection([], true, 0, 0)));
+    store.load('short_term', 10);
+    collector.collect.mockReturnValueOnce(new Subject<TopTracksCollection>());
+    const subscription = store.load('long_term', 20);
+    expect(store.progress()).toBeNull();
+    expect(store.topTracks()).toBeNull();
+    expect(store.loadState()).toBe('loading');
+    const version = store.reloadVersion();
     store.retry();
-
-    expect(store.reloadVersion()).toBe(initialVersion + 1);
-    expect(spotifyApi.getTopTracks).not.toHaveBeenCalled();
+    expect(store.reloadVersion()).toBe(version + 1);
+    expect(collector.collect).toHaveBeenCalledTimes(2);
+    subscription.unsubscribe();
   });
 });
 
-function createEmptyAudioStats(): AudioStats {
+function collection(
+  ids: string[],
+  complete: boolean,
+  processed: number,
+  total = 20
+): TopTracksCollection {
   return {
-    ...createAudioStats(),
-    trackCount: 0,
-    foundTracksCount: 0,
-    averageBpm: null,
-    averageEnergy: null,
+    tracks: ids.map((id) => ({
+      id,
+      name: `Track ${id}`,
+      artists: [{ name: 'Artist' }],
+      album: { name: 'Album', images: [] },
+      duration_ms: 1000,
+      popularity: 10,
+    })),
+    audioFeatures: ids.map((spotifyId) => ({ spotifyId, tempo: 120 })),
+    nextOffset: complete ? null : processed,
+    progress: {
+      requestedTracks: 10,
+      foundTracks: ids.length,
+      skippedItems: processed - ids.length,
+      processedItems: processed,
+      totalItems: total,
+      complete,
+    },
+  };
+}
+
+function stats(): AudioStats {
+  return {
+    trackCount: 2,
+    foundTracksCount: 2,
+    totalTracksCount: 2,
+    averageBpm: 120,
+    averageEnergy: 0,
     averageDanceability: null,
     averageValence: null,
     averageAcousticness: null,
@@ -214,50 +174,5 @@ function createEmptyAudioStats(): AudioStats {
     instrumentalTrackPercentage: null,
     speechHeavyTrackPercentage: null,
     measurementCounts: { mode: 0, liveness: 0, instrumentalness: 0, speechiness: 0 },
-  };
-}
-
-function createTopTracks(trackIds: string[]): TopTracksResponse {
-  return {
-    href: '',
-    items: trackIds.map((id) => ({
-      id,
-      name: `Track ${id}`,
-      artists: [{ name: 'Artist' }],
-      album: { name: 'Album', images: [] },
-      duration_ms: 180_000,
-      popularity: 50,
-    })),
-    limit: 10,
-    next: null,
-    offset: 0,
-    previous: null,
-    total: trackIds.length,
-  };
-}
-
-function createAudioStats(): AudioStats {
-  return {
-    trackCount: 1,
-    averageBpm: 120,
-    averageEnergy: 0.8,
-    averageDanceability: 0.7,
-    averageValence: 0.6,
-    averageAcousticness: 0.2,
-    averageInstrumentalness: 0.1,
-    averageLiveness: 0.15,
-    averageSpeechiness: 0.05,
-    averageLoudness: -5,
-    dominantKey: 2,
-    dominantMode: 1,
-    majorPercentage: 100,
-    minorPercentage: 0,
-    dominantTimeSignature: 4,
-    liveTrackPercentage: 0,
-    instrumentalTrackPercentage: 0,
-    speechHeavyTrackPercentage: 0,
-    measurementCounts: { mode: 1, liveness: 1, instrumentalness: 1, speechiness: 1 },
-    foundTracksCount: 1,
-    totalTracksCount: 1,
   };
 }

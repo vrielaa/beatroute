@@ -1,14 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { TimeRange, TopTracksResponse } from '@core/api/spotify/spotify.models';
-import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
 import type { AudioFeatures, AudioStats } from '@core/api/tracks/audio-features.models';
 import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
-import { of, Subscription, switchMap, tap } from 'rxjs';
+import { EMPTY, of, Subscription, switchMap, tap } from 'rxjs';
 import type { ListeningTracksLoadState, TracksFoundRatio } from './listening-tracks.models';
+import { TopTracksCollector } from './top-tracks-collector.service';
+import type { TopTracksProgress } from '@core/api/tracks/top-tracks.models';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 class ListeningTracksStore {
-  private readonly spotifyApi = inject(SpotifyApiService);
+  private readonly collector = inject(TopTracksCollector);
   private readonly trackAnalysisApi = inject(TrackAnalysisApiService);
   private readonly reloadTrigger = signal(0);
 
@@ -16,6 +18,7 @@ class ListeningTracksStore {
   public readonly audioStats = signal<AudioStats | null>(null);
   public readonly audioFeatures = signal<AudioFeatures[]>([]);
   public readonly loadState = signal<ListeningTracksLoadState>('loading');
+  public readonly progress = signal<TopTracksProgress | null>(null);
   public readonly reloadVersion = this.reloadTrigger.asReadonly();
   public readonly isAudioStatsLoading = computed(() => this.loadState() === 'loading');
   public readonly hasError = computed(
@@ -47,8 +50,9 @@ class ListeningTracksStore {
   }
 
   /**
-   * Pobiera utwory, a następnie ich analizę. Zachowuje listę Spotify przy awarii
-   * analizy i rozróżnia błędy od poprawnych odpowiedzi bez utworów lub pomiarów.
+   * Dobiera brakujące utwory, następnie raz podsumowuje zebrane pomiary.
+   * Nie pobiera ponownie cech i nie uśrednia statystyk poszczególnych partii.
+   * Błąd przerywa dobieranie i pozostaje błędem, nie poprawnym końcem źródła.
    * Wywołujący anuluje zwróconą subskrypcję przy zmianie filtrów lub zamknięciu widoku.
    */
   public load(timeRange: TimeRange, tracksRange: number): Subscription {
@@ -56,64 +60,56 @@ class ListeningTracksStore {
     this.audioStats.set(null);
     this.audioFeatures.set([]);
     this.loadState.set('loading');
-    let spotifyTracks: TopTracksResponse | null = null;
+    this.progress.set(null);
+    let summarizing = false;
+    let collectionProgress: TopTracksProgress | null = null;
 
-    return this.spotifyApi
-      .getTopTracks(timeRange, tracksRange)
+    return this.collector
+      .collect(timeRange, tracksRange, 'statistics')
       .pipe(
-        tap((response) => {
-          spotifyTracks = response;
-          this.topTracks.set(response);
-        }),
-        switchMap((response) => {
-          const trackIds = response.items.map((track) => track.id);
-
-          if (!trackIds.length) {
-            return of({ stats: null, audioFeatures: [] });
+        tap((collection) => {
+          collectionProgress = collection.progress;
+          this.progress.set(collection.progress);
+          if (collection.progress.totalItems !== null) {
+            this.topTracks.set({
+              href: '',
+              items: collection.tracks,
+              limit: tracksRange,
+              offset: 0,
+              previous: null,
+              next: null,
+              total: collection.progress.totalItems,
+            });
           }
-
-          return this.trackAnalysisApi.getTracksAnalysis(trackIds);
+        }),
+        switchMap((collection) => {
+          if (!collection.progress.complete) return EMPTY;
+          this.audioFeatures.set(collection.audioFeatures);
+          if (!collection.tracks.length) return of(null);
+          summarizing = true;
+          return this.trackAnalysisApi.getStatistics(collection.audioFeatures);
         })
       )
       .subscribe({
-        next: ({ stats, audioFeatures }) => {
+        next: (stats) => {
           this.audioStats.set(stats);
-          this.audioFeatures.set(audioFeatures);
-          if (!spotifyTracks?.items.length) {
+          if (collectionProgress?.totalItems === 0) {
             this.loadState.set('no-tracks');
           } else {
-            this.loadState.set(this.hasAudioMeasurements(stats) ? 'ready' : 'no-audio-features');
+            this.loadState.set(stats ? 'ready' : 'no-audio-features');
           }
         },
         error: (error) => {
           console.error('Błąd pobierania utworów lub statystyk audio:', error);
           this.audioStats.set(null);
           this.audioFeatures.set([]);
-          this.loadState.set(spotifyTracks ? 'audio-error' : 'tracks-error');
+          const audioFailure =
+            summarizing ||
+            (error instanceof HttpErrorResponse &&
+              error.error?.error?.details?.integration === 'reccobeats');
+          this.loadState.set(audioFailure ? 'audio-error' : 'tracks-error');
         },
       });
-  }
-
-  /** Sprawdza dostępność przynajmniej jednego pomiaru, również o wartości zero. */
-  private hasAudioMeasurements(stats: AudioStats | null): boolean {
-    if (!stats) return false;
-
-    const measurements = [
-      stats.averageBpm,
-      stats.averageEnergy,
-      stats.averageDanceability,
-      stats.averageValence,
-      stats.averageAcousticness,
-      stats.averageInstrumentalness,
-      stats.averageLiveness,
-      stats.averageSpeechiness,
-      stats.averageLoudness,
-      stats.dominantKey,
-      stats.dominantMode,
-      stats.dominantTimeSignature,
-    ];
-
-    return measurements.some((value) => typeof value === 'number' && Number.isFinite(value));
   }
 
   private mapAverageBpm(audioStats: AudioStats | null): number | null {
