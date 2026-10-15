@@ -113,6 +113,40 @@ describe("playlist dataset preparation", () => {
     ]);
   });
 
+  it("finishes reading metadata before starting audio preparation", async () => {
+    const dependencies = createDependencies();
+    let releaseSecondMetadata: () => void = () => {
+      throw new Error("Metadata request has not started");
+    };
+    const secondMetadata = new Promise<PlaylistSourceTrack>((resolve) => {
+      releaseSecondMetadata = () => resolve(createSourceTrack(secondId));
+    });
+    dependencies.getSpotifyTrackById
+      .mockResolvedValueOnce(createSourceTrack(firstId))
+      .mockReturnValueOnce(secondMetadata);
+    const service = createPlaylistDatasetService(dependencies);
+
+    const preparation = service.prepareDataset(
+      createFile([firstId, secondId]),
+      accessToken
+    );
+    await vi.waitFor(() => {
+      expect(dependencies.getSpotifyTrackById).toHaveBeenCalledTimes(2);
+    });
+    expect(dependencies.getAudioFeaturesBySpotifyIds).not.toHaveBeenCalled();
+
+    releaseSecondMetadata();
+    const result = await preparation;
+
+    expect(result.dataset.tracks.map((track) => track.id)).toEqual([
+      firstId,
+      secondId,
+    ]);
+    expect(
+      dependencies.getAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledExactlyOnceWith([firstId, secondId]);
+  });
+
   it("skips a Spotify 404 and requests audio only for tracks with metadata", async () => {
     const dependencies = createDependencies();
     dependencies.getSpotifyTrackById.mockRejectedValueOnce(
@@ -461,6 +495,60 @@ describe("playlist dataset preparation", () => {
       );
     }
   );
+
+  it("forms audio chunks after removing unusable metadata and preserves all result orders", async () => {
+    const dependencies = createDependencies();
+    const ids = createIds(43);
+    const missingMetadataIds = [ids[0], ids[20], ids[42]];
+    const availableIds = ids.filter((id) => !missingMetadataIds.includes(id));
+    dependencies.getSpotifyTrackById.mockImplementation(async (id) => {
+      if (id === ids[0] || id === ids[42]) {
+        throw new IntegrationApiError("spotify", "Not found", {
+          upstreamStatus: 404,
+        });
+      }
+      if (id === ids[20]) {
+        return { name: " ", artists: [{ name: "Artist" }] };
+      }
+      return createSourceTrack(id);
+    });
+    dependencies.getAudioFeaturesBySpotifyIds.mockImplementation(
+      async (requestedIds) =>
+        requestedIds
+          .filter((id) => id !== ids[41])
+          .map((id) =>
+            createAudioFeatures(
+              id,
+              id === ids[21] ? { tempo: null, energy: 0 } : {}
+            )
+          )
+          .reverse()
+    );
+    const service = createPlaylistDatasetService(dependencies);
+
+    const result = await service.prepareDataset(createFile(ids), accessToken);
+
+    expect(dependencies.getSpotifyTrackById).toHaveBeenCalledTimes(43);
+    expect(
+      dependencies.getAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledExactlyOnceWith(availableIds);
+    expect(result.dataset.tracks.map((track) => track.id)).toEqual(
+      availableIds.filter((id) => id !== ids[41])
+    );
+    expect(result.skippedTracks).toEqual([
+      { spotifyId: ids[0], reason: "metadata-unavailable" },
+      { spotifyId: ids[20], reason: "metadata-unavailable" },
+      { spotifyId: ids[41], reason: "audio-features-unavailable" },
+      { spotifyId: ids[42], reason: "metadata-unavailable" },
+    ]);
+    expect(result.incompleteTracks).toEqual([
+      { spotifyId: ids[21], missingFeatures: ["tempo"] },
+    ]);
+    expect(
+      result.dataset.tracks.find((track) => track.id === ids[21])?.audioFeatures
+        .energy
+    ).toBe(0);
+  });
 
   it.each([400, 401, 403, 429, 500, 503])(
     "propagates Spotify status %s instead of reporting a missing track",

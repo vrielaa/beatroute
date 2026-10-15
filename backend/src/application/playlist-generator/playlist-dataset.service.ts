@@ -50,6 +50,8 @@ const AUDIO_FEATURE_KEYS: (keyof PlaylistAudioFeatures)[] = [
  * przez filtrowanie i ranking. Serwis nie odczytuje plików ani zmiennych środowiska.
  * Zachowuje poprawne metadane w cache swojej instancji przez 24 godziny,
  * do 1000 wpisów łącznie. Kontekst cache oddziela dane poszczególnych sesji.
+ * Odczyt metadanych z ID oddziela od prywatnego przygotowania pomiarów
+ * i składania zbioru; ta część nie zależy od sposobu dostarczenia metadanych.
  *
  * @param dependencies - Operacje odczytu metadanych i cech audio.
  * @returns Serwis przygotowania zbioru, bez produkcyjnych zależności i stanu globalnego.
@@ -61,7 +63,8 @@ function createPlaylistDatasetService({
   const metadataCache = new Map<string, CachedTrackMetadata>();
 
   /**
-   * Pobiera metadane po kolei, a następnie cechy wyłącznie dla znalezionych utworów.
+   * Pobiera metadane po kolei i przekazuje pełną listę ID oraz znalezione
+   * metadane do prepareTracks, które pobiera pomiary i składa zbiór.
    * Status 404 oznacza pominięty utwór; pozostałe wyjątki przerywają przygotowanie
    * i są przekazywane wywołującemu, bez udawania pustego wyniku.
    * Zachowuje ID i kolejność z pliku, wiążąc cechy po spotifyId, nie po pozycji odpowiedzi.
@@ -107,49 +110,7 @@ function createPlaylistDatasetService({
       }
     }
 
-    const audioResults = await getAudioFeatures(
-      Array.from(metadataById.keys())
-    );
-    const audioById = new Map(
-      audioResults.map((result) => [result.spotifyId, result])
-    );
-    const tracks: PlaylistTrack[] = [];
-    const skippedTracks: SkippedPlaylistTrack[] = [];
-    const incompleteTracks: IncompletePlaylistTrack[] = [];
-
-    for (const spotifyId of file.spotifyTrackIds) {
-      const metadata = metadataById.get(spotifyId);
-
-      if (!metadata) {
-        skippedTracks.push({ spotifyId, reason: "metadata-unavailable" });
-        continue;
-      }
-
-      const audioResult = audioById.get(spotifyId);
-
-      if (!audioResult || "error" in audioResult) {
-        skippedTracks.push({ spotifyId, reason: "audio-features-unavailable" });
-        continue;
-      }
-
-      const audioFeatures = normalizePlaylistAudioFeatures(audioResult);
-      const missingFeatures = AUDIO_FEATURE_KEYS.filter(
-        (key) => audioFeatures[key] === null
-      );
-
-      if (missingFeatures.length === AUDIO_FEATURE_KEYS.length) {
-        skippedTracks.push({ spotifyId, reason: "audio-features-unavailable" });
-        continue;
-      }
-
-      if (missingFeatures.length > 0) {
-        incompleteTracks.push({ spotifyId, missingFeatures });
-      }
-
-      tracks.push({ id: spotifyId, ...metadata, audioFeatures });
-    }
-
-    return { dataset: { version: 1, tracks }, skippedTracks, incompleteTracks };
+    return prepareTracks(file.spotifyTrackIds, metadataById);
   }
 
   /** Korzysta z aktualnych metadanych danej sesji albo pobiera i zachowuje poprawny odczyt. */
@@ -242,6 +203,71 @@ function createPlaylistDatasetService({
     }
 
     return results;
+  }
+
+  /**
+   * Łączy dostarczone metadane z pomiarami audio, bez odczytów Spotify ani cache metadanych.
+   * Pobiera cechy tylko dla kluczy metadataById, w kolejnych porcjach do 40 ID.
+   * Odpowiedzi wiąże po spotifyId, a nie po pozycji w tablicy dostawcy.
+   * Pełną listę spotifyIds wykorzystuje do zachowania kolejności wyników
+   * i zgłoszenia brakujących metadanych, także dla ID nieobecnych w mapie.
+   * Brak odpowiedzi, wynik z błędem lub brak wszystkich użytecznych pomiarów
+   * oznacza pominięcie utworu. Częściowe braki zapisuje jako null i opisuje
+   * w incompleteTracks; zero pozostaje poprawnym pomiarem cech z zakresu 0–1.
+   * Wyjątek całego odczytu przerywa przygotowanie, bez zwracania częściowego zbioru.
+   * Nie zmienia wejścia, nie filtruje wymagań użytkownika ani nie ustala rankingu.
+   *
+   * @param spotifyIds - Pełna, uporządkowana lista unikalnych ID, również bez metadanych.
+   * @param metadataById - Znormalizowane metadane znalezionych ID z listy wejściowej.
+   * @returns Zbiór wersji 1 oraz uporządkowane informacje o pominięciach i brakach pomiarów.
+   */
+  async function prepareTracks(
+    spotifyIds: string[],
+    metadataById: Map<string, PlaylistTrackMetadata>
+  ): Promise<PreparedPlaylistDataset> {
+    const audioResults = await getAudioFeatures(
+      Array.from(metadataById.keys())
+    );
+    const audioById = new Map(
+      audioResults.map((result) => [result.spotifyId, result])
+    );
+    const tracks: PlaylistTrack[] = [];
+    const skippedTracks: SkippedPlaylistTrack[] = [];
+    const incompleteTracks: IncompletePlaylistTrack[] = [];
+
+    for (const spotifyId of spotifyIds) {
+      const metadata = metadataById.get(spotifyId);
+
+      if (!metadata) {
+        skippedTracks.push({ spotifyId, reason: "metadata-unavailable" });
+        continue;
+      }
+
+      const audioResult = audioById.get(spotifyId);
+
+      if (!audioResult || "error" in audioResult) {
+        skippedTracks.push({ spotifyId, reason: "audio-features-unavailable" });
+        continue;
+      }
+
+      const audioFeatures = normalizePlaylistAudioFeatures(audioResult);
+      const missingFeatures = AUDIO_FEATURE_KEYS.filter(
+        (key) => audioFeatures[key] === null
+      );
+
+      if (missingFeatures.length === AUDIO_FEATURE_KEYS.length) {
+        skippedTracks.push({ spotifyId, reason: "audio-features-unavailable" });
+        continue;
+      }
+
+      if (missingFeatures.length > 0) {
+        incompleteTracks.push({ spotifyId, missingFeatures });
+      }
+
+      tracks.push({ id: spotifyId, ...metadata, audioFeatures });
+    }
+
+    return { dataset: { version: 1, tracks }, skippedTracks, incompleteTracks };
   }
 
   return { prepareDataset };

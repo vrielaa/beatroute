@@ -115,6 +115,52 @@ describe("playlist dataset metadata cache", () => {
     expect(result.dataset.tracks[0].artists).toEqual(["Updated artist"]);
   });
 
+  it("retains metadata but restarts all audio chunks after a later chunk fails", async () => {
+    const dependencies = createDependencies();
+    const ids = Array.from({ length: 81 }, (_, index) =>
+      index.toString(36).padStart(22, "0")
+    );
+    const error = new IntegrationApiError("reccobeats", "Rate limit", {
+      category: "rate-limited",
+      upstreamStatus: 429,
+      retryAfterSeconds: 30,
+    });
+    dependencies.getAudioFeaturesBySpotifyIds
+      .mockImplementationOnce(async (requestedIds) =>
+        requestedIds.map(createAudioFeatures)
+      )
+      .mockRejectedValueOnce(error);
+    const service = createPlaylistDatasetService(dependencies);
+    const file = createFile(ids);
+
+    await expect(
+      service.prepareDataset(file, accessToken, cacheScope)
+    ).rejects.toBe(error);
+
+    expect(dependencies.getSpotifyTrackById).toHaveBeenCalledTimes(81);
+    expect(
+      dependencies.getAudioFeaturesBySpotifyIds.mock.calls.map(
+        ([requestedIds]) => requestedIds
+      )
+    ).toEqual([ids.slice(0, 40), ids.slice(40, 80)]);
+
+    const result = await service.prepareDataset(
+      file,
+      "renewed-token",
+      cacheScope
+    );
+
+    expect(dependencies.getSpotifyTrackById).toHaveBeenCalledTimes(81);
+    expect(
+      dependencies.getAudioFeaturesBySpotifyIds.mock.calls
+        .slice(2)
+        .map(([requestedIds]) => requestedIds)
+    ).toEqual([ids.slice(0, 40), ids.slice(40, 80), ids.slice(80)]);
+    expect(result.dataset.tracks.map((track) => track.id)).toEqual(ids);
+    expect(result.skippedTracks).toEqual([]);
+    expect(result.incompleteTracks).toEqual([]);
+  });
+
   it("keeps metadata isolated between session contexts", async () => {
     const dependencies = createDependencies();
     dependencies.getSpotifyTrackById
