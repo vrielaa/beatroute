@@ -5,7 +5,7 @@ type GenreRuleContext = {
   tokens: string[];
 };
 
-/** Reguła przypisująca tag Last.fm do kanonicznego gatunku aplikacji. */
+/** Reguła przypisująca nazwę do kanonicznego gatunku aplikacji. */
 type GenreRule = {
   name: string;
   index(context: GenreRuleContext): number;
@@ -84,7 +84,7 @@ const remainingCompactGenreNames = [
 ];
 
 /**
- * Reguły mapujące tagi Last.fm na kanoniczne gatunki aplikacji.
+ * Reguły rozpoznawania kanonicznych gatunków w nazwach.
  * Kolejność rozstrzyga remis, gdy kilka reguł pasuje w tym samym miejscu.
  */
 const CORE_GENRE_RULES: GenreRule[] = [

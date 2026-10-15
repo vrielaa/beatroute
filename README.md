@@ -283,6 +283,9 @@ classification without depending on Express or a provider API. Application
 modules combine operations such as building a Spotify/Last.fm track profile.
 Integration modules contain provider clients, adapters and mappers. Last.fm
 artist and track adapters combine fetching and mapping in one service each.
+Genre recognition rules live in `domain/music-genres`; Last.fm tag normalization
+stays in the integration. Application services use the domain rules directly
+and receive data-fetching operations as dependencies.
 Express routers validate requests and receive their services and middleware through
 explicit dependencies, which keeps the core logic independently testable.
 Production dependencies for Last.fm, track analysis, playlist preparation and saving are assembled in

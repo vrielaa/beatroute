@@ -1,10 +1,10 @@
 import type { Artist } from "@domain/music-genres/artist-genre-distribution.types.js";
 import {
   getCanonicalGenreName,
-  isLikelyGenreTag,
+  isLikelyGenreName,
   normalizeGenreName,
-  normalizeLastfmTags,
-} from "../genre-classifier.js";
+} from "@domain/music-genres/genre-classifier.js";
+import { normalizeLastfmTags } from "../tag-normalizer.js";
 import type {
   LastfmArtistApiResponse,
   LastfmArtistInfo,
@@ -25,7 +25,7 @@ function mapLastfmArtistInfo(
   requestedName: string
 ): LastfmArtistInfo {
   const tags = normalizeLastfmTags(response.artist?.tags?.tag);
-  const genreTags = tags.filter(isLikelyGenreTag);
+  const genreTags = tags.filter((tag) => isLikelyGenreName(tag.name));
 
   return {
     name: response.artist?.name ?? requestedName,

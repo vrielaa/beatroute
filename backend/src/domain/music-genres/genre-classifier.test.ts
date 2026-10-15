@@ -2,22 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   getCanonicalGenreName,
-  isLikelyGenreTag,
+  isLikelyGenreName,
   normalizeGenreName,
-  normalizeLastfmTags,
 } from "./genre-classifier.js";
 
-describe("Last.fm genre classifier", () => {
-  it("normalizes a single tag, arrays and invalid values", () => {
-    expect(normalizeLastfmTags({ name: " Rock ", url: "url" })).toEqual([
-      { name: "Rock", url: "url" },
-    ]);
-    expect(normalizeLastfmTags([{ name: "Pop" }, null, { name: " " }])).toEqual(
-      [{ name: "Pop", url: null }]
-    );
-    expect(normalizeLastfmTags(undefined)).toEqual([]);
-  });
-
+describe("genre classifier", () => {
   it("normalizes punctuation and ampersands for rule matching", () => {
     expect(normalizeGenreName("  R&B / Soul  ")).toBe("r n b soul");
   });
@@ -30,13 +19,14 @@ describe("Last.fm genre classifier", () => {
     ["hip-hop", "hip hop"],
   ])("maps %s to %s", (tag, genre) => {
     expect(getCanonicalGenreName(tag)).toBe(genre);
+    expect(isLikelyGenreName(tag)).toBe(true);
   });
 
   it.each(["seen live", "favorites", "2020", "90s", ""])(
     "rejects non-genre tag %s",
     (tag) => {
       expect(getCanonicalGenreName(tag)).toBeNull();
-      expect(isLikelyGenreTag({ name: tag, url: null })).toBe(false);
+      expect(isLikelyGenreName(tag)).toBe(false);
     }
   );
 });

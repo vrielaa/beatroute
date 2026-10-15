@@ -1,4 +1,4 @@
-import { normalizeLastfmTags } from "../genre-classifier.js";
+import { normalizeLastfmTags } from "../tag-normalizer.js";
 import type {
   LastfmTrackApiResponse,
   LastfmTrackMetadata,

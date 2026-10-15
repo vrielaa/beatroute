@@ -1,3 +1,4 @@
+import { isLikelyGenreName } from "@domain/music-genres/genre-classifier.js";
 import type {
   LastfmTag,
   LastfmTrackIdentifier,
@@ -17,7 +18,6 @@ type LastfmTrackReader = {
 type LastfmTrackInfoDependencies = {
   trackReader: LastfmTrackReader;
   getArtistTags: (artistName: string) => Promise<LastfmTag[]>;
-  isGenreTag: (tag: LastfmTag) => boolean;
 };
 
 /** Publiczny kontrakt pobierania i klasyfikowania danych utworu Last.fm. */
@@ -32,27 +32,26 @@ type LastfmTrackInfoService = {
 function createLastfmTrackInfo({
   trackReader,
   getArtistTags,
-  isGenreTag,
 }: LastfmTrackInfoDependencies): LastfmTrackInfoService {
   async function getTrackInfo(
     identifier: LastfmTrackIdentifier
   ): Promise<LastfmTrackInfo> {
     const metadata = await trackReader.getTrackMetadata(identifier);
     let tags = metadata.tags;
-    let genreTags = tags.filter(isGenreTag);
+    let genreTags = tags.filter((tag) => isLikelyGenreName(tag.name));
     let genreSource: LastfmTrackInfo["genreSource"] = genreTags.length
       ? "lastfm-top-tags"
       : null;
 
     if (!genreTags.length) {
       tags = await trackReader.getTrackTopTags(identifier);
-      genreTags = tags.filter(isGenreTag);
+      genreTags = tags.filter((tag) => isLikelyGenreName(tag.name));
       genreSource = genreTags.length ? "lastfm-track-top-tags" : null;
     }
 
     if (!genreTags.length && metadata.artist) {
       tags = await getArtistTags(metadata.artist);
-      genreTags = tags.filter(isGenreTag);
+      genreTags = tags.filter((tag) => isLikelyGenreName(tag.name));
       genreSource = genreTags.length ? "lastfm-artist-info-tags" : null;
     }
 

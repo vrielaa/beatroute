@@ -5,6 +5,28 @@ import type { LastfmTrackReader } from "./track-info.js";
 import type { LastfmTag, LastfmTrackMetadata } from "./types.js";
 
 describe("Last.fm track info use case", () => {
+  it("recognizes multiple genres using domain rules and excludes non-genre tags", async () => {
+    const tags = [
+      nonGenreTag("seen live"),
+      genreTag("synthpop"),
+      genreTag("ambient"),
+      nonGenreTag("2020s"),
+    ];
+    const dependencies = createDependencies({ tags });
+    const service = createLastfmTrackInfo(dependencies);
+
+    const result = await service.getTrackInfo({
+      artist: "Artist",
+      track: "Track",
+    });
+
+    expect(result.genre).toBe("synthpop");
+    expect(result.genreCandidates).toEqual(["synthpop", "ambient"]);
+    expect(result.tags).toEqual(tags);
+    expect(dependencies.trackReader.getTrackTopTags).not.toHaveBeenCalled();
+    expect(dependencies.getArtistTags).not.toHaveBeenCalled();
+  });
+
   it("uses genre tags included in the primary track metadata", async () => {
     const dependencies = createDependencies({
       tags: [genreTag("alternative rock"), nonGenreTag("seen live")],
@@ -138,7 +160,6 @@ function createDependencies(metadataOverrides: Partial<LastfmTrackMetadata>) {
   return {
     trackReader,
     getArtistTags: vi.fn<(artistName: string) => Promise<LastfmTag[]>>(),
-    isGenreTag: (tag: LastfmTag) => tag.name === "alternative rock",
   };
 }
 
