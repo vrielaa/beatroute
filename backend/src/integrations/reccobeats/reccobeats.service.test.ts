@@ -7,6 +7,71 @@ import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 afterEach(() => vi.restoreAllMocks());
 
 describe("ReccoBeats service", () => {
+  it("does not query an empty collection", async () => {
+    const { service, gateway } = createService();
+    await expect(
+      service.getManyTrackAudioFeaturesBySpotifyIds([])
+    ).resolves.toEqual([]);
+    expect(gateway.findTracksBySpotifyIds).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    new ReccoBeatsApiError("Rate limited", 429, null, {
+      retryAfterSeconds: 120,
+    }),
+    new ReccoBeatsApiError("Timeout", 504, null, { category: "timeout" }),
+    new ReccoBeatsApiError("Network", 502, null, { category: "network" }),
+    new ReccoBeatsApiError("Unavailable", 503, null),
+    new ReccoBeatsApiError("Invalid response", 200, null, {
+      category: "invalid-response",
+    }),
+    new Error("Unexpected programming failure"),
+  ])(
+    "does not turn a partial technical failure into missing data in strict mode: %s",
+    async (error) => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const { service, gateway } = createService();
+      vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+        createTrack("recco1", "spotify1"),
+        createTrack("recco2", "spotify2"),
+      ]);
+      vi.mocked(gateway.getTrackAudioFeatures)
+        .mockResolvedValueOnce({ tempo: 120 })
+        .mockRejectedValueOnce(error);
+
+      await expect(
+        service.getManyTrackAudioFeaturesBySpotifyIds(
+          ["spotify1", "spotify2"],
+          { errorMode: "strict" }
+        )
+      ).rejects.toBe(error);
+    }
+  );
+
+  it("keeps known missing measurements as a per-track result in strict mode", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { service, gateway } = createService();
+    vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([
+      createTrack("recco1", "spotify1"),
+      createTrack("recco2", "spotify2"),
+    ]);
+    vi.mocked(gateway.getTrackAudioFeatures)
+      .mockResolvedValueOnce({ tempo: 120 })
+      .mockRejectedValueOnce(
+        new ReccoBeatsApiError("Measurements not found", 404, null)
+      );
+
+    const results = await service.getManyTrackAudioFeaturesBySpotifyIds(
+      ["spotify1", "spotify2", "missing"],
+      { errorMode: "strict" }
+    );
+    expect(results).toEqual([
+      expect.objectContaining({ spotifyId: "spotify1", tempo: 120 }),
+      { spotifyId: "spotify2", error: "Measurements not found" },
+      { spotifyId: "missing", error: "ReccoBeats track not found" },
+    ]);
+  });
+
   it("finds a track by Spotify ID and returns its normalized features", async () => {
     const { service, gateway } = createService();
     vi.mocked(gateway.findTracksBySpotifyIds).mockResolvedValue([

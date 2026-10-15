@@ -14,6 +14,17 @@ type ReccoBeatsServiceDependencies = {
 };
 
 /**
+ * Sposób obsługi technicznych błędów pojedynczych odczytów.
+ *
+ * @property errorMode - partial zachowuje dotychczasowe częściowe wyniki;
+ * strict przerywa cały odczyt przy dowolnej awarii. Brak utworu lub pomiarów
+ * (404) pozostaje wynikiem brakujących danych w obu wariantach.
+ */
+type ReccoBeatsReadOptions = {
+  errorMode?: "partial" | "strict";
+};
+
+/**
  * Tworzy serwis wyszukujący utwory Spotify w ReccoBeats i pobierający ich
  * znormalizowane cechy audio. Wstrzyknięty gateway oddziela logikę serwisu od
  * komunikacji HTTP i pozwala zastąpić zewnętrzne API atrapą w testach.
@@ -73,21 +84,30 @@ function createReccoBeatsService({
    * Pobiera cechy audio dla wielu utworów Spotify.
    * Brak dopasowania albo błąd pojedynczego zapytania zapisuje w wyniku danego
    * utworu, nie przerywając przetwarzania pozostałych elementów.
-   * Jeśli nie udał się żaden odczyt i wystąpił błąd inny niż brak danych 404,
+   * W trybie strict każdy techniczny błąd przerywa całą partię, także gdy inne
+   * odczyty się powiodły. Umożliwia to dobieranie utworów bez uznawania awarii
+   * za braki katalogu. Domyślny tryb partial zachowuje istniejące zachowanie:
+   * jeśli nie udał się żaden odczyt i wystąpił błąd inny niż brak danych 404,
    * przekazuje oryginalny wyjątek zamiast przedstawiać awarię jako pusty zbiór.
    * Zachowuje dzięki temu status, kategorię i Retry-After dla warstwy HTTP.
    *
    * @param spotifyTrackIds - Identyfikatory utworów Spotify do przetworzenia.
+   * @param options - Zasady obsługi technicznych błędów odczytów.
    * @returns Wynik dla każdego identyfikatora: cechy audio albo opis błędu.
    * @throws Gdy wyszukiwanie nie działa lub wszystkie odczyty cech zawiodły wskutek awarii.
    */
   async function getManyTrackAudioFeaturesBySpotifyIds(
-    spotifyTrackIds: string[]
+    spotifyTrackIds: string[],
+    { errorMode = "partial" }: ReccoBeatsReadOptions = {}
   ): Promise<TrackAudioFeaturesResult[]> {
+    if (!spotifyTrackIds.length) {
+      return [];
+    }
+
     const tracks =
       await reccoBeatsGateway.findTracksBySpotifyIds(spotifyTrackIds);
 
-    const idMap = new Map();
+    const idMap = new Map<string, string>();
     const requestErrors: unknown[] = [];
 
     for (const track of tracks) {
@@ -143,7 +163,7 @@ function createReccoBeatsService({
 
     if (
       requestErrors.length > 0 &&
-      results.every((result) => "error" in result)
+      (errorMode === "strict" || results.every((result) => "error" in result))
     ) {
       throw requestErrors[0];
     }
