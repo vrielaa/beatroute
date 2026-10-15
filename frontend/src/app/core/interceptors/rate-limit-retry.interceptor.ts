@@ -1,19 +1,21 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { retry, throwError, timer } from 'rxjs';
 
 const MAX_RETRIES = 3;
 const MAX_DELAY_MS = 30_000;
 const BASE_DELAY_MS = 1_000;
+const RETRY_RATE_LIMITED_READS = new HttpContextToken(() => true);
 
 /**
  * Ponawia wyłącznie odczyty GET po `429`. Respektuje `Retry-After` i przekazuje
  * błąd do widoku, gdy wymagane oczekiwanie przekracza 30 sekund. Bez poprawnego
  * nagłówka stosuje ograniczony backoff. Nigdy nie ponawia zapisów POST.
+ * Wywołujący może wyłączyć retry przez kontekst RETRY_RATE_LIMITED_READS.
  */
 const rateLimitRetryInterceptor: HttpInterceptorFn = (req, next) => {
   const method = req.method.toUpperCase();
 
-  if (method !== 'GET') {
+  if (method !== 'GET' || !req.context.get(RETRY_RATE_LIMITED_READS)) {
     return next(req);
   }
 
@@ -65,4 +67,4 @@ function readRetryAfterDelayMs(value: string | null): number | null {
   return Number.isFinite(retryDateMs) ? Math.max(0, retryDateMs - Date.now()) : null;
 }
 
-export { rateLimitRetryInterceptor };
+export { rateLimitRetryInterceptor, RETRY_RATE_LIMITED_READS };

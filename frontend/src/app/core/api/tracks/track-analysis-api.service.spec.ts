@@ -19,6 +19,17 @@ describe('TrackAnalysisApiService', () => {
 
   afterEach(() => http.verify());
 
+  it('sends collected measurements for statistics without requesting their IDs again', () => {
+    const audioFeatures = [{ spotifyId: 'track-1', tempo: 120, energy: null }];
+    service.getStatistics(audioFeatures).subscribe();
+    const request = http.expectOne('/api/tracks/statistics');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ audioFeatures });
+    expect(request.request.withCredentials).toBe(true);
+    request.flush({ averageBpm: 120 });
+    http.expectNone('/api/tracks/analysis');
+  });
+
   it('posts track IDs when requesting combined analysis', () => {
     service.getTracksAnalysis(['track-1', 'track-2']).subscribe();
 
