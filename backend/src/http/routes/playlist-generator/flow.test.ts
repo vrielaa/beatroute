@@ -266,6 +266,7 @@ function createFlow() {
     createPlaylistGeneratorRouter({
       prepareDataset: datasetService.prepareDataset,
       prepareSavedTracksPage: datasetService.prepareSavedTracksPage,
+      preparePlaylistPage: datasetService.preparePlaylistPage,
       savePlaylist: vi
         .fn()
         .mockRejectedValue(new Error("Unexpected playlist save")),

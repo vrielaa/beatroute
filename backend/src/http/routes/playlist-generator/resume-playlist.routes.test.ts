@@ -230,6 +230,7 @@ function createTestApp() {
     createPlaylistGeneratorRouter({
       prepareDataset: vi.fn(),
       prepareSavedTracksPage: vi.fn(),
+      preparePlaylistPage: vi.fn(),
       savePlaylist: service.savePlaylist,
       resumePlaylist: service.resumePlaylist,
       authorize: createEnsureSpotifyAccessToken({

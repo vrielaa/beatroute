@@ -6,6 +6,7 @@ import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-genera
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "@http/routes/playlist-generator/track-ids.validator.js";
 import { parseSavedTracksOffset } from "@http/routes/playlist-generator/saved-tracks.validator.js";
+import { parsePlaylistSourceSelection } from "@http/routes/playlist-generator/playlist-source.validator.js";
 import { parsePlaylistToSave } from "@http/routes/playlist-generator/save-playlist.validator.js";
 import { PartialPlaylistSaveError } from "@application/playlist-generator/partial-playlist-save.error.js";
 import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
@@ -15,6 +16,41 @@ import { PlaylistSaveConflictError } from "@application/playlist-generator/playl
 import { parseSpotifyTopTracksQuery } from "@integrations/spotify/spotify.validators.js";
 import { parseTopTracksBatchQuery } from "@http/routes/me/top-tracks.validator.js";
 import { parseAudioFeaturesBody } from "@http/routes/tracks/audio-features.validator.js";
+
+describe("playlist source OpenAPI contract", () => {
+  it("documents an authenticated first-page request accepted by the validator", () => {
+    const operation =
+      document.paths["/api/playlist-generator/prepare-playlist"].post;
+    expect(operation.security).toEqual([{ SessionCookie: [] }]);
+    expect(
+      parsePlaylistSourceSelection(
+        operation.requestBody.content["application/json"].example
+      )
+    ).toEqual({
+      playlistId: "2DsAx0MIcI0oyB8AV8ndn2",
+      offset: 0,
+      snapshotId: null,
+    });
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/PreparedPlaylistPage");
+    expect(operation.responses["409"].description).toContain(
+      "PLAYLIST_SOURCE_CHANGED"
+    );
+    expect(
+      operation.responses["429"].headers["Retry-After"].schema.minimum
+    ).toBe(0);
+    expect(
+      document.components.schemas.PlaylistSourceSelection.required
+    ).toEqual(["playlistId", "offset", "snapshotId"]);
+    expect(document.components.schemas.PreparedPlaylistPage.required).toEqual([
+      "playlist",
+      "preparedDataset",
+      "pagination",
+      "unavailableItemsCount",
+    ]);
+  });
+});
 
 describe("top-track preparation OpenAPI contract", () => {
   it("documents the two completeness purposes and the validated default selection", () => {

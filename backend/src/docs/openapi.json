@@ -927,6 +927,137 @@
         }
       }
     },
+    "/api/playlist-generator/prepare-playlist": {
+      "post": {
+        "tags": ["Playlist generator"],
+        "operationId": "preparePlaylistPage",
+        "summary": "Prepare one page of an owned or collaborative Spotify playlist",
+        "description": "Requires a Spotify session and playlist-read-private. Spotify checks ownership or collaboration; following a playlist alone is insufficient. Uses only the session token, not body credentials or ownership declarations. Reads at most 50 source positions per page, limited to the first 500 positions. Uses playlist metadata directly without individual track reads. Skips unavailable, local, unplayable and non-track items; deduplicates IDs within the page. Partial measurements remain null. Reads the playlist version before and after its Spotify page and compares it to snapshotId on continuation. A changed version returns 409 PLAYLIST_SOURCE_CHANGED before requesting measurements. Empty playlists are successful empty datasets. Does not follow another page, filter, rank, create or modify a playlist. The UI requests pages sequentially after Generate, deduplicates across pages, and ranks the complete dataset once. Retry after cancellation or failure starts at offset zero.",
+        "security": [{ "SessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "description": "Canonical playlist ID, explicit source offset and version. First request requires offset 0 and snapshotId null; following requests require the version returned by the first page. Body limit: 1 MiB. Extra fields are ignored.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistSourceSelection"
+              },
+              "example": {
+                "playlistId": "2DsAx0MIcI0oyB8AV8ndn2",
+                "offset": 0,
+                "snapshotId": null
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prepared page, source identity and source-position counters. An empty dataset must not be submitted to /generate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedPlaylistPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid playlist ID, offset or snapshotId (VALIDATION_ERROR), or malformed JSON (INVALID_JSON).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or expired Spotify session, or rejected access token.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing playlist-read-private (SPOTIFY_PLAYLIST_PERMISSION_REQUIRED), or Spotify denied access to playlist items (SPOTIFY_API_ERROR).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Spotify could not find or expose the playlist.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "PLAYLIST_SOURCE_CHANGED: playlist changed between reads. Discard partial preparation and restart at offset zero.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 1 MiB (PAYLOAD_TOO_LARGE).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Provider rate limit or Spotify cooldown. No partial success is returned.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying, when available.",
+                "schema": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected application error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Connection failure, upstream error or invalid Spotify/ReccoBeats response.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Integration unavailable or Spotify configuration invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Spotify or ReccoBeats request timed out.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/playlist-generator/generate": {
       "post": {
         "tags": ["Playlist generator"],
@@ -2275,6 +2406,63 @@
           }
         },
         "required": ["preparedDataset", "pagination", "unavailableItemsCount"]
+      },
+      "PlaylistSourceSelection": {
+        "type": "object",
+        "description": "First page uses offset zero and snapshotId null. Continuation requires the original version. URLs and access tokens are not accepted as the playlist ID.",
+        "properties": {
+          "playlistId": { "type": "string", "pattern": "^[A-Za-z0-9]{22}$" },
+          "offset": { "type": "integer", "minimum": 0, "maximum": 499 },
+          "snapshotId": { "type": ["string", "null"], "minLength": 1 }
+        },
+        "required": ["playlistId", "offset", "snapshotId"]
+      },
+      "PreparedPlaylistPage": {
+        "type": "object",
+        "properties": {
+          "playlist": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "snapshotId": { "type": "string", "minLength": 1 }
+            },
+            "required": ["id", "name", "snapshotId"]
+          },
+          "preparedDataset": {
+            "$ref": "#/components/schemas/PreparedPlaylistDataset"
+          },
+          "pagination": {
+            "type": "object",
+            "description": "Source positions including unavailable items and duplicates, not the prepared-track count.",
+            "properties": {
+              "offset": { "type": "integer", "minimum": 0, "maximum": 499 },
+              "processedItems": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 50
+              },
+              "totalItems": { "type": "integer", "minimum": 0 },
+              "nextOffset": {
+                "type": ["integer", "null"],
+                "minimum": 1,
+                "maximum": 499
+              }
+            },
+            "required": ["offset", "processedItems", "totalItems", "nextOffset"]
+          },
+          "unavailableItemsCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "playlist",
+          "preparedDataset",
+          "pagination",
+          "unavailableItemsCount"
+        ]
       },
       "PlaylistTempoRange": {
         "type": "object",

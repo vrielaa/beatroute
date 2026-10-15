@@ -424,6 +424,12 @@ function createDependencies() {
     );
 
   return {
+    preparePlaylistPage:
+      vi.fn<
+        Parameters<
+          typeof createPlaylistGeneratorRouter
+        >[0]["preparePlaylistPage"]
+      >(),
     prepareSavedTracksPage: vi
       .fn<
         Parameters<

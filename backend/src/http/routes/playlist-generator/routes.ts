@@ -5,6 +5,7 @@ import { parsePlaylistGeneratorRequirements } from "@http/routes/playlist-genera
 import { parsePlaylistGeneratorPreferences } from "@http/routes/playlist-generator/preferences.validator.js";
 import { parsePlaylistTrackIdsFile } from "./track-ids.validator.js";
 import { parseSavedTracksOffset } from "./saved-tracks.validator.js";
+import { parsePlaylistSourceSelection } from "./playlist-source.validator.js";
 import {
   parsePlaylistToSave,
   parsePlaylistResumeId,
@@ -22,6 +23,7 @@ import type { RequestHandler } from "express";
  *
  * @property prepareDataset - Uzupełnia zwalidowane ID o metadane i cechy audio.
  * @property prepareSavedTracksPage - Przygotowuje jedną stronę zapisanych utworów Spotify.
+ * @property preparePlaylistPage - Przygotowuje jedną stronę wskazanej playlisty i sprawdza jej wersję.
  * @property savePlaylist - Zapisuje wybrane ID jako nową, prywatną playlistę.
  * @property resumePlaylist - Sprawdza istniejącą playlistę i dopisuje brakującą końcówkę wyboru.
  * @property authorize - Sprawdza i w razie potrzeby odnawia token w sesji Spotify.
@@ -29,6 +31,7 @@ import type { RequestHandler } from "express";
 type PlaylistGeneratorRouterDependencies = {
   prepareDataset: typeof playlistDatasetService.prepareDataset;
   prepareSavedTracksPage: typeof playlistDatasetService.prepareSavedTracksPage;
+  preparePlaylistPage: typeof playlistDatasetService.preparePlaylistPage;
   savePlaylist: typeof playlistSaveService.savePlaylist;
   resumePlaylist: typeof playlistSaveService.resumePlaylist;
   authorize: RequestHandler;
@@ -55,6 +58,14 @@ type PlaylistGeneratorRouterDependencies = {
  * jest poprawnym wynikiem. processedItems liczy pozycje bieżącej strony, także pominięte,
  * a nextOffset wskazuje kolejną stronę albo null. Nie pobiera jej automatycznie,
  * nie tworzy rankingu ani playlisty. Dodatkowe pola body są ignorowane.
+ *
+ * Endpoint POST /prepare-playlist wymaga sesji i playlist-read-private.
+ * Odczytuje z req.body playlistId (22 litery lub cyfry), offset (0–499)
+ * oraz snapshotId (null dla offsetu 0, wersję pierwszej strony dla kontynuacji).
+ * Token pochodzi wyłącznie z sesji. Spotify sprawdza dostęp właściciela lub
+ * współtwórcy; żądanie nie może deklarować właściciela ani przekazać URL do pobrania.
+ * Zwraca do 50 przygotowanych pozycji, metadane playlisty i liczniki, bez rankingu.
+ * Zmiana wersji skutkuje 409 PLAYLIST_SOURCE_CHANGED i wymaga ponowienia od początku.
  *
  * Endpoint POST /generate odczytuje trzy pola req.body:
  * - dataset: zbiór wersji 1, zawierający od 1 do 500 utworów z cechami audio;
@@ -92,6 +103,7 @@ type PlaylistGeneratorRouterDependencies = {
 function createPlaylistGeneratorRouter({
   prepareDataset,
   prepareSavedTracksPage,
+  preparePlaylistPage,
   savePlaylist,
   resumePlaylist,
   authorize,
@@ -128,6 +140,23 @@ function createPlaylistGeneratorRouter({
     );
 
     res.json(preparedPage);
+  });
+
+  router.post("/prepare-playlist", authorize, async (req, res) => {
+    const spotifySession = req.session.spotify!;
+    if (
+      !(spotifySession.scope ?? "")
+        .split(/\s+/)
+        .includes("playlist-read-private")
+    ) {
+      throw new HttpError(
+        403,
+        "SPOTIFY_PLAYLIST_PERMISSION_REQUIRED",
+        "Połącz ponownie Spotify i zezwól na odczyt playlist"
+      );
+    }
+    const selection = parsePlaylistSourceSelection(req.body);
+    res.json(await preparePlaylistPage(selection, spotifySession.accessToken));
   });
 
   router.post("/generate", (req, res) => {
@@ -233,6 +262,7 @@ function createPlaylistGeneratorRouter({
 const playlistGeneratorRouter = createPlaylistGeneratorRouter({
   prepareDataset: playlistDatasetService.prepareDataset,
   prepareSavedTracksPage: playlistDatasetService.prepareSavedTracksPage,
+  preparePlaylistPage: playlistDatasetService.preparePlaylistPage,
   savePlaylist: playlistSaveService.savePlaylist,
   resumePlaylist: playlistSaveService.resumePlaylist,
   authorize: ensureSpotifyAccessToken,

@@ -711,6 +711,12 @@ function createDependencies() {
           typeof createPlaylistGeneratorRouter
         >[0]["prepareSavedTracksPage"]
       >(),
+    preparePlaylistPage:
+      vi.fn<
+        Parameters<
+          typeof createPlaylistGeneratorRouter
+        >[0]["preparePlaylistPage"]
+      >(),
     savePlaylist: vi
       .fn<Parameters<typeof createPlaylistGeneratorRouter>[0]["savePlaylist"]>()
       .mockRejectedValue(new Error("Unexpected playlist save")),
