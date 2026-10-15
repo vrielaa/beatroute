@@ -172,15 +172,31 @@ function createSpotifyGateway({
     );
   }
 
+  /**
+   * Pobiera jedną stronę top utworów z wybranego okresu, domyślnie od offsetu 0.
+   * Sprawdza liczniki, zgodność strony z żądaniem i sygnał dalszych wyników.
+   * Pusta strona przed deklarowanym końcem jest błędem integracji, nie brakiem
+   * utworów. Sprawdzanie paginacji nie jest pełną walidacją metadanych utworów.
+   * Nie podąża za linkiem next ani nie pobiera automatycznie kolejnych stron.
+   *
+   * @param accessToken - Token użytkownika z uprawnieniem user-top-read.
+   * @param selection - Rozmiar strony, okres i opcjonalne przesunięcie.
+   * @returns Strona w kolejności Spotify; next: null oznacza koniec wyników.
+   * @throws SpotifyApiError Gdy pobieranie lub walidacja paginacji zawiedzie.
+   */
   async function getCurrentUserTopTracks(
     accessToken: string,
     selection: SpotifyTopItemsSelection
   ): Promise<SpotifyTopTracksApiResponse> {
-    return request(
+    const data = await request<SpotifyTopTracksApiResponse>(
       buildTopItemsEndpointPath("tracks", selection),
       accessToken,
       "Nie udało się pobrać top tracks ze Spotify"
     );
+
+    validateTopTracksPagination(data, selection);
+
+    return data;
   }
 
   async function getCurrentUserTopArtists(
@@ -454,7 +470,7 @@ function createSpotifyGateway({
  * Buduje ścieżkę endpointu top items wraz z parametrami wyboru.
  *
  * @param resource - Rodzaj pobieranych zasobów.
- * @param selection - Limit i analizowany okres.
+ * @param selection - Limit, analizowany okres oraz offset dla top utworów.
  * @returns Ścieżka gotowa do przekazania do gatewaya.
  */
 function buildTopItemsEndpointPath(
@@ -466,7 +482,77 @@ function buildTopItemsEndpointPath(
     time_range: selection.timeRange,
   });
 
+  if (resource === "tracks") {
+    params.set("offset", String(selection.offset ?? 0));
+  }
+
   return `/me/top/${resource}?${params.toString()}`;
+}
+
+/**
+ * Sprawdza paginację top utworów bez zmiany zawartości i kolejności strony.
+ * Odrzuca rozbieżne liczniki, pustą stronę przed końcem i niespójny link next.
+ * Pusta strona na końcu lub za końcem zbioru jest poprawna i ma next: null.
+ * Linki służą wyłącznie jako dane odpowiedzi; funkcja nie wykonuje zapytań.
+ *
+ * @param value - Odpowiedź JSON Spotify.
+ * @param selection - Parametry strony wysłane do Spotify.
+ * @throws SpotifyApiError Gdy nie można bezpiecznie ustalić postępu odczytu.
+ */
+function validateTopTracksPagination(
+  value: unknown,
+  selection: SpotifyTopItemsSelection
+): void {
+  if (!isObject(value) || Array.isArray(value)) {
+    throw invalidTopTracksResponse();
+  }
+
+  const { items, total, limit, offset, href, next, previous } = value;
+
+  if (
+    !Array.isArray(items) ||
+    typeof total !== "number" ||
+    !Number.isSafeInteger(total) ||
+    total < 0 ||
+    typeof offset !== "number" ||
+    !Number.isSafeInteger(offset) ||
+    offset < 0 ||
+    typeof limit !== "number" ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1
+  ) {
+    throw invalidTopTracksResponse();
+  }
+
+  const nextOffset = offset + items.length;
+  const hasMoreTracks = nextOffset < total;
+  const isPaginationValid =
+    limit === selection.limit &&
+    offset === (selection.offset ?? 0) &&
+    items.length <= selection.limit &&
+    Number.isSafeInteger(nextOffset) &&
+    (items.length === 0 || nextOffset <= total);
+  const hasUnexpectedEmptyPage = items.length === 0 && offset < total;
+  const arePageLinksValid =
+    typeof href === "string" &&
+    (previous === null || typeof previous === "string") &&
+    (hasMoreTracks
+      ? typeof next === "string" && next.trim().length > 0
+      : next === null);
+
+  if (!isPaginationValid || hasUnexpectedEmptyPage || !arePageLinksValid) {
+    throw invalidTopTracksResponse();
+  }
+}
+
+/** Tworzy błąd paginacji bez dołączania treści odpowiedzi Spotify. */
+function invalidTopTracksResponse(): SpotifyApiError {
+  return new SpotifyApiError(
+    "Spotify zwróciło niepoprawną paginację top utworów",
+    200,
+    null,
+    { category: "invalid-response" }
+  );
 }
 
 /**

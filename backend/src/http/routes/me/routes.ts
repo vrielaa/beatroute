@@ -2,8 +2,8 @@ import { Router } from "express";
 import ensureSpotifyAccessToken from "@integrations/spotify/middleware/ensureSpotifyAccessToken.js";
 import {
   MAX_ARTISTS_LIMIT,
-  MAX_TRACKS_LIMIT,
   parseSpotifyTopItemsQuery,
+  parseSpotifyTopTracksQuery,
 } from "@integrations/spotify/spotify.validators.js";
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import type { RequestHandler } from "express";
@@ -29,7 +29,8 @@ type SpotifyMeRouterDependencies = {
  * Tworzy router profilu i najczęściej słuchanych zasobów użytkownika Spotify.
  *
  * Trasy wymagają aktywnej sesji Spotify. Parametry list top są walidowane przed
- * przekazaniem ich do gatewaya.
+ * przekazaniem ich do gatewaya. Top utwory obsługują offset domyślnie równy 0;
+ * pojedyncze żądanie nie dobiera kolejnych utworów ani nie pobiera cech audio.
  *
  * @param dependencies - Gateway Spotify i middleware autoryzacji.
  * @returns Router obsługujący profil, top utwory i top artystów.
@@ -41,16 +42,11 @@ function createMeRouter({
   const router = Router();
 
   router.get("/top-tracks", authorize, async (req, res) => {
-    const { limit, timeRange } = parseSpotifyTopItemsQuery(req.query, {
-      maxLimit: MAX_TRACKS_LIMIT,
-    });
+    const selection = parseSpotifyTopTracksQuery(req.query);
 
     const data = await spotifyGateway.getCurrentUserTopTracks(
       req.session.spotify!.accessToken,
-      {
-        limit,
-        timeRange,
-      }
+      selection
     );
 
     res.json(data);

@@ -256,6 +256,7 @@
       "get": {
         "tags": ["Me"],
         "summary": "Get current user's top tracks",
+        "description": "Returns one page for the selected time_range, starting at offset (default 0). Keep the same time_range when reading subsequent pages and advance offset by the number of source items read, not the number with available audio features. next: null marks the end; an empty page at or beyond total is also a valid end. Does not fetch further pages or audio features. Invalid upstream pagination returns 502 instead of an empty success.",
         "parameters": [
           {
             "name": "limit",
@@ -266,6 +267,18 @@
               "minimum": 1,
               "maximum": 40,
               "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of source positions to skip; a nonnegative safe integer. Repeated values are rejected.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "default": 0
             }
           },
           {
@@ -291,10 +304,20 @@
             }
           },
           "400": {
-            "description": "Invalid limit or time range"
+            "description": "Invalid or repeated limit, offset or time_range"
           },
           "401": {
             "description": "User not logged in"
+          },
+          "502": {
+            "description": "Spotify request failed or upstream pagination is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

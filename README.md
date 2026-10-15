@@ -21,6 +21,15 @@ audio measurements, and a failed request. Failures display a retry button using
 the current filters. If audio analysis fails, the dashboard keeps the track list
 already retrieved from Spotify; changing filters cancels the previous request.
 
+`GET /api/me/top-tracks` accepts `limit` (1–40, default 10), `time_range`
+and `offset` (a nonnegative safe integer, default 0). Each request returns just
+one Spotify page and preserves its order and pagination. Use the same period
+for subsequent pages; advance the offset by the number of source positions read,
+not just tracks with measurements. `next: null` marks the end. An empty page
+before the declared end or inconsistent page counters produce a 502 integration
+error, not an empty result. Requests without an offset still read the first page.
+Automatic replacement of tracks with missing measurements is not implemented yet.
+
 ## Playlist generator
 
 ### Input file

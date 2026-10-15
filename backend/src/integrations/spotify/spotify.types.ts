@@ -129,12 +129,18 @@ type SpotifyUserProfileApiResponse = {
   followers?: SpotifyFollowers;
 };
 
-/** Parametry wyboru najczęściej słuchanych zasobów. */
+/**
+ * Parametry wyboru najczęściej słuchanych zasobów.
+ *
+ * @property limit - Maksymalna liczba elementów na stronie.
+ * @property timeRange - Analizowany okres, zachowywany przy kolejnych stronach.
+ * @property offset - Liczba pomijanych pozycji top utworów; domyślnie 0.
+ * Nie jest używany przez odczyt top artystów.
+ */
 type SpotifyTopItemsSelection = {
-  /** Maksymalna liczba zwracanych elementów. */
   limit: number;
-  /** Analizowany okres. */
   timeRange: SpotifyTimeRange;
+  offset?: number;
 };
 
 /**
@@ -156,7 +162,8 @@ type SpotifyApiConfiguration = {
  * Udostępnia odczyty danych Spotify, tworzenie playlist i dodawanie utworów.
  *
  * @property getSpotifyTrackById - Pobiera pojedynczy utwór po identyfikatorze.
- * @property getCurrentUserTopTracks - Pobiera najczęściej słuchane utwory użytkownika.
+ * @property getCurrentUserTopTracks - Pobiera jedną stronę najczęściej słuchanych
+ * utworów użytkownika i sprawdza paginację. Nie pobiera kolejnych stron.
  * @property getCurrentUserTopArtists - Pobiera najczęściej słuchanych artystów użytkownika.
  * @property getCurrentUserProfile - Pobiera profil zalogowanego użytkownika.
  * @property getCurrentUserSavedTracks - Pobiera jedną stronę zapisanych utworów

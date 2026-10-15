@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { RequestValidationError } from "@http/request-validation-error.js";
 import {
   parseSpotifyTopItemsQuery,
+  parseSpotifyTopTracksQuery,
   parseTrackIds,
 } from "./spotify.validators.js";
 
@@ -63,6 +64,74 @@ describe("Spotify validators", () => {
       expect(() =>
         parseSpotifyTopItemsQuery({ limit: "11" }, { maxLimit: 10 })
       ).toThrow('Parametr "limit" musi być liczbą całkowitą od 1 do 10');
+    });
+  });
+
+  describe("parseSpotifyTopTracksQuery", () => {
+    it("defaults to the first page without changing the default period or limit", () => {
+      expect(parseSpotifyTopTracksQuery()).toEqual({
+        limit: 10,
+        timeRange: "medium_term",
+        offset: 0,
+      });
+    });
+
+    it("parses a later page and preserves the selected period", () => {
+      expect(
+        parseSpotifyTopTracksQuery({
+          limit: " 3 ",
+          time_range: " short_term ",
+          offset: " 10 ",
+        })
+      ).toEqual({ limit: 3, timeRange: "short_term", offset: 10 });
+    });
+
+    it.each([undefined, null, "", " ", "0"])(
+      "uses offset zero for an omitted or empty value: %s",
+      (offset) => {
+        expect(parseSpotifyTopTracksQuery({ offset }).offset).toBe(0);
+      }
+    );
+
+    it("accepts the largest safe integer offset", () => {
+      expect(
+        parseSpotifyTopTracksQuery({
+          offset: String(Number.MAX_SAFE_INTEGER),
+        }).offset
+      ).toBe(Number.MAX_SAFE_INTEGER);
+    });
+
+    it.each([
+      "-1",
+      "1.5",
+      "NaN",
+      "Infinity",
+      "not-a-number",
+      "9007199254740992",
+      true,
+      10,
+      {},
+    ])("rejects an invalid offset: %s", (offset) => {
+      expect(() => parseSpotifyTopTracksQuery({ offset })).toThrow(
+        'Parametr "offset" musi być nieujemną, bezpieczną liczbą całkowitą'
+      );
+    });
+
+    it("rejects repeated offsets", () => {
+      expect(() => parseSpotifyTopTracksQuery({ offset: ["0", "10"] })).toThrow(
+        'Parametr "offset" może wystąpić tylko raz'
+      );
+    });
+
+    it.each([
+      { limit: "41" },
+      { time_range: "recent" },
+      { limit: ["10", "20"] },
+      { time_range: ["short_term", "long_term"] },
+    ])("retains limit and period validation: %j", (query) => {
+      expect(() => parseSpotifyTopTracksQuery(query)).toThrow(
+        RequestValidationError
+      );
     });
   });
 

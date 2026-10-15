@@ -53,7 +53,7 @@ describe("Spotify gateway", () => {
     ).resolves.toEqual(responseBody);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://spotify.test/v1/me/top/${resource}?limit=25&time_range=medium_term`,
+      `https://spotify.test/v1/me/top/${resource}?limit=25&time_range=medium_term${resource === "tracks" ? "&offset=0" : ""}`,
       expect.objectContaining({
         method: "GET",
         body: undefined,
@@ -62,6 +62,146 @@ describe("Spotify gateway", () => {
         },
         signal: expect.any(AbortSignal),
       })
+    );
+  });
+
+  describe("top tracks pagination", () => {
+    it.each(["short_term", "medium_term", "long_term"] as const)(
+      "requests only the selected page and preserves the %s period",
+      async (timeRange) => {
+        const page = {
+          ...createSpotifyPage(),
+          items: [createSpotifyTrack(), createSpotifyTrack()],
+          limit: 3,
+          offset: 10,
+          total: 15,
+          next: `https://spotify.test/v1/me/top/tracks?limit=3&time_range=${timeRange}&offset=12`,
+          previous: "https://spotify.test/previous-page",
+        };
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(page));
+        const gateway = createSpotifyGateway({
+          fetchImpl: fetchMock,
+          apiRoot: "https://spotify.test/v1",
+        });
+
+        await expect(
+          gateway.getCurrentUserTopTracks("access-token", {
+            limit: 3,
+            timeRange,
+            offset: 10,
+          })
+        ).resolves.toEqual(page);
+
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledWith(
+          `https://spotify.test/v1/me/top/tracks?limit=3&time_range=${timeRange}&offset=10`,
+          expect.objectContaining({ method: "GET" })
+        );
+      }
+    );
+
+    it.each([
+      { offset: 0, total: 0, items: [] },
+      { offset: 10, total: 10, items: [] },
+      { offset: 15, total: 10, items: [] },
+      {
+        offset: 10,
+        total: 12,
+        items: [createSpotifyTrack(), createSpotifyTrack()],
+      },
+    ])(
+      "returns the source end without fetching another page: %j",
+      async (end) => {
+        const page = { ...createSpotifyPage(), ...end, limit: 3 };
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(page));
+        const gateway = createSpotifyGateway({ fetchImpl: fetchMock });
+
+        await expect(
+          gateway.getCurrentUserTopTracks("access-token", {
+            limit: 3,
+            timeRange: "short_term",
+            offset: end.offset,
+          })
+        ).resolves.toEqual(page);
+
+        expect(fetchMock).toHaveBeenCalledOnce();
+      }
+    );
+
+    it.each([
+      { items: undefined },
+      { items: {} },
+      { items: [] },
+      {
+        items: [
+          createSpotifyTrack(),
+          createSpotifyTrack(),
+          createSpotifyTrack(),
+        ],
+      },
+      { total: -1 },
+      { total: 11.5 },
+      { total: "12" },
+      { total: Number.MAX_SAFE_INTEGER + 1 },
+      { total: 11 },
+      { total: 13, next: null },
+      { total: 13, next: "" },
+      { total: 13, next: 13 },
+      { limit: 3 },
+      { limit: "2" },
+      { offset: 9 },
+      { offset: 10.5 },
+      { offset: "10" },
+      { next: "https://spotify.test/unexpected-page" },
+      { next: undefined },
+      { href: null },
+      { previous: undefined },
+      { previous: 0 },
+    ])(
+      "rejects inconsistent pagination instead of reporting a source end: %j",
+      async (invalidFields) => {
+        const page = {
+          ...createSpotifyPage(),
+          items: [createSpotifyTrack(), createSpotifyTrack()],
+          limit: 2,
+          offset: 10,
+          total: 12,
+          ...invalidFields,
+        };
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(page));
+        const gateway = createSpotifyGateway({ fetchImpl: fetchMock });
+
+        const result = gateway.getCurrentUserTopTracks("access-token", {
+          limit: 2,
+          timeRange: "short_term",
+          offset: 10,
+        });
+
+        await expect(result).rejects.toBeInstanceOf(SpotifyApiError);
+        await expect(result).rejects.toMatchObject({
+          category: "invalid-response",
+          upstreamStatus: 200,
+          data: null,
+          details: null,
+        });
+        expect(fetchMock).toHaveBeenCalledOnce();
+      }
+    );
+
+    it.each([null, [], "unexpected response"])(
+      "rejects a non-object page: %j",
+      async (page) => {
+        const gateway = createSpotifyGateway({
+          fetchImpl: vi.fn().mockResolvedValue(jsonResponse(page)),
+        });
+
+        await expect(
+          gateway.getCurrentUserTopTracks("access-token", {
+            limit: 10,
+            timeRange: "short_term",
+          })
+        ).rejects.toMatchObject({ category: "invalid-response", data: null });
+      }
     );
   });
 

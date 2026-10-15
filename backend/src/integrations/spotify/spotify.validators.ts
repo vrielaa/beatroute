@@ -4,12 +4,17 @@ import type {
   SpotifyTopItemsSelection,
 } from "./spotify.types.js";
 
-/** Parametry URL obsługiwane przez endpointy list top Spotify. */
+/**
+ * Parametry URL obsługiwane przez endpointy list top Spotify.
+ *
+ * @property limit - Maksymalna liczba elementów na stronie.
+ * @property time_range - Okres statystyk.
+ * @property offset - Liczba pomijanych pozycji, obsługiwana przez top utwory.
+ */
 type SpotifyTopItemsQuery = {
-  /** Limit pochodzący bezpośrednio z query żądania HTTP. */
   limit?: unknown;
-  /** Okres statystyk pochodzący bezpośrednio z query żądania HTTP. */
   time_range?: unknown;
+  offset?: unknown;
 };
 
 /** Górna granica liczby elementów przyjmowanych w jednym żądaniu. */
@@ -123,6 +128,49 @@ function parseSpotifyTopItemsQuery(
 }
 
 /**
+ * Waliduje rozmiar, okres i przesunięcie jednej strony top utworów.
+ * Brak offsetu lub pusty parametr oznacza pierwszą stronę. Nie ustala liczby
+ * dostępnych utworów; tę informację zawiera dopiero odpowiedź Spotify.
+ *
+ * @param query - Parametry query żądania HTTP.
+ * @returns Wybór strony z limitem do 40 utworów i offsetem domyślnie równym 0.
+ * @throws RequestValidationError Gdy parametr jest niepoprawny lub powtórzony.
+ */
+function parseSpotifyTopTracksQuery(
+  query: SpotifyTopItemsQuery = {}
+): SpotifyTopItemsSelection {
+  return {
+    ...parseSpotifyTopItemsQuery(query),
+    offset: parseOffset(query.offset),
+  };
+}
+
+/** Odczytuje nieujemny, bezpieczny całkowity offset; pustą wartość zastępuje zerem. */
+function parseOffset(value: unknown): number {
+  if (Array.isArray(value)) {
+    throw new RequestValidationError(
+      'Parametr "offset" może wystąpić tylko raz'
+    );
+  }
+
+  if (value === undefined || value === null || value === "") {
+    return 0;
+  }
+
+  if (typeof value === "string") {
+    const offset = Number(value.trim());
+
+    if (Number.isSafeInteger(offset) && offset >= 0) {
+      return offset;
+    }
+  }
+
+  throw new RequestValidationError(
+    'Parametr "offset" musi być nieujemną, bezpieczną liczbą całkowitą'
+  );
+}
+
+/**
  * Waliduje listę identyfikatorów utworów przesłaną w body żądania.
  *
  * @param body - Body żądania HTTP.
@@ -184,5 +232,6 @@ export {
   MAX_TRACKS_LIMIT,
   MAX_ARTISTS_LIMIT,
   parseSpotifyTopItemsQuery,
+  parseSpotifyTopTracksQuery,
   parseTrackIds,
 };

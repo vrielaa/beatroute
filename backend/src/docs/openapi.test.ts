@@ -12,6 +12,38 @@ import { SpotifyApiError } from "@integrations/spotify/spotify-api.error.js";
 import { mapErrorToHttp } from "@http/error-handler.js";
 import { parsePlaylistResumeId } from "@http/routes/playlist-generator/save-playlist.validator.js";
 import { PlaylistSaveConflictError } from "@application/playlist-generator/playlist-save-conflict.error.js";
+import { parseSpotifyTopTracksQuery } from "@integrations/spotify/spotify.validators.js";
+
+describe("top tracks pagination OpenAPI contract", () => {
+  const operation = document.paths["/api/me/top-tracks"].get;
+
+  it("documents the offset bounds and first-page default accepted by the validator", () => {
+    const offset = operation.parameters.find(
+      (parameter) => parameter.name === "offset"
+    );
+
+    expect(offset).toMatchObject({
+      in: "query",
+      required: false,
+      schema: {
+        type: "integer",
+        minimum: 0,
+        maximum: Number.MAX_SAFE_INTEGER,
+        default: parseSpotifyTopTracksQuery().offset,
+      },
+    });
+    expect(operation.description).toContain("same time_range");
+    expect(operation.description).toContain("next: null");
+  });
+
+  it("documents validation errors and invalid upstream pages separately", () => {
+    expect(operation.responses["400"].description).toContain("offset");
+    expect(operation.responses["502"].description).toContain("pagination");
+    expect(
+      operation.responses["502"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/ErrorResponse");
+  });
+});
 
 describe("track analysis OpenAPI contract", () => {
   it("documents a single batch analysis endpoint and retains the single-track Soundcharts route", () => {
