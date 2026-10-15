@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGenerator } from './playlist-generator';
 import { PlaylistSaveForm } from './playlist-save-form/playlist-save-form';
+import { PlaylistSaveStore } from './playlist-save.store';
 import type {
   GeneratedPlaylist,
   PlaylistDataset,
@@ -42,6 +43,31 @@ describe('PlaylistGenerator saving', () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+    }
+  });
+
+  it('keeps save state local to each generator instance', async () => {
+    await showPartialSave();
+    const firstStore = fixture.debugElement.injector.get(PlaylistSaveStore);
+    const progress = firstStore.partialSaveProgress();
+    const secondFixture = TestBed.createComponent(PlaylistGenerator);
+
+    try {
+      secondFixture.detectChanges();
+      const secondStore = secondFixture.debugElement.injector.get(PlaylistSaveStore);
+
+      expect(secondStore).not.toBe(firstStore);
+      expect(secondStore.isSaving()).toBe(false);
+      expect(secondStore.savedPlaylist()).toBeNull();
+      expect(secondStore.partialSaveProgress()).toBeNull();
+      expect(secondStore.saveError()).toBeNull();
+      expect(secondStore.isResumptionBlocked()).toBe(false);
+      secondStore.startNewSave();
+      expect(firstStore.partialSaveProgress()).toEqual(progress);
+      expect(firstStore.saveError()).toBeTruthy();
+      http.expectNone(() => true);
+    } finally {
+      secondFixture.destroy();
     }
   });
 

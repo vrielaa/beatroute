@@ -301,7 +301,9 @@ directly after validating the dataset.
 For playlists, `application/playlist-generator` prepares provider data and coordinates saving;
 `domain/playlist-generator` contains deterministic filtering and ranking.
 Routers handle authorization and input validation. The Angular page controls
-the process and cache; the progress and results components only present state.
+data preparation, generation and cache. A component-scoped `PlaylistSaveStore`
+owns save/resume requests, their state and partial progress; it is not shared
+between generator instances. The progress and results components present state.
 
 ## Local setup
 
