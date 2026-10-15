@@ -53,30 +53,7 @@ function createTrackRouter({
     }
   );
 
-  /**
-   * Pobiera z ReccoBeats cechy audio dla maksymalnie 40 utworów Spotify.
-   * Odpowiedź zachowuje osobny wynik albo opis błędu dla każdego identyfikatora.
-   */
-  router.post("/audio-features", authorize, async (req, res) => {
-    const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
-
-    const results = await trackAnalysisService.getAudioFeatures(trackIds);
-
-    res.json({ audio_features: results });
-  });
-
-  /**
-   * Oblicza zbiorcze statystyki na podstawie cech uzyskanych z ReccoBeats.
-   * Utwory, dla których integracja zwróciła błąd, nie wpływają na obliczenia.
-   */
-  router.post("/audio-stats", authorize, async (req, res) => {
-    const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
-
-    const stats = await trackAnalysisService.getAudioStats(trackIds);
-
-    res.json(stats);
-  });
-
+  /** Pobiera cechy raz i oblicza statystyki z tych samych wyników, z uwzględnieniem braków. */
   router.post("/analysis", authorize, async (req, res) => {
     const trackIds = parseTrackIds(req.body, { maxLimit: MAX_TRACKS_LIMIT });
 

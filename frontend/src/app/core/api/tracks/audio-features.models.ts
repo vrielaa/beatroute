@@ -17,10 +17,6 @@ type AudioFeatures = {
   error?: string;
 };
 
-type MultipleAudioFeaturesResponse = {
-  audio_features: AudioFeatures[];
-};
-
 /**
  * Liczby dostępnych pomiarów użytych do obliczenia udziałów procentowych.
  *
@@ -70,10 +66,4 @@ type TrackAnalysisResponse = {
   audioFeatures: AudioFeatures[];
 };
 
-export type {
-  AudioFeatures,
-  MultipleAudioFeaturesResponse,
-  AudioStats,
-  AudioMeasurementCounts,
-  TrackAnalysisResponse,
-};
+export type { AudioFeatures, AudioStats, AudioMeasurementCounts, TrackAnalysisResponse };

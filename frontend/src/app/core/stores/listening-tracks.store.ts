@@ -3,7 +3,7 @@ import type { TimeRange, TopTracksResponse } from '@core/api/spotify/spotify.mod
 import { SpotifyApiService } from '@core/api/spotify/spotify-api.service';
 import type { AudioFeatures, AudioStats } from '@core/api/tracks/audio-features.models';
 import { TrackAnalysisApiService } from '@core/api/tracks/track-analysis-api.service';
-import { map, of, Subscription, switchMap, tap } from 'rxjs';
+import { of, Subscription, switchMap, tap } from 'rxjs';
 import type { ListeningTracksLoadState, TracksFoundRatio } from './listening-tracks.models';
 
 @Injectable()
@@ -51,11 +51,7 @@ class ListeningTracksStore {
    * analizy i rozróżnia błędy od poprawnych odpowiedzi bez utworów lub pomiarów.
    * Wywołujący anuluje zwróconą subskrypcję przy zmianie filtrów lub zamknięciu widoku.
    */
-  public load(
-    timeRange: TimeRange,
-    tracksRange: number,
-    includeAudioFeatures = true
-  ): Subscription {
+  public load(timeRange: TimeRange, tracksRange: number): Subscription {
     this.topTracks.set(null);
     this.audioStats.set(null);
     this.audioFeatures.set([]);
@@ -74,12 +70,6 @@ class ListeningTracksStore {
 
           if (!trackIds.length) {
             return of({ stats: null, audioFeatures: [] });
-          }
-
-          if (!includeAudioFeatures) {
-            return this.trackAnalysisApi
-              .getAudioStats(trackIds)
-              .pipe(map((stats) => ({ stats, audioFeatures: [] })));
           }
 
           return this.trackAnalysisApi.getTracksAnalysis(trackIds);

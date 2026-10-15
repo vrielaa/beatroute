@@ -53,7 +53,7 @@ describe("createApp", () => {
     const app = createApp(createValidConfig());
 
     await request(app)
-      .post("/api/tracks/audio-features")
+      .post("/api/tracks/analysis")
       .set("Content-Type", "application/json")
       .send(malformedJson)
       .expect(400, {
@@ -73,7 +73,7 @@ describe("createApp", () => {
     });
 
     await request(app)
-      .post("/api/tracks/audio-features")
+      .post("/api/tracks/analysis")
       .set("Content-Type", "application/json")
       .send(oversizedPayload)
       .expect(413, {

@@ -372,80 +372,6 @@
         }
       }
     },
-    "/api/tracks/audio-features": {
-      "post": {
-        "tags": ["Tracks"],
-        "summary": "Get ReccoBeats audio features for Spotify tracks",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrackIdsRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Audio features for the supplied Spotify tracks",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MultipleAudioFeaturesResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid trackIds request body or malformed JSON"
-          },
-          "413": {
-            "description": "JSON request body exceeds the 100 KB limit"
-          },
-          "500": {
-            "description": "ReccoBeats request failed"
-          }
-        }
-      }
-    },
-    "/api/tracks/audio-stats": {
-      "post": {
-        "tags": ["Tracks"],
-        "summary": "Calculate aggregate audio statistics for Spotify tracks",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrackIdsRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Aggregate audio statistics for the supplied Spotify tracks",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AudioStats"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid trackIds request body or malformed JSON"
-          },
-          "413": {
-            "description": "JSON request body exceeds the 100 KB limit"
-          },
-          "500": {
-            "description": "ReccoBeats request failed"
-          }
-        }
-      }
-    },
     "/api/tracks/analysis": {
       "post": {
         "tags": ["Tracks"],
@@ -1763,18 +1689,6 @@
             "type": "string"
           }
         }
-      },
-      "MultipleAudioFeaturesResponse": {
-        "type": "object",
-        "properties": {
-          "audio_features": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AudioFeatures"
-            }
-          }
-        },
-        "required": ["audio_features"]
       },
       "AudioMeasurementCounts": {
         "type": "object",

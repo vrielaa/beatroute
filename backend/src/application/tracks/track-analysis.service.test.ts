@@ -7,22 +7,6 @@ import type {
 } from "@domain/tracks/types.js";
 
 describe("track analysis service", () => {
-  it("returns audio features supplied by the reader", async () => {
-    const dependencies = createDependencies();
-    const results: TrackAudioFeaturesResult[] = [
-      createAudioFeatures("spotify-1"),
-      { spotifyId: "spotify-2", error: "Track not found" },
-    ];
-    dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
-      results
-    );
-    const service = createTrackAnalysisService(dependencies);
-
-    await expect(
-      service.getAudioFeatures(["spotify-1", "spotify-2"])
-    ).resolves.toEqual(results);
-  });
-
   it("calculates statistics and adds requested and found track counts", async () => {
     const dependencies = createDependencies();
     const results: TrackAudioFeaturesResult[] = [
@@ -35,7 +19,7 @@ describe("track analysis service", () => {
     );
     const service = createTrackAnalysisService(dependencies);
 
-    const stats = await service.getAudioStats([
+    const { stats } = await service.getTracksAnalysis([
       "spotify-1",
       "spotify-2",
       "spotify-3",
@@ -85,93 +69,86 @@ describe("track analysis service", () => {
     });
   });
 
-  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
-    "%s reports missing statistics when no track has audio features",
-    async (method) => {
-      const dependencies = createDependencies();
-      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
-        [{ spotifyId: "spotify-1", error: "Track not found" }]
-      );
-      const service = createTrackAnalysisService(dependencies);
+  it("reports missing statistics when no track has audio features", async () => {
+    const dependencies = createDependencies();
+    dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
+      [{ spotifyId: "spotify-1", error: "Track not found" }]
+    );
+    const service = createTrackAnalysisService(dependencies);
 
-      const result = await service[method](["spotify-1"]);
-      const stats = "stats" in result ? result.stats : result;
+    const { stats } = await service.getTracksAnalysis(["spotify-1"]);
 
-      expect(stats).toMatchObject({
-        trackCount: 0,
-        totalTracksCount: 1,
-        foundTracksCount: 0,
-        averageBpm: null,
-        averageEnergy: null,
-        liveTrackPercentage: null,
-        instrumentalTrackPercentage: null,
-        speechHeavyTrackPercentage: null,
-        measurementCounts: {
-          mode: 0,
-          liveness: 0,
-          instrumentalness: 0,
-          speechiness: 0,
-        },
-      });
-    }
-  );
+    expect(stats).toMatchObject({
+      trackCount: 0,
+      totalTracksCount: 1,
+      foundTracksCount: 0,
+      averageBpm: null,
+      averageEnergy: null,
+      liveTrackPercentage: null,
+      instrumentalTrackPercentage: null,
+      speechHeavyTrackPercentage: null,
+      measurementCounts: {
+        mode: 0,
+        liveness: 0,
+        instrumentalness: 0,
+        speechiness: 0,
+      },
+    });
+  });
 
-  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
-    "%s preserves per-feature measurement counts and the number of requested tracks",
-    async (method) => {
-      const dependencies = createDependencies();
-      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
-        [
-          createAudioFeatures("measured", {
-            liveness: 0.9,
-            instrumentalness: null,
-            speechiness: null,
-          }),
-          createAudioFeatures("missing", {
-            liveness: null,
-            instrumentalness: null,
-            speechiness: null,
-          }),
-          { spotifyId: "failed", error: "Track not found" },
-        ]
-      );
-      const service = createTrackAnalysisService(dependencies);
+  it("preserves per-feature measurement counts and the number of requested tracks", async () => {
+    const dependencies = createDependencies();
+    dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockResolvedValue(
+      [
+        createAudioFeatures("measured", {
+          liveness: 0.9,
+          instrumentalness: null,
+          speechiness: null,
+        }),
+        createAudioFeatures("missing", {
+          liveness: null,
+          instrumentalness: null,
+          speechiness: null,
+        }),
+        { spotifyId: "failed", error: "Track not found" },
+      ]
+    );
+    const service = createTrackAnalysisService(dependencies);
 
-      const result = await service[method](["measured", "missing", "failed"]);
-      const stats = "stats" in result ? result.stats : result;
+    const { stats } = await service.getTracksAnalysis([
+      "measured",
+      "missing",
+      "failed",
+    ]);
 
-      expect(stats).toMatchObject({
-        totalTracksCount: 3,
-        foundTracksCount: 2,
-        liveTrackPercentage: 100,
-        instrumentalTrackPercentage: null,
-        speechHeavyTrackPercentage: null,
-        measurementCounts: {
-          mode: 2,
-          liveness: 1,
-          instrumentalness: 0,
-          speechiness: 0,
-        },
-      });
-      expect(
-        dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
-      ).toHaveBeenCalledOnce();
-    }
-  );
+    expect(stats).toMatchObject({
+      totalTracksCount: 3,
+      foundTracksCount: 2,
+      liveTrackPercentage: 100,
+      instrumentalTrackPercentage: null,
+      speechHeavyTrackPercentage: null,
+      measurementCounts: {
+        mode: 2,
+        liveness: 1,
+        instrumentalness: 0,
+        speechiness: 0,
+      },
+    });
+    expect(
+      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledOnce();
+  });
 
-  it.each(["getAudioStats", "getTracksAnalysis"] as const)(
-    "%s propagates errors from the audio features reader",
-    async (method) => {
-      const dependencies = createDependencies();
-      const error = new Error("Audio features unavailable");
-      dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockRejectedValue(
-        error
-      );
-      const service = createTrackAnalysisService(dependencies);
+  it("propagates errors from the audio features reader", async () => {
+    const dependencies = createDependencies();
+    const error = new Error("Audio features unavailable");
+    dependencies.audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds.mockRejectedValue(
+      error
+    );
+    const service = createTrackAnalysisService(dependencies);
 
-      await expect(service[method](["spotify-1"])).rejects.toBe(error);
-    }
-  );
+    await expect(service.getTracksAnalysis(["spotify-1"])).rejects.toBe(error);
+  });
 });
 
 function createDependencies() {

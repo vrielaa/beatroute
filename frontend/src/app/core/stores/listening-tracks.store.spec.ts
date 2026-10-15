@@ -11,8 +11,6 @@ import type { AudioStats, TrackAnalysisResponse } from '@core/api/tracks/audio-f
 describe('ListeningTracksStore', () => {
   const spotifyApi = { getTopTracks: vi.fn() };
   const trackAnalysisApi = {
-    getAudioStats: vi.fn(),
-    getAudioFeatures: vi.fn(),
     getTracksAnalysis: vi.fn(),
   };
   let store: ListeningTracksStore;
@@ -51,35 +49,19 @@ describe('ListeningTracksStore', () => {
     expect(store.hasError()).toBe(false);
     expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledOnce();
     expect(trackAnalysisApi.getTracksAnalysis).toHaveBeenCalledWith(['track-1']);
-    expect(trackAnalysisApi.getAudioStats).not.toHaveBeenCalled();
-    expect(trackAnalysisApi.getAudioFeatures).not.toHaveBeenCalled();
   });
 
-  it('does not call analysis endpoints for an empty Spotify result', () => {
+  it('does not request analysis for an empty Spotify result', () => {
     spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks([])));
 
     store.load('medium_term', 10);
 
-    expect(trackAnalysisApi.getAudioStats).not.toHaveBeenCalled();
-    expect(trackAnalysisApi.getAudioFeatures).not.toHaveBeenCalled();
     expect(trackAnalysisApi.getTracksAnalysis).not.toHaveBeenCalled();
     expect(store.audioStats()).toBeNull();
     expect(store.isAudioStatsLoading()).toBe(false);
     expect(store.loadState()).toBe('no-tracks');
     expect(store.feedbackMessage()).toContain('Brak utworów');
     expect(store.hasError()).toBe(false);
-  });
-
-  it('can load aggregate statistics without individual features', () => {
-    spotifyApi.getTopTracks.mockReturnValue(of(createTopTracks(['track-1'])));
-    trackAnalysisApi.getAudioStats.mockReturnValue(of(createAudioStats()));
-
-    store.load('long_term', 20, false);
-
-    expect(trackAnalysisApi.getAudioStats).toHaveBeenCalledWith(['track-1']);
-    expect(trackAnalysisApi.getAudioFeatures).not.toHaveBeenCalled();
-    expect(store.audioFeatures()).toEqual([]);
-    expect(store.loadState()).toBe('ready');
   });
 
   it('clears analysis data after a loading failure', () => {

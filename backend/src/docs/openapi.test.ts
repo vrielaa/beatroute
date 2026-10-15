@@ -13,6 +13,27 @@ import { mapErrorToHttp } from "@http/error-handler.js";
 import { parsePlaylistResumeId } from "@http/routes/playlist-generator/save-playlist.validator.js";
 import { PlaylistSaveConflictError } from "@application/playlist-generator/playlist-save-conflict.error.js";
 
+describe("track analysis OpenAPI contract", () => {
+  it("documents a single batch analysis endpoint and retains the single-track Soundcharts route", () => {
+    expect(document.paths).not.toHaveProperty("/api/tracks/audio-features");
+    expect(document.paths).not.toHaveProperty("/api/tracks/audio-stats");
+    expect(document.components.schemas).not.toHaveProperty(
+      "MultipleAudioFeaturesResponse"
+    );
+    expect(
+      document.paths["/api/tracks/{spotifyTrackId}/audio-features"].get
+    ).toBeDefined();
+
+    const operation = document.paths["/api/tracks/analysis"].post;
+    expect(operation.requestBody.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/TrackIdsRequest"
+    );
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref
+    ).toBe("#/components/schemas/TrackAnalysisResponse");
+  });
+});
+
 describe("playlist resumption OpenAPI contract", () => {
   const operation = document.paths["/api/playlist-generator/resume-save"].post;
 

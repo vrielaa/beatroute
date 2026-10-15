@@ -288,6 +288,11 @@ explicit dependencies, which keeps the core logic independently testable.
 Production dependencies for Last.fm, track analysis, playlist preparation and saving are assembled in
 `composition.ts` beside their routers.
 
+Dashboard and music profile use `POST /api/tracks/analysis` to retrieve audio
+features and statistics calculated from the same provider results. The former
+batch `/audio-features` and `/audio-stats` endpoints have been removed; the
+single-track Soundcharts endpoint remains available.
+
 For playlists, `application/playlist-generator` prepares provider data and coordinates saving;
 `domain/playlist-generator` contains deterministic filtering and ranking.
 Routers handle authorization and input validation. The Angular page controls

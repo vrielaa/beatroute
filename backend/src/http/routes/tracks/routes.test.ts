@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import { errorHandler } from "@http/error-handler.js";
+import { errorHandler, notFoundHandler } from "@http/error-handler.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
 import { createTrackRouter } from "./routes.js";
 import { createTrackAnalysisService } from "@application/tracks/track-analysis.service.js";
@@ -13,55 +13,51 @@ import type {
 } from "@domain/tracks/types.js";
 
 describe("track routes", () => {
-  it.each(["audio-stats", "analysis"])(
-    "returns nullable percentages and measurement counts through /%s",
-    async (endpoint) => {
-      const dependencies = createRouteDependencies();
-      const audioFeaturesReader = {
-        getManyTrackAudioFeaturesBySpotifyIds: vi.fn().mockResolvedValue([
-          createAudioFeatures("measured", {
-            liveness: 0.9,
-            instrumentalness: null,
-          }),
-          createAudioFeatures("missing", {
-            liveness: null,
-            instrumentalness: null,
-          }),
-          { spotifyId: "failed", error: "Track not found" },
-        ]),
-      };
-      const app = createTestApp({
-        ...dependencies,
-        trackAnalysisService: createTrackAnalysisService({
-          audioFeaturesReader,
+  it("returns nullable percentages and measurement counts through /analysis", async () => {
+    const dependencies = createRouteDependencies();
+    const audioFeaturesReader = {
+      getManyTrackAudioFeaturesBySpotifyIds: vi.fn().mockResolvedValue([
+        createAudioFeatures("measured", {
+          liveness: 0.9,
+          instrumentalness: null,
         }),
-      });
+        createAudioFeatures("missing", {
+          liveness: null,
+          instrumentalness: null,
+        }),
+        { spotifyId: "failed", error: "Track not found" },
+      ]),
+    };
+    const app = createTestApp({
+      ...dependencies,
+      trackAnalysisService: createTrackAnalysisService({
+        audioFeaturesReader,
+      }),
+    });
 
-      const response = await request(app)
-        .post(`/api/tracks/${endpoint}`)
-        .send({ trackIds: ["measured", "missing", "failed"] })
-        .expect(200);
-      const stats =
-        endpoint === "analysis" ? response.body.stats : response.body;
+    const response = await request(app)
+      .post("/api/tracks/analysis")
+      .send({ trackIds: ["measured", "missing", "failed"] })
+      .expect(200);
+    const stats = response.body.stats;
 
-      expect(stats).toMatchObject({
-        totalTracksCount: 3,
-        foundTracksCount: 2,
-        liveTrackPercentage: 100,
-        instrumentalTrackPercentage: null,
-        speechHeavyTrackPercentage: 0,
-        measurementCounts: {
-          mode: 2,
-          liveness: 1,
-          instrumentalness: 0,
-          speechiness: 2,
-        },
-      });
-      expect(
-        audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
-      ).toHaveBeenCalledOnce();
-    }
-  );
+    expect(stats).toMatchObject({
+      totalTracksCount: 3,
+      foundTracksCount: 2,
+      liveTrackPercentage: 100,
+      instrumentalTrackPercentage: null,
+      speechHeavyTrackPercentage: 0,
+      measurementCounts: {
+        mode: 2,
+        liveness: 1,
+        instrumentalness: 0,
+        speechiness: 2,
+      },
+    });
+    expect(
+      audioFeaturesReader.getManyTrackAudioFeaturesBySpotifyIds
+    ).toHaveBeenCalledOnce();
+  });
 
   it("requires authorization before calling route dependencies", async () => {
     const dependencies = createRouteDependencies();
@@ -77,25 +73,11 @@ describe("track routes", () => {
 
     await request(app).get("/api/tracks/spotify-1/audio-features").expect(401);
     await request(app)
-      .post("/api/tracks/audio-features")
-      .send({ trackIds: ["spotify-1"] })
-      .expect(401);
-    await request(app)
-      .post("/api/tracks/audio-stats")
-      .send({ trackIds: ["spotify-1"] })
-      .expect(401);
-    await request(app)
       .post("/api/tracks/analysis")
       .send({ trackIds: ["spotify-1"] })
       .expect(401);
 
     expect(dependencies.getSoundchartsAudioFeatures).not.toHaveBeenCalled();
-    expect(
-      dependencies.trackAnalysisService.getAudioFeatures
-    ).not.toHaveBeenCalled();
-    expect(
-      dependencies.trackAnalysisService.getAudioStats
-    ).not.toHaveBeenCalled();
     expect(
       dependencies.trackAnalysisService.getTracksAnalysis
     ).not.toHaveBeenCalled();
@@ -122,7 +104,7 @@ describe("track routes", () => {
     const app = createTestApp(dependencies);
 
     const response = await request(app)
-      .post("/api/tracks/audio-features")
+      .post("/api/tracks/analysis")
       .send({ trackIds: [] })
       .expect(400);
 
@@ -133,78 +115,8 @@ describe("track routes", () => {
       },
     });
     expect(
-      dependencies.trackAnalysisService.getAudioFeatures
+      dependencies.trackAnalysisService.getTracksAnalysis
     ).not.toHaveBeenCalled();
-  });
-
-  it("returns a separate ReccoBeats result for every requested track", async () => {
-    const dependencies = createRouteDependencies();
-    const results: TrackAudioFeaturesResult[] = [
-      createAudioFeatures("spotify-1"),
-      { spotifyId: "spotify-2", error: "Track not found" },
-    ];
-    dependencies.trackAnalysisService.getAudioFeatures.mockResolvedValue(
-      results
-    );
-    const app = createTestApp(dependencies);
-
-    const response = await request(app)
-      .post("/api/tracks/audio-features")
-      .send({ trackIds: [" spotify-1 ", "spotify-2"] })
-      .expect(200);
-
-    expect(response.body).toEqual({ audio_features: results });
-    expect(
-      dependencies.trackAnalysisService.getAudioFeatures
-    ).toHaveBeenCalledWith(["spotify-1", "spotify-2"]);
-  });
-
-  it("calculates statistics and reports requested and found track counts", async () => {
-    const dependencies = createRouteDependencies();
-    dependencies.trackAnalysisService.getAudioStats.mockResolvedValue({
-      trackCount: 1,
-      averageBpm: 120,
-      averageEnergy: 0.8,
-      averageDanceability: 0.7,
-      averageValence: 0.65,
-      averageAcousticness: 0.2,
-      averageInstrumentalness: 0.1,
-      averageLiveness: 0.15,
-      averageSpeechiness: 0.05,
-      averageLoudness: -5,
-      dominantKey: 2,
-      dominantMode: 1,
-      dominantTimeSignature: 4,
-      majorPercentage: 100,
-      minorPercentage: 0,
-      liveTrackPercentage: 0,
-      instrumentalTrackPercentage: 0,
-      speechHeavyTrackPercentage: 0,
-      measurementCounts: {
-        mode: 1,
-        liveness: 1,
-        instrumentalness: 1,
-        speechiness: 1,
-      },
-      totalTracksCount: 2,
-      foundTracksCount: 1,
-    });
-    const app = createTestApp(dependencies);
-
-    const response = await request(app)
-      .post("/api/tracks/audio-stats")
-      .send({ trackIds: ["spotify-1", "spotify-2"] })
-      .expect(200);
-
-    expect(response.body).toMatchObject({
-      trackCount: 1,
-      averageBpm: 120,
-      foundTracksCount: 1,
-      totalTracksCount: 2,
-    });
-    expect(
-      dependencies.trackAnalysisService.getAudioStats
-    ).toHaveBeenCalledWith(["spotify-1", "spotify-2"]);
   });
 
   it("returns a combined analysis of audio features and statistics", async () => {
@@ -248,7 +160,7 @@ describe("track routes", () => {
 
     const response = await request(app)
       .post("/api/tracks/analysis")
-      .send({ trackIds: ["spotify-1", "spotify-2"] })
+      .send({ trackIds: [" spotify-1 ", "spotify-2"] })
       .expect(200);
 
     expect(response.body).toMatchObject({
@@ -270,7 +182,7 @@ describe("track routes", () => {
     const apiError = new ReccoBeatsApiError("ReccoBeats unavailable", 530, {
       error_code: 1033,
     });
-    dependencies.trackAnalysisService.getAudioFeatures.mockRejectedValue(
+    dependencies.trackAnalysisService.getTracksAnalysis.mockRejectedValue(
       apiError
     );
     const consoleError = vi
@@ -280,7 +192,7 @@ describe("track routes", () => {
 
     try {
       const response = await request(app)
-        .post("/api/tracks/audio-features")
+        .post("/api/tracks/analysis")
         .send({ trackIds: ["spotify-1"] })
         .expect(502);
 
@@ -299,6 +211,23 @@ describe("track routes", () => {
       consoleError.mockRestore();
     }
   });
+
+  it.each(["audio-features", "audio-stats"])(
+    "does not expose the retired /%s endpoint",
+    async (endpoint) => {
+      const dependencies = createRouteDependencies();
+      const app = createTestApp(dependencies);
+
+      await request(app)
+        .post(`/api/tracks/${endpoint}`)
+        .send({ trackIds: ["spotify-1"] })
+        .expect(404);
+
+      expect(
+        dependencies.trackAnalysisService.getTracksAnalysis
+      ).not.toHaveBeenCalled();
+    }
+  );
 });
 
 function createRouteDependencies() {
@@ -306,9 +235,6 @@ function createRouteDependencies() {
 
   return {
     trackAnalysisService: {
-      getAudioFeatures:
-        vi.fn<(spotifyIds: string[]) => Promise<TrackAudioFeaturesResult[]>>(),
-      getAudioStats: vi.fn(),
       getTracksAnalysis: vi.fn(),
     },
     getSoundchartsAudioFeatures:
@@ -322,6 +248,7 @@ function createTestApp(dependencies: Parameters<typeof createTrackRouter>[0]) {
 
   app.use(express.json());
   app.use("/api/tracks", createTrackRouter(dependencies));
+  app.use(notFoundHandler);
   app.use(errorHandler);
 
   return app;
