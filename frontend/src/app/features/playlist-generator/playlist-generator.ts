@@ -147,13 +147,8 @@ class PlaylistGenerator {
       return;
     }
 
-    this.clearGeneration();
-    this.preparedBatches.set([]);
-    this.preparedDataset.set(null);
-    this.spotifySourceProgress.set(null);
-    this.sourcePlaylist.set(null);
+    this.clearSourcePreparation();
     this.importError.set(null);
-    this.criteria.set(null);
     this.dataSource.set(source);
   }
 
@@ -170,11 +165,7 @@ class PlaylistGenerator {
       this.isReadingFile()
     )
       return;
-    this.clearGeneration();
-    this.preparedDataset.set(null);
-    this.spotifySourceProgress.set(null);
-    this.sourcePlaylist.set(null);
-    this.criteria.set(null);
+    this.clearSourcePreparation();
     this.playlistId.set(playlistId);
   }
 
@@ -211,13 +202,10 @@ class PlaylistGenerator {
       return;
     }
 
-    this.clearGeneration();
-    this.preparedBatches.set([]);
-    this.preparedDataset.set(null);
+    this.clearSourcePreparation();
     this.trackIdsFile.set(null);
     this.fileName.set(null);
     this.importError.set(null);
-    this.criteria.set(null);
     this.isReadingFile.set(true);
 
     try {
@@ -449,6 +437,16 @@ class PlaylistGenerator {
       ),
       reduce(mergePreparedPlaylistDatasets, initialDataset)
     );
+  }
+
+  /** Unieważnia dane i kryteria po zmianie źródła, zachowując plik, ID oraz nieukończony zapis. */
+  private clearSourcePreparation(): void {
+    this.clearGeneration();
+    this.preparedBatches.set([]);
+    this.preparedDataset.set(null);
+    this.spotifySourceProgress.set(null);
+    this.sourcePlaylist.set(null);
+    this.criteria.set(null);
   }
 
   /** Anuluje generowanie i czyści wynik; nie usuwa nieukończonego zapisu do wznowienia. */

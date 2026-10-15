@@ -30,7 +30,7 @@ class PlaylistGenerationProgress {
   public readonly isRunning = input.required<boolean>();
   /** Źródło określa komunikat podczas oczekiwania na pierwszą odpowiedź. */
   public readonly source = input<PlaylistDataSource>('file');
-  /** Liczniki ukończonych partii; null oznacza nieznany jeszcze rozmiar biblioteki. */
+  /** Liczniki ukończonych partii; null oznacza nieznany jeszcze rozmiar źródła Spotify. */
   public readonly preparationProgress = input.required<PlaylistPreparationProgress | null>();
 
   protected readonly stages = GENERATION_STAGES;

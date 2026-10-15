@@ -69,6 +69,21 @@ label {
   }
 }
 
+@media (max-width: 40rem) {
+  :host {
+    padding: 1rem;
+  }
+
+  .dataset-source-switch {
+    justify-self: stretch;
+
+    button {
+      flex-basis: 100%;
+      text-align: left;
+    }
+  }
+}
+
 .dataset-file-picker {
   display: flex;
   flex-wrap: wrap;

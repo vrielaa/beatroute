@@ -29,6 +29,16 @@
     >
       Zapisane utwory
     </button>
+    <button
+      id="playlist-source-playlist"
+      type="button"
+      [class.is-active]="dataSource() === 'playlist'"
+      [attr.aria-pressed]="dataSource() === 'playlist'"
+      [disabled]="isReadingFile() || isGenerating() || isSaving()"
+      (click)="changeDataSource('playlist')"
+    >
+      Playlista Spotify
+    </button>
   </div>
 
   @if (dataSource() === 'file') {
@@ -78,9 +88,24 @@
         >.
       </p>
     }
-  } @else {
+  } @else if (dataSource() === 'saved-tracks') {
     <p class="dataset-format-hint">
       Do 500 pierwszych zapisanych pozycji Spotify. Pobieranie po kliknięciu „Generuj playlistę”.
+    </p>
+  }
+
+  <div [hidden]="dataSource() !== 'playlist'">
+    <app-playlist-source-form
+      [isDisabled]="dataSource() !== 'playlist' || isReadingFile() || isGenerating() || isSaving()"
+      (playlistIdChange)="updatePlaylistId($event)"
+    />
+    <p class="dataset-format-hint">Do 500 pierwszych pozycji playlisty.</p>
+  </div>
+
+  @if (dataSource() === 'playlist' && sourcePlaylist(); as playlist) {
+    <p class="dataset-import-status">
+      Playlista: <strong>{{ playlist.name }}</strong
+      >.
     </p>
   }
 
@@ -91,9 +116,13 @@
     </p>
     @if (importedDataset.tracks.length === 0) {
       <p class="dataset-empty" role="status">
-        @if (dataSource() === 'saved-tracks') {
+        @if (dataSource() !== 'file') {
           @if (preparationProgress()?.totalTracks === 0) {
-            Nie masz zapisanych utworów w Spotify. Zapisz utwory i spróbuj ponownie.
+            @if (dataSource() === 'playlist') {
+              Playlista jest pusta. Wybierz inną playlistę.
+            } @else {
+              Nie masz zapisanych utworów w Spotify. Zapisz utwory i spróbuj ponownie.
+            }
           } @else {
             Nie znaleziono utworów z użytecznymi pomiarami. Możesz ponowić pobieranie.
           }
@@ -106,7 +135,7 @@
   }
 
   @if (preparedDataset(); as prepared) {
-    @if (dataSource() === 'saved-tracks' && preparationProgress(); as progress) {
+    @if (dataSource() !== 'file' && preparationProgress(); as progress) {
       @if (progress.skippedTracks > prepared.skippedTracks.length) {
         <p class="dataset-import-status">
           Niedostępne pozycje Spotify: {{ progress.skippedTracks - prepared.skippedTracks.length }}.
@@ -153,7 +182,7 @@
   }
 </section>
 
-<!-- Zmiana źródła lub pliku odtwarza formularz; pobranie danych zachowuje wpisane kryteria. -->
+<!-- Zmiana źródła, pliku lub ID odtwarza kryteria; pobranie danych ich nie usuwa. -->
 @for (source of criteriaSource() ? [criteriaSource()] : []; track source) {
   <fieldset class="playlist-control-lock" [disabled]="isSaving()" aria-label="Kryteria playlisty">
     <app-playlist-criteria-form (criteriaChange)="updateCriteria($event)" />

@@ -56,7 +56,9 @@
               ? 'Nie pobrano jeszcze danych.'
               : source() === 'saved-tracks'
                 ? 'Pobieranie zapisanych utworów…'
-                : 'Pobieranie danych…'
+                : source() === 'playlist'
+                  ? 'Pobieranie playlisty…'
+                  : 'Pobieranie danych…'
           }}
         </p>
       }
