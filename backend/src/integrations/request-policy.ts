@@ -52,7 +52,7 @@ type HttpRequestExecutorConfiguration = {
 /** Techniczna przyczyna nieudanego wykonania żądania HTTP. */
 type HttpRequestFailureKind = "timeout" | "network" | "aborted";
 
-/** Błąd transportu zwracany po wyczerpaniu dopuszczalnych prób. */
+/** Błąd pojedynczej próby HTTP rozróżniający awarię sieci, timeout i anulowanie. */
 class HttpRequestExecutionError extends Error {
   constructor(
     message: string,
@@ -100,86 +100,111 @@ function createHttpRequestExecutor({
 }: HttpRequestExecutorConfiguration = {}) {
   const policy = resolveRequestPolicy(policyOverrides);
 
+  /**
+   * Wykonuje jedną próbę HTTP przez scheduler, bez oceniania statusu odpowiedzi.
+   * Timeout rozpoczyna się po opuszczeniu kolejki. Błędy transportu są
+   * klasyfikowane, a odmowa schedulera podczas pauzy jest przekazywana bez zmian.
+   */
+  async function executeAttempt(
+    url: string,
+    requestOptions: RequestInit
+  ): Promise<Response> {
+    let timeoutSignal: AbortSignal | null = null;
+
+    const performFetch = () => {
+      timeoutSignal = AbortSignal.timeout(policy.timeoutMs);
+      const signal = requestOptions.signal
+        ? AbortSignal.any([requestOptions.signal, timeoutSignal])
+        : timeoutSignal;
+
+      return fetchImpl(url, { ...requestOptions, signal });
+    };
+
+    try {
+      return scheduler
+        ? await scheduler.schedule(
+            performFetch,
+            requestOptions.signal
+              ? { signal: requestOptions.signal }
+              : undefined
+          )
+        : await performFetch();
+    } catch (cause) {
+      if (cause instanceof RequestSchedulerPausedError) {
+        throw cause;
+      }
+
+      const failureKind = getFailureKind(
+        cause,
+        requestOptions.signal,
+        timeoutSignal
+      );
+
+      throw new HttpRequestExecutionError(
+        getFailureMessage(failureKind),
+        failureKind,
+        cause
+      );
+    }
+  }
+
   return async function executeHttpRequest(
     url: string,
-    init: RequestInit = {}
+    requestOptions: RequestInit = {}
   ): Promise<Response> {
-    const method = (init.method ?? "GET").toUpperCase();
-    const canRetry = RETRYABLE_HTTP_METHODS.has(method);
+    const method = (requestOptions.method ?? "GET").toUpperCase();
+    const methodAllowsRetry = RETRYABLE_HTTP_METHODS.has(method);
 
     for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
-      let timeoutSignal: AbortSignal | null = null;
-
-      const performFetch = () => {
-        timeoutSignal = AbortSignal.timeout(policy.timeoutMs);
-        const signal = init.signal
-          ? AbortSignal.any([init.signal, timeoutSignal])
-          : timeoutSignal;
-
-        return fetchImpl(url, { ...init, signal });
-      };
+      const isLastAttempt = attempt === policy.maxAttempts;
+      let response: Response;
 
       try {
-        const response = scheduler
-          ? await scheduler.schedule(
-              performFetch,
-              init.signal ? { signal: init.signal } : undefined
-            )
-          : await performFetch();
-        const retryAfterSeconds = parseRetryAfterSeconds(
-          response.headers.get("retry-after"),
-          now()
-        );
-        const responseDelayMs = calculateResponseDelayMs(
-          retryAfterSeconds,
-          attempt,
-          policy
-        );
-
+        response = await executeAttempt(url, requestOptions);
+      } catch (error) {
         if (
-          scheduler &&
-          !response.ok &&
-          (response.status === 429 || retryAfterSeconds !== null)
+          !(error instanceof HttpRequestExecutionError) ||
+          !methodAllowsRetry ||
+          error.kind === "aborted" ||
+          isLastAttempt
         ) {
-          scheduler.pauseFor(responseDelayMs, {
-            cause: new HttpResponseError(response.status),
-          });
-        }
-
-        if (
-          !canRetry ||
-          attempt === policy.maxAttempts ||
-          !policy.retryableStatuses.includes(response.status)
-        ) {
-          return response;
-        }
-
-        if (responseDelayMs > policy.maxRetryDelayMs) {
-          return response;
-        }
-
-        await sleep(responseDelayMs);
-      } catch (cause) {
-        if (cause instanceof RequestSchedulerPausedError) {
-          throw cause;
-        }
-
-        const failureKind = getFailureKind(cause, init.signal, timeoutSignal);
-
-        if (
-          !canRetry ||
-          failureKind === "aborted" ||
-          attempt === policy.maxAttempts
-        ) {
-          throw new HttpRequestExecutionError(
-            getFailureMessage(failureKind),
-            failureKind,
-            cause
-          );
+          throw error;
         }
 
         await sleep(calculateBackoffDelayMs(attempt, policy));
+        continue;
       }
+
+      const retryAfterSeconds = parseRetryAfterSeconds(
+        response.headers.get("retry-after"),
+        now()
+      );
+      const responseDelayMs = calculateResponseDelayMs(
+        retryAfterSeconds,
+        attempt,
+        policy
+      );
+
+      if (
+        scheduler &&
+        !response.ok &&
+        (response.status === 429 || retryAfterSeconds !== null)
+      ) {
+        scheduler.pauseFor(responseDelayMs, {
+          cause: new HttpResponseError(response.status),
+        });
+      }
+
+      if (
+        !methodAllowsRetry ||
+        isLastAttempt ||
+        !policy.retryableStatuses.includes(response.status) ||
+        responseDelayMs > policy.maxRetryDelayMs
+      ) {
+        return response;
+      }
+
+      await sleep(responseDelayMs);
     }
 
     throw new Error("HTTP request attempts were exhausted unexpectedly");

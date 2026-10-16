@@ -45,21 +45,80 @@ describe("HTTP request policy", () => {
     }
   );
 
-  it("retries a safe read after a temporary HTTP failure", async () => {
+  it.each(["GET", "HEAD"])(
+    "retries a %s request after a temporary HTTP failure",
+    async (method) => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status: 503 }))
+        .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+      });
+
+      const response = await request("https://api.test/resource", { method });
+
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(sleep).toHaveBeenCalledWith(500);
+    }
+  );
+
+  it("preserves response processing errors without retrying or classifying them as network failures", async () => {
+    const processingError = new Error("Clock failed");
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(new Response(null, { status: 503 }))
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      .mockResolvedValue(new Response(null, { status: 200 }));
     const sleep = vi.fn(async () => undefined);
     const request = createHttpRequestExecutor({
       fetchImpl: fetchMock,
       sleep,
+      now: () => {
+        throw processingError;
+      },
     });
 
-    const response = await request("https://api.test/resource");
+    await expect(request("https://api.test/resource")).rejects.toBe(
+      processingError
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).not.toHaveBeenCalled();
+  });
 
-    expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+  it("preserves scheduler pause errors without retrying the completed HTTP request", async () => {
+    const pauseError = new Error("Scheduler pause failed");
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    vi.spyOn(scheduler, "pauseFor").mockImplementation(() => {
+      throw pauseError;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 429 }));
+    const sleep = vi.fn(async () => undefined);
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+      sleep,
+    });
+
+    await expect(request("https://api.test/resource")).rejects.toBe(pauseError);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("does not retry waiting as a network failure when sleep rejects", async () => {
+    const sleepError = new Error("Waiting failed");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 503 }));
+    const sleep = vi.fn().mockRejectedValue(sleepError);
+    const request = createHttpRequestExecutor({ fetchImpl: fetchMock, sleep });
+
+    await expect(request("https://api.test/resource")).rejects.toBe(sleepError);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).toHaveBeenCalledOnce();
     expect(sleep).toHaveBeenCalledWith(500);
   });
 
@@ -676,6 +735,29 @@ describe("HTTP request policy", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(sleep).not.toHaveBeenCalled();
   });
+
+  it.each(["GET", "HEAD"])(
+    "retries a temporary %s network failure and returns the successful response",
+    async (method) => {
+      const response = new Response(null, { status: 200 });
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError("fetch failed"))
+        .mockResolvedValueOnce(response);
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+      });
+
+      await expect(
+        request("https://api.test/resource", { method })
+      ).resolves.toBe(response);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(sleep).toHaveBeenCalledOnce();
+      expect(sleep).toHaveBeenCalledWith(500);
+    }
+  );
 
   it("retries a network failure and exposes it after the final attempt", async () => {
     const connectionError = new TypeError("fetch failed");
