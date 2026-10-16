@@ -275,6 +275,34 @@ describe("mapErrorToHttp", () => {
     });
   });
 
+  it("maps a local ReccoBeats cooldown to 429 with no fabricated upstream response", () => {
+    const error = new ReccoBeatsApiError(
+      "ReccoBeats requests paused",
+      429,
+      null,
+      {
+        upstreamStatus: null,
+        retryAfterSeconds: 2,
+      }
+    );
+
+    expect(mapErrorToHttp(error)).toEqual({
+      status: 429,
+      body: {
+        error: {
+          code: "RECCOBEATS_API_ERROR",
+          message: "ReccoBeats requests paused",
+          details: {
+            integration: "reccobeats",
+            upstreamStatus: null,
+            retryAfterSeconds: 2,
+          },
+        },
+      },
+      headers: { "Retry-After": "2" },
+    });
+  });
+
   it("maps a Soundcharts outage to Service Unavailable", () => {
     expect(mapErrorToHttp(new SoundchartsApiError("Unavailable", 503))).toEqual(
       {

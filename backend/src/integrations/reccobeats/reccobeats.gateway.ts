@@ -2,8 +2,12 @@ import {
   createHttpRequestExecutor,
   parseRetryAfterSeconds,
   HttpRequestExecutionError,
+  HttpResponseError,
 } from "@integrations/request-policy.js";
-import { createRequestScheduler } from "@integrations/request-scheduler.js";
+import {
+  createRequestScheduler,
+  RequestSchedulerPausedError,
+} from "@integrations/request-scheduler.js";
 import { appConfig } from "../../config/app.config.js";
 import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 
@@ -15,9 +19,16 @@ import type {
 import type { HttpRequestPolicy } from "@integrations/request-policy.js";
 import type { RequestScheduler } from "@integrations/request-scheduler.js";
 
-/** Wspólny scheduler wszystkich produkcyjnych zapytań do ReccoBeats. */
+/**
+ * Wspólny scheduler produkcyjnych wyszukiwań, odczytów cech i ponowień ReccoBeats.
+ * Rozpoczyna najwyżej jedno zapytanie na 1000 ms i dopuszcza do pięciu trwających.
+ * Podczas pauzy odrzuca nowe i oczekujące operacje, nie przerywając rozpoczętych.
+ * Limit tempa jest ostrożnym ustawieniem aplikacji, nie potwierdzonym limitem API.
+ */
 const reccoBeatsRequestScheduler = createRequestScheduler({
   maxConcurrentRequests: 5,
+  rateLimit: { maxRequests: 1, intervalMs: 1_000 },
+  pauseBehavior: "reject",
 });
 
 /**
@@ -134,6 +145,9 @@ function normalizeTracksResponse(
 
 /**
  * Tworzy gateway ukrywający transport HTTP i strukturę odpowiedzi ReccoBeats.
+ * Domyślna polityka ponawia przejściowe błędy 502–504 z backoffem od 1000 ms,
+ * ale nie ponawia 429. Produkcyjny gateway współdzieli scheduler między użytkownikami
+ * jednej instancji backendu; factory pozwala zastąpić go podczas testów.
  *
  * @param configuration - Adres API oraz implementacja mechanizmu HTTP.
  * @returns Operacje wyszukiwania utworów i pobierania ich cech audio.
@@ -146,15 +160,22 @@ function createReccoBeatsGateway({
 }: ReccoBeatsGatewayConfiguration): ReccoBeatsGateway {
   const executeRequest = createHttpRequestExecutor({
     fetchImpl,
-    policy: requestPolicy,
+    policy: {
+      baseRetryDelayMs: 1_000,
+      retryableStatuses: [502, 503, 504],
+      ...requestPolicy,
+    },
     scheduler,
   });
   /**
    * Wykonuje zapytanie GET i sprawdza status odpowiedzi ReccoBeats.
+   * Odmowę schedulera mapuje na błąd integracji z pozostałym czasem pauzy
+   * i bez statusu źródłowego, ponieważ nie otrzymano nowej odpowiedzi API.
    *
    * @param endpointPath - Ścieżka endpointu wraz z parametrami query.
    * @returns Dane JSON o typie oczekiwanym przez wywołującą operację.
-   * @throws {ReccoBeatsApiError} Gdy API zwróci nieudany status HTTP.
+   * @throws {ReccoBeatsApiError} Gdy transport, odpowiedź API lub lokalna pauza
+   * nie pozwalają zakończyć odczytu.
    */
   async function request<ResponseData>(
     endpointPath: string
@@ -168,6 +189,23 @@ function createReccoBeatsGateway({
         },
       });
     } catch (cause) {
+      if (cause instanceof RequestSchedulerPausedError) {
+        const pauseStatus =
+          cause.cause instanceof HttpResponseError ? cause.cause.status : 503;
+
+        throw new ReccoBeatsApiError(
+          pauseStatus === 429
+            ? "Zapytania do ReccoBeats są wstrzymane po przekroczeniu limitu"
+            : "Zapytania do ReccoBeats są czasowo wstrzymane",
+          pauseStatus,
+          null,
+          {
+            upstreamStatus: null,
+            retryAfterSeconds: Math.ceil(cause.remainingPauseMs / 1_000),
+          }
+        );
+      }
+
       if (cause instanceof HttpRequestExecutionError) {
         const timedOut = cause.kind === "timeout";
 
@@ -199,7 +237,11 @@ function createReccoBeatsGateway({
         "ReccoBeats zwróciło odpowiedź inną niż JSON",
         response.status,
         cause,
-        { category: "invalid-response", retryAfterSeconds }
+        {
+          category:
+            response.status === 429 ? "rate-limited" : "invalid-response",
+          retryAfterSeconds,
+        }
       );
     }
 

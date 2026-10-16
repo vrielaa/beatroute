@@ -7,27 +7,33 @@ type ReccoBeatsApiErrorData = {
   error?: {
     /** Komunikat opisujący przyczynę niepowodzenia. */
     message?: string;
-    /** Status HTTP zapisany w treści odpowiedzi. */
+    /** Kod statusu w treści błędu; nie określa statusu odpowiedzi HTTP. */
     status?: number;
   };
 };
 
-/** Dodatkowe informacje opisujące błąd ReccoBeats. */
+/**
+ * Dodatkowe informacje opisujące błąd ReccoBeats.
+ *
+ * @property category - Znaczenie błędu niezależne od konkretnego API.
+ * @property retryAfterSeconds - Czas z nagłówka `Retry-After` albo pozostały
+ * czas lokalnej pauzy, wyrażony w sekundach.
+ * @property upstreamStatus - Status odpowiedzi źródłowej; domyślnie `status`.
+ * Jawne `null` oznacza lokalną odmowę bez nowej odpowiedzi ReccoBeats.
+ */
 type ReccoBeatsApiErrorOptions = {
-  /** Znaczenie błędu niezależne od konkretnego API. */
   category?: IntegrationErrorCategory;
-
-  /** Czas oczekiwania przekazany w nagłówku Retry-After. */
   retryAfterSeconds?: number | null;
+  upstreamStatus?: number | null;
 };
 
-/** Błąd nieudanego zapytania do API ReccoBeats. */
+/** Błąd odpowiedzi ReccoBeats, transportu albo lokalnej pauzy zapytań. */
 class ReccoBeatsApiError extends IntegrationApiError {
   /**
    * @param message - Czytelny opis niepowodzenia.
-   * @param status - Status HTTP odpowiedzi ReccoBeats.
-   * @param data - Oryginalne dane odpowiedzi błędu.
-   * @param options - Dodatkowe opcje błędu.
+   * @param status - Status HTTP odpowiedzi albo status zastępczy transportu lub pauzy.
+   * @param data - Oryginalne dane błędu; `null` dla lokalnej odmowy.
+   * @param options - Kategoria, czas ponowienia i opcjonalny status źródłowy.
    */
   constructor(
     message: string,
@@ -38,7 +44,8 @@ class ReccoBeatsApiError extends IntegrationApiError {
     super("reccobeats", message, {
       category: options.category ?? classifyReccoBeatsError(status),
       retryAfterSeconds: options.retryAfterSeconds ?? null,
-      upstreamStatus: status,
+      upstreamStatus:
+        options.upstreamStatus === undefined ? status : options.upstreamStatus,
       details: data,
     });
     this.name = "ReccoBeatsApiError";

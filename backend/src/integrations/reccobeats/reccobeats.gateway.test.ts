@@ -1,10 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ReccoBeatsApiError } from "./reccobeats-api.error.js";
 import { createReccoBeatsGateway } from "./reccobeats.gateway.js";
 import { createRequestScheduler } from "@integrations/request-scheduler.js";
+import { HttpResponseError } from "@integrations/request-policy.js";
 
 describe("ReccoBeats gateway", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   it("accepts the real search response with trackTitle rather than name", async () => {
     const track = {
       id: "bf5bbe91-ad19-4fab-bc0f-bd1e41ef9c13",
@@ -165,6 +171,88 @@ describe("ReccoBeats gateway", () => {
       status: 530,
       data: errorData,
     });
+  });
+
+  it.each([
+    { status: 429, category: "rate-limited" },
+    { status: 503, category: "unavailable" },
+  ])(
+    "preserves the cause of a local $status pause without a new upstream status",
+    async ({ status, category }) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      const scheduler = createRequestScheduler({
+        maxConcurrentRequests: 1,
+        pauseBehavior: "reject",
+      });
+      scheduler.pauseFor(2_500, { cause: new HttpResponseError(status) });
+      const fetchMock = vi.fn<typeof fetch>();
+      const gateway = createReccoBeatsGateway({
+        fetchImpl: fetchMock,
+        baseUrl: "https://reccobeats.test",
+        scheduler,
+      });
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = gateway.getTrackAudioFeatures("recco-1");
+
+      await expect(result).rejects.toBeInstanceOf(ReccoBeatsApiError);
+      await expect(result).rejects.toMatchObject({
+        category,
+        status,
+        upstreamStatus: null,
+        retryAfterSeconds: 2,
+        data: null,
+        details: null,
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it("maps a local pause without an HTTP cause to service unavailability", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const scheduler = createRequestScheduler({
+      maxConcurrentRequests: 1,
+      pauseBehavior: "reject",
+    });
+    scheduler.pauseFor(1_000);
+    const fetchMock = vi.fn<typeof fetch>();
+    const gateway = createReccoBeatsGateway({
+      fetchImpl: fetchMock,
+      baseUrl: "https://reccobeats.test",
+      scheduler,
+    });
+
+    await expect(
+      gateway.findTracksBySpotifyIds(["spotify1"])
+    ).rejects.toMatchObject({
+      category: "unavailable",
+      status: 503,
+      upstreamStatus: null,
+      retryAfterSeconds: 1,
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps HTTP 429 rate-limited even when the response is not JSON", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("Too many requests", {
+        status: 429,
+        headers: { "Retry-After": "10" },
+      })
+    );
+    const gateway = createGateway(fetchMock);
+
+    await expect(
+      gateway.getTrackAudioFeatures("recco-1")
+    ).rejects.toMatchObject({
+      category: "rate-limited",
+      status: 429,
+      upstreamStatus: 429,
+      retryAfterSeconds: 10,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 
