@@ -332,9 +332,31 @@ across all sessions. Expired entries are removed on subsequent preparations;
 capacity overflow removes the oldest entry. Each successful read is cached
 immediately, so a later Spotify or audio-provider failure does not discard it.
 Errors, missing tracks and unusable metadata are not cached. Returned data uses
-copies so caller changes cannot corrupt the cache. Audio measurements are still
-retrieved for each preparation. Restarting the backend clears the cache; there
-is no persistent storage or sharing across processes.
+copies so caller changes cannot corrupt the cache. Each preparation still asks
+the audio service for measurements, which can now reuse its own cache described
+below. Restarting the backend clears the cache; there is no persistent storage
+or sharing across processes.
+
+The ReccoBeats service also keeps normalized audio measurements in an in-memory
+`Map`, keyed by Spotify track ID. Single-track and batch reads share this cache
+within the service instance, including the production consumers in the generator,
+dashboard, profile and music map. Measurements are track data, not user-specific
+data: entries contain no tokens, names or listening history and are reused across
+sessions. Existing route authorization is unchanged. An entry is valid for 24
+hours from successful retrieval; reading it does not extend its lifetime. Expired
+entries are removed on the next read. The cache holds at most 1000 tracks and
+removes the oldest inserted entry when full.
+
+A cache hit skips both the ReccoBeats catalog search and the audio request. Batch
+reads search only for IDs without valid cached measurements, keeping the original
+result order. Successful reads are stored immediately, even if another read later
+interrupts a strict preparation. Errors, catalog misses, 404 responses and results
+without any measurement are not cached. Partial measurements, including zero,
+remain valid. A cached success does not hide a technical failure for an uncached
+track in strict mode. Returned objects are copies, so changing a result cannot
+alter cached data. Restarting the backend clears this cache too. Pending requests
+are not coalesced: simultaneous cache misses may still make duplicate calls, and
+the shared scheduler continues to control every actual provider request.
 
 Both endpoints have a 1 MiB JSON body limit; other endpoints retain 100 KiB.
 Vitest covers validation and domain logic. Supertest covers authentication, errors,

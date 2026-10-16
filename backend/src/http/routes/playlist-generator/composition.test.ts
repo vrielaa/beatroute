@@ -8,7 +8,10 @@ import type {
 } from "@application/playlist-generator/types.js";
 import type { ReccoBeatsGateway } from "@integrations/reccobeats/reccobeats.gateway.js";
 import { ReccoBeatsApiError } from "@integrations/reccobeats/reccobeats-api.error.js";
-import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
+import {
+  createReccoBeatsService,
+  reccoBeatsService,
+} from "@integrations/reccobeats/reccobeats.service.js";
 import { errorHandler } from "@http/error-handler.js";
 import playlistGeneratorRouter from "./routes.js";
 
@@ -96,6 +99,15 @@ beforeEach(() => {
     ids.map(createCatalogTrack)
   );
   adapters.reccobeats.getTrackAudioFeatures.mockResolvedValue(audioFeatures);
+  const isolatedAudioService = createReccoBeatsService({
+    reccoBeatsGateway: adapters.reccobeats,
+  });
+  vi.spyOn(
+    reccoBeatsService,
+    "getManyTrackAudioFeaturesBySpotifyIds"
+  ).mockImplementation(
+    isolatedAudioService.getManyTrackAudioFeaturesBySpotifyIds
+  );
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -131,6 +143,21 @@ describe.each([
       expect(audioRead).toHaveBeenCalledExactlyOnceWith(trackIds, {
         errorMode: "strict",
       });
+    });
+
+    it("reuses cached measurements on another preparation of the same source", async () => {
+      const browser = await createBrowser();
+
+      const first = await browser.post(endpoint).send(body).expect(200);
+      const second = await browser.post(endpoint).send(body).expect(200);
+
+      expect(second.body).toEqual(first.body);
+      expect(
+        adapters.reccobeats.findTracksBySpotifyIds
+      ).toHaveBeenCalledExactlyOnceWith(trackIds);
+      expect(adapters.reccobeats.getTrackAudioFeatures).toHaveBeenCalledTimes(
+        4
+      );
     });
 
     it.each([0, 10])(
