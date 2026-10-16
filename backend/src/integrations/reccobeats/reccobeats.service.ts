@@ -95,7 +95,8 @@ function createReccoBeatsService({
    * @param spotifyTrackIds - Identyfikatory utworów Spotify do przetworzenia.
    * @param options - Zasady obsługi technicznych błędów odczytów.
    * @returns Wynik dla każdego identyfikatora: cechy audio albo opis błędu.
-   * @throws Gdy wyszukiwanie nie działa lub wszystkie odczyty cech zawiodły wskutek awarii.
+   * @throws Gdy wyszukiwanie zawiedzie, tryb strict napotka awarię pojedynczego
+   * odczytu albo domyślny tryb partial nie uzyska żadnego pomiaru wskutek awarii.
    */
   async function getManyTrackAudioFeaturesBySpotifyIds(
     spotifyTrackIds: string[],

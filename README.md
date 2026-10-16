@@ -268,10 +268,15 @@ The prepared response contains `dataset`, `skippedTracks` and `incompleteTracks`
 Tracks without metadata or any useful generator measurement are omitted. Partial
 measurements remain in the dataset and are reported separately. This is distinct
 from rejection by user criteria. An empty prepared dataset blocks generation.
-Retrieval failures display an error rather than an empty success. If every audio
-read fails due to an outage, the original integration error, including `Retry-After`
-when supplied, is propagated. Partial per-track failures still allow other tracks
-to be prepared. Expected missing measurements (404) are reported as missing data.
+All three generator sources use strict audio reads: a technical failure in even
+one read stops that preparation request and propagates the original integration
+error, including `Retry-After` when supplied. Successful reads mixed with rate
+limits, timeouts, outages or invalid responses do not become a partial success
+with skipped tracks, and the frontend does not start ranking. Already-started
+provider operations may still finish. Catalog gaps and expected missing
+measurements (404) remain omissions; partial measurements and zero remain valid.
+This setting does not change the audio service's default partial mode for other
+consumers.
 Generate can retry after an error without selecting the file again; a failed
 analysis does not discard data already prepared successfully.
 

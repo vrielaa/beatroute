@@ -3,11 +3,17 @@ import { createPlaylistSaveService } from "@application/playlist-generator/playl
 import { defaultSpotifyGateway } from "@integrations/spotify/spotify.gateway.js";
 import { reccoBeatsService } from "@integrations/reccobeats/reccobeats.service.js";
 
-/** Serwis przygotowania zbioru korzystający z produkcyjnych adapterów danych. */
+/**
+ * Przygotowanie zbioru z produkcyjnych adapterów dla wszystkich trzech źródeł.
+ * Tryb strict przerywa przygotowanie przy technicznym błędzie pojedynczego
+ * odczytu cech, zamiast traktować awarię jako brak danych utworu.
+ */
 const playlistDatasetService = createPlaylistDatasetService({
   getSpotifyTrackById: defaultSpotifyGateway.getSpotifyTrackById,
-  getAudioFeaturesBySpotifyIds:
-    reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds,
+  getAudioFeaturesBySpotifyIds: (ids) =>
+    reccoBeatsService.getManyTrackAudioFeaturesBySpotifyIds(ids, {
+      errorMode: "strict",
+    }),
   getCurrentUserSavedTracks: defaultSpotifyGateway.getCurrentUserSavedTracks,
   getPlaylistMetadata: defaultSpotifyGateway.getPlaylistMetadata,
   getPlaylistItemsPage: defaultSpotifyGateway.getPlaylistItemsPage,

@@ -129,7 +129,8 @@ type PlaylistTrackMetadata = {
  *
  * @property spotifyId - ID utworu z wybranego źródła danych.
  * @property reason - metadata-unavailable: brak utworu lub wymaganych metadanych;
- * audio-features-unavailable: nieudany odczyt albo brak wszystkich ośmiu użytecznych pomiarów.
+ * audio-features-unavailable: potwierdzony brak utworu lub pomiarów w źródle cech
+ * albo brak wszystkich ośmiu użytecznych pomiarów. Awaria techniczna przerywa przygotowanie.
  */
 type SkippedPlaylistTrack = {
   spotifyId: string;
@@ -152,7 +153,8 @@ type IncompletePlaylistTrack = {
  * Przygotowany zbiór oraz informacje o kompletności pobranych danych.
  * Wszystkie listy zachowują kolejność utworów źródłowych. Zbiór może być pusty,
  * gdy żaden utwór nie ma metadanych i użytecznego pomiaru; UI nie powinno wtedy wywoływać generatora.
- * Awarie całych zapytań są wyjątkami, nie pustym zbiorem ani wpisami skippedTracks.
+ * Awarie techniczne, także pojedynczego odczytu, są wyjątkami,
+ * nie pustym zbiorem ani wpisami skippedTracks.
  *
  * @property dataset - Metadane i pomiary gotowe do kolejnych analiz bez pobierania API.
  * @property skippedTracks - Utwory pominięte podczas przygotowania, z bezpiecznym kodem powodu.
@@ -171,7 +173,8 @@ type PreparedPlaylistDataset = {
  * @property getSpotifyTrackById - Pobiera metadane jednego ID z tokenem użytkownika;
  * brak utworu jest błędem integracji ze statusem źródłowym 404.
  * @property getAudioFeaturesBySpotifyIds - Pobiera wyniki cech audio dla wskazanych ID;
- * błąd pojedynczego utworu jest wpisem wyniku, a awaria całego odczytu wyjątkiem.
+ * potwierdzony brak danych utworu jest wpisem wyniku, a awaria techniczna
+ * dowolnego odczytu powinna przerwać przygotowanie wyjątkiem.
  * @property getCurrentUserSavedTracks - Pobiera jedną stronę biblioteki z metadanymi
  * utworów i paginacją. Nie pobiera cech audio ani kolejnych stron.
  * @property getPlaylistMetadata - Pobiera nazwę i aktualną wersję playlisty.
