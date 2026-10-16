@@ -99,7 +99,7 @@ describe('PlaylistGeneratorResults', () => {
     ).toEqual(['25%', '100%']);
   });
 
-  it('keeps accepted tracks with zero match in the ranking and explains the distinction', () => {
+  it('keeps accepted tracks with zero match without adding ranking explanations', () => {
     renderResult({
       rankedTracks: [createEvaluation('zero-match', 'Spełnia wymagania', 0)],
       rejectedTracks: [createRejection('rejected', 'Nie spełnia wymagań')],
@@ -109,23 +109,8 @@ describe('PlaylistGeneratorResults', () => {
     expect(getText('.overall-match-value')).toBe('0%');
     expect(getText('.generation-summary')).toContain('Dopuszczone utwory: 1.');
     expect(getText('.generation-summary')).toContain('Odrzucone utwory: 1.');
-    expect(getText('.results-explanation')).toContain(
-      'Utwory w rankingu spełniają wymagania obowiązkowe.'
-    );
-    expect(getText('.results-explanation')).toContain(
-      'Preferencje wpływają na ich kolejność, nie na odrzucenie.'
-    );
-    expect(getText('.results-explanation')).toContain(
-      'Utwór może znaleźć się w wynikach także z dopasowaniem 0%.'
-    );
-    expect(getText('.score-explanation')).toContain('nie prawdopodobieństwem polubienia utworu');
-    expect(getText('.score-explanation')).toContain(
-      'Przy remisie porównujemy średnią bliskość pomiarów do wybranych poziomów'
-    );
-    expect(getText('.score-explanation')).toContain('zachowujemy kolejność zbioru');
-    expect(getText('.score-explanation')).toContain(
-      'Wyłączone preferencje i brakujące pomiary są pomijane.'
-    );
+    expect(getElements('.results-explanation')).toHaveLength(0);
+    expect(getElements('.score-explanation')).toHaveLength(0);
   });
 
   it('shows an empty ranking as a valid outcome and still displays every rejection', () => {
