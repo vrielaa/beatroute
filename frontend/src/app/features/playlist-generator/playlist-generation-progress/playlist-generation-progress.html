@@ -31,8 +31,8 @@
       @if (preparationProgress(); as progress) {
         @if (progress.totalTracks > 0) {
           <p class="preparation-counter">
-            Przetworzono {{ progress.processedTracks }} ze {{ progress.totalTracks }} — ukończone
-            partie: {{ progress.completedBatches }} z {{ progress.totalBatches }}.
+            Przetworzono {{ progress.processedTracks }} / {{ progress.totalTracks }} — ukończone
+            partie: {{ progress.completedBatches }} / {{ progress.totalBatches }}.
           </p>
         } @else {
           <p class="preparation-counter">Brak pozycji do przygotowania.</p>
