@@ -277,8 +277,31 @@ provider operations may still finish. Catalog gaps and expected missing
 measurements (404) remain omissions; partial measurements and zero remain valid.
 This setting does not change the audio service's default partial mode for other
 consumers.
+
+For a positive `Retry-After`, the UI shows “Ponów pobieranie za 10 s.” (using the
+returned delay). A zero, missing or invalid delay shows “Przekroczono limit zapytań.
+Spróbuj później.”, never “za 0 s.”. The message is informational: it neither
+counts down nor restarts preparation automatically. A failed preparation stops
+later pages and ranking. On another Generate click, ID files reuse completed
+batches; saved tracks and playlists start again at offset zero, with a new
+playlist snapshot. Tests exercise these flows with the real HTTP interceptor and
+mocked responses, including a failure after a successful page and the passage of
+the retry delay without any automatic request.
+
 Generate can retry after an error without selecting the file again; a failed
 analysis does not discard data already prepared successfully.
+
+ReccoBeats searches, audio reads and retry attempts share a separate in-memory
+scheduler across all users of one backend process: at most one request starts
+per 1000 ms, with up to five running concurrently. This is a conservative
+application setting, not a confirmed provider quota or a guarantee against `429`.
+The gateway retries transient `502–504` errors with backoff starting at 1000 ms,
+but does not retry `429`. A rate-limit response pauses the scheduler; missing or
+zero `Retry-After` still triggers the backoff pause. New and queued calls fail
+promptly during cooldown, while started calls may finish. Local refusals include
+the remaining delay and `upstreamStatus: null` because no new provider request
+was made. Preparing a full 50-track page can take about a minute; the UI updates
+progress after the page completes, not during individual provider requests.
 
 Spotify Web API reads, playlist writes and retry attempts share one in-memory
 scheduler. It starts at most one provider request per 1000 ms across all users,

@@ -497,9 +497,9 @@ function getPreparationErrorMessage(error: unknown, source: PlaylistDataSource):
       case 429: {
         const header = error.headers.get('Retry-After')?.trim();
         const seconds = header ? Number(header) : null;
-        return seconds !== null && Number.isInteger(seconds) && seconds >= 0
-          ? `Przekroczono limit zapytań. Ponów pobieranie za ${seconds} s.`
-          : 'Przekroczono limit zapytań. Ponów pobieranie później.';
+        return seconds !== null && Number.isInteger(seconds) && seconds > 0
+          ? `Ponów pobieranie za ${seconds} s.`
+          : 'Przekroczono limit zapytań. Spróbuj później.';
       }
       case 502:
       case 503:

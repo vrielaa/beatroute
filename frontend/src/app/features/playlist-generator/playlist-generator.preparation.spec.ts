@@ -257,11 +257,11 @@ describe('PlaylistGenerator preparation and progress', () => {
     );
     fixture.detectChanges();
 
-    expect(getError()?.textContent).toContain('Ponów pobieranie za 30 s.');
+    expect(getError()?.textContent?.trim()).toBe('Ponów pobieranie za 30 s.');
   });
 
-  it.each(['', ' ', 'not-a-number', '-1', '1.5', 'Infinity'])(
-    'ignores an invalid Retry-After header %j',
+  it.each([null, '0', ' 0 ', '', ' ', 'not-a-number', '-1', '1.5', 'Infinity'])(
+    'uses a generic rate-limit message for Retry-After %j without showing zero seconds',
     async (header) => {
       await importIds();
       startGeneration();
@@ -270,12 +270,14 @@ describe('PlaylistGenerator preparation and progress', () => {
         {
           status: 429,
           statusText: 'Too Many Requests',
-          headers: { 'Retry-After': header },
+          headers: header === null ? {} : { 'Retry-After': header },
         }
       );
       fixture.detectChanges();
 
-      expect(getError()?.textContent).toContain('Ponów pobieranie później.');
+      expect(getError()?.textContent?.trim()).toBe('Przekroczono limit zapytań. Spróbuj później.');
+      expect(getText()).not.toContain('za 0 s.');
+      http.expectNone(() => true);
     }
   );
 

@@ -32,6 +32,7 @@ describe('PlaylistGenerator data sources', () => {
     try {
       http.verify();
     } finally {
+      vi.useRealTimers();
       TestBed.resetTestingModule();
     }
   });
@@ -203,28 +204,52 @@ describe('PlaylistGenerator data sources', () => {
     }
   );
 
-  it('does not publish a partial dataset after a later page fails and retries from zero', () => {
-    switchToLibrary();
-    setEnergy('high');
-    startGeneration();
-    http.expectOne(libraryUrl).flush(createPage(0, 50, 132));
-    http.expectOne(libraryUrl).flush({}, { status: 502, statusText: 'Bad Gateway' });
-    fixture.detectChanges();
+  it.each([429, 502])(
+    'stops on HTTP %s on a later library page and retries from zero only on click',
+    (status) => {
+      switchToLibrary();
+      setEnergy('high');
+      http.expectNone(() => true);
+      vi.useFakeTimers();
+      startGeneration();
+      http.expectOne(libraryUrl).flush(createPage(0, 50, 132));
+      const second = http.expectOne(libraryUrl);
+      expect(second.request.body).toEqual({ offset: 50 });
+      second.flush(
+        {
+          error: {
+            code: 'RECCOBEATS_API_ERROR',
+            details: { integration: 'reccobeats', upstreamStatus: status, retryAfterSeconds: 10 },
+          },
+        },
+        { status, statusText: 'Failure', headers: { 'Retry-After': '10' } }
+      );
+      fixture.detectChanges();
 
-    expect(text()).toMatch(/Przetworzono 50 (?:ze|\/) 132/);
-    expect(fixture.componentInstance['dataset']()).toBeNull();
-    http.expectNone(analysisUrl);
-    startGeneration();
-    expect(text()).toContain('Pobieranie zapisanych utworów…');
-    const retry = http.expectOne(libraryUrl);
-    expect(retry.request.body).toEqual({ offset: 0 });
-    const replacement = createPage(0, 1, 1, ['z'.repeat(22)]);
-    retry.flush(replacement);
-    const analysis = http.expectOne(analysisUrl);
-    expect(analysis.request.body.dataset).toEqual(replacement.preparedDataset.dataset);
-    expect(analysis.request.body.preferences.energy).toBe('high');
-    analysis.flush({ rankedTracks: [], rejectedTracks: [] });
-  });
+      expect(text()).toMatch(/Przetworzono 50 (?:ze|\/) 132/);
+      expect(fixture.componentInstance['dataset']()).toBeNull();
+      expect(fixture.componentInstance['result']()).toBeNull();
+      expect(fixture.nativeElement.querySelector('.generation-error')?.textContent).toContain(
+        status === 429 ? 'Ponów pobieranie za 10 s.' : 'Nie udało się pobrać danych'
+      );
+      expect(text()).toContain('Proces zatrzymany');
+      expect(text()).not.toContain('Nie masz zapisanych utworów');
+      expect(text()).not.toContain('Nie znaleziono utworów');
+      vi.advanceTimersByTime(60_000);
+      fixture.detectChanges();
+      http.expectNone(() => true);
+      startGeneration();
+      expect(text()).toContain('Pobieranie zapisanych utworów…');
+      const retry = http.expectOne(libraryUrl);
+      expect(retry.request.body).toEqual({ offset: 0 });
+      const replacement = createPage(0, 1, 1, ['z'.repeat(22)]);
+      retry.flush(replacement);
+      const analysis = http.expectOne(analysisUrl);
+      expect(analysis.request.body.dataset).toEqual(replacement.preparedDataset.dataset);
+      expect(analysis.request.body.preferences.energy).toBe('high');
+      analysis.flush({ rankedTracks: [], rejectedTracks: [] });
+    }
+  );
 
   it('cancels pending library preparation and restarts from zero without lost criteria', () => {
     switchToLibrary();

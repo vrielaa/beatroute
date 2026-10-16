@@ -133,6 +133,72 @@ describe.each([
       });
     });
 
+    it.each([0, 10])(
+      "propagates a real gateway HTTP 429 with Retry-After %s instead of publishing partial data",
+      async (retryAfterSeconds) => {
+        const { createReccoBeatsGateway } = await vi.importActual<
+          typeof import("@integrations/reccobeats/reccobeats.gateway.js")
+        >("@integrations/reccobeats/reccobeats.gateway.js");
+        const fetchMock = vi
+          .fn<typeof fetch>()
+          .mockImplementation(async (url) => {
+            const path = new URL(String(url)).pathname;
+
+            if (path === "/v1/track") {
+              return Response.json({
+                content: trackIds.map(createCatalogTrack),
+              });
+            }
+
+            if (path === `/v1/track/recco-${trackIds[1]}/audio-features`) {
+              return Response.json(
+                { status: 4291, message: "Private provider diagnostic" },
+                {
+                  status: 429,
+                  headers: { "Retry-After": String(retryAfterSeconds) },
+                }
+              );
+            }
+
+            return Response.json(audioFeatures);
+          });
+        const gateway = createReccoBeatsGateway({
+          fetchImpl: fetchMock,
+          baseUrl: "https://recco.test",
+        });
+        adapters.reccobeats.findTracksBySpotifyIds.mockImplementation(
+          gateway.findTracksBySpotifyIds
+        );
+        adapters.reccobeats.getTrackAudioFeatures.mockImplementation(
+          gateway.getTrackAudioFeatures
+        );
+        const browser = await createBrowser();
+
+        const response = await browser.post(endpoint).send(body).expect(429);
+
+        expect(response.body).toEqual({
+          error: {
+            code: "RECCOBEATS_API_ERROR",
+            message: "Nie udało się pobrać danych z ReccoBeats",
+            details: {
+              integration: "reccobeats",
+              upstreamStatus: 429,
+              retryAfterSeconds,
+            },
+          },
+        });
+        expect(response.headers["retry-after"]).toBe(String(retryAfterSeconds));
+        expect(response.text).not.toContain("Private provider diagnostic");
+        expect(fetchMock).toHaveBeenCalledTimes(5);
+        expect(
+          fetchMock.mock.calls.filter(([url]) =>
+            String(url).includes(`recco-${trackIds[1]}/audio-features`)
+          )
+        ).toHaveLength(1);
+        expect(adapters.spotify.createPlaylist).not.toHaveBeenCalled();
+      }
+    );
+
     it.each([
       {
         failure: "rate limit",

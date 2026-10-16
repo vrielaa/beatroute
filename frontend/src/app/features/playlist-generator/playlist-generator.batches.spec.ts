@@ -1,8 +1,9 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import type { TestRequest } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGenerator } from './playlist-generator';
 import { PlaylistGeneratorApiService } from './playlist-generator-api.service';
 import type { PlaylistTrackIdsFile, PreparedPlaylistDataset } from './playlist-generator.models';
@@ -18,7 +19,10 @@ describe('PlaylistGenerator sequential preparation batches', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PlaylistGenerator],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([rateLimitRetryInterceptor])),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
     fixture = TestBed.createComponent(PlaylistGenerator);
     http = TestBed.inject(HttpTestingController);
@@ -30,6 +34,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     try {
       http.verify();
     } finally {
+      vi.useRealTimers();
       vi.restoreAllMocks();
       TestBed.resetTestingModule();
     }
@@ -146,12 +151,21 @@ describe('PlaylistGenerator sequential preparation batches', () => {
   it('retains completed batches on 429 and resumes only after another click', async () => {
     const file = createFile(45);
     const read = await importFile(file);
+    const generate = vi.spyOn(api, 'generatePlaylist');
+    http.expectNone(() => true);
+    vi.useFakeTimers();
     startGeneration();
     expectBatch(file.spotifyTrackIds.slice(0, 20)).flush(
       createPreparedDataset(file.spotifyTrackIds.slice(0, 20))
     );
     expectBatch(file.spotifyTrackIds.slice(20, 40)).flush(
-      { error: { message: 'Private diagnostic' } },
+      {
+        error: {
+          code: 'RECCOBEATS_API_ERROR',
+          message: 'Private diagnostic',
+          details: { integration: 'reccobeats', upstreamStatus: 429, retryAfterSeconds: 60 },
+        },
+      },
       { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '60' } }
     );
     fixture.detectChanges();
@@ -160,7 +174,14 @@ describe('PlaylistGenerator sequential preparation batches', () => {
     expect(getText()).toContain('Ponów pobieranie za 60 s.');
     expect(getText()).not.toContain('Private diagnostic');
     expect(getText()).toContain('Proces zatrzymany');
+    expect(getText()).not.toContain('Nie znaleziono utworów');
+    expect(fixture.componentInstance['dataset']()).toBeNull();
+    expect(fixture.componentInstance['result']()).toBeNull();
+    expect(generate).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    fixture.detectChanges();
     http.expectNone(() => true);
+    expect(generate).not.toHaveBeenCalled();
 
     startGeneration();
     const second = expectBatch(file.spotifyTrackIds.slice(20, 40));
@@ -170,6 +191,7 @@ describe('PlaylistGenerator sequential preparation batches', () => {
       createPreparedDataset(file.spotifyTrackIds.slice(40))
     );
     const analysis = http.expectOne(GENERATION_URL);
+    expect(generate).toHaveBeenCalledOnce();
     expect(analysis.request.body.dataset.tracks.map((track: { id: string }) => track.id)).toEqual(
       file.spotifyTrackIds
     );

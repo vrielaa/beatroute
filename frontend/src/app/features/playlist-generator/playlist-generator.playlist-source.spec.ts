@@ -1,7 +1,8 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { rateLimitRetryInterceptor } from '@core/interceptors/rate-limit-retry.interceptor';
 import { PlaylistGenerator } from './playlist-generator';
 import type { PreparedPlaylistPage } from './playlist-generator.models';
 
@@ -16,7 +17,10 @@ describe('PlaylistGenerator playlist source', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [PlaylistGenerator],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([rateLimitRetryInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     fixture = TestBed.createComponent(PlaylistGenerator);
     http = TestBed.inject(HttpTestingController);
@@ -28,6 +32,7 @@ describe('PlaylistGenerator playlist source', () => {
     try {
       http.verify();
     } finally {
+      vi.useRealTimers();
       TestBed.resetTestingModule();
     }
   });
@@ -187,6 +192,52 @@ describe('PlaylistGenerator playlist source', () => {
       );
     fixture.detectChanges();
     expect(text()).toContain('zezwól na odczyt playlist');
+  });
+
+  it('stops on ReccoBeats 429 on a later page and restarts with a fresh snapshot only on click', () => {
+    setReference(playlistId);
+    http.expectNone(() => true);
+    vi.useFakeTimers();
+    generate();
+    http.expectOne(sourceUrl).flush(page(0, 50, 132));
+    const second = http.expectOne(sourceUrl);
+    expect(second.request.body).toEqual({ playlistId, offset: 50, snapshotId: 'version-1' });
+    second.flush(
+      {
+        error: {
+          code: 'RECCOBEATS_API_ERROR',
+          details: { integration: 'reccobeats', upstreamStatus: 429, retryAfterSeconds: 0 },
+        },
+      },
+      { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '0' } }
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.generation-error')?.textContent?.trim()).toBe(
+      'Przekroczono limit zapytań. Spróbuj później.'
+    );
+    expect(text()).toContain('Proces zatrzymany');
+    expect(text()).not.toContain('za 0 s.');
+    expect(text()).not.toContain('Playlista jest pusta');
+    expect(text()).not.toContain('Nie znaleziono utworów');
+    expect(fixture.componentInstance['dataset']()).toBeNull();
+    expect(fixture.componentInstance['result']()).toBeNull();
+    vi.advanceTimersByTime(60_000);
+    fixture.detectChanges();
+    http.expectNone(() => true);
+
+    generate();
+    const retry = http.expectOne(sourceUrl);
+    expect(retry.request.body).toEqual({ playlistId, offset: 0, snapshotId: null });
+    const replacement = page(0, 1, 1);
+    replacement.playlist.snapshotId = 'version-2';
+    retry.flush(replacement);
+    const analysis = http.expectOne(analysisUrl);
+    expect(analysis.request.body.dataset).toEqual(replacement.preparedDataset.dataset);
+    analysis.flush({ rankedTracks: [], rejectedTracks: [] });
+    fixture.detectChanges();
+    expect(text()).toContain('Wynik jest gotowy');
+    http.expectNone(() => true);
   });
 
   it('cancels a pending page and restarts from zero on another click', () => {
