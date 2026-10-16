@@ -202,13 +202,16 @@ for either Spotify source.
 4. Results show accepted tracks, preference scores, available measurements and
    all rejection reasons. A ranking can legitimately be empty.
 5. Top N selects the first N accepted tracks locally, with a validated count and
-   a selection counter. The full ranking and scores remain visible and unchanged.
+   a selection counter. The full ranking and scores remain unchanged.
    A new result resets the selection to all accepted tracks. Switching to manual
    mode preserves the current selection and disables N. Accepted tracks have
    checkboxes that are editable only in manual mode; switching back restores Top N.
    Manual choices are ordered by ranking, not by clicks. The results component
    emits selected IDs to the page for the save flow.
    Removing the result, including when starting a new analysis, clears that list.
+   The accepted list starts expanded and can be collapsed as a whole; nonempty
+   rejected lists start collapsed. Toggling lists does not change selection or
+   make requests. Individual accepted cards show preference details directly.
 6. Enter a playlist name and click **Zapisz w Spotify** to save only the selection.
    The Signal Forms name field requires 1–100 characters after trimming. A pending
    save locks file import, criteria, selection and repeated submission; it does not
@@ -358,7 +361,8 @@ alter cached data. Restarting the backend clears this cache too. Pending request
 are not coalesced: simultaneous cache misses may still make duplicate calls, and
 the shared scheduler continues to control every actual provider request.
 
-Both endpoints have a 1 MiB JSON body limit; other endpoints retain 100 KiB.
+All `/api/playlist-generator` endpoints have a 1 MiB JSON body limit;
+other endpoints retain 100 KiB.
 Vitest covers validation and domain logic. Supertest covers authentication, errors,
 parser limits and the preparation-to-generation flow with actual services and
 mocked provider boundaries. Angular tests cover import, forms, progress, retries,

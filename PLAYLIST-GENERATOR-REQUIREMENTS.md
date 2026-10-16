@@ -1,9 +1,11 @@
 # Ustalenia generatora playlist
 
-Uzgodnione 8 października 2026 r., trzy źródła wdrożone 15 października 2026 r.
-Dokument opisuje uzgodnione wymagania i stan ich wdrożenia. Funkcje docelowe,
-które nie są jeszcze dostępne, są oznaczone w opisie. Projekt jest pracą inżynierską;
-rozwiązanie ma być czytelne, testowalne i bez zbędnych warstw infrastruktury.
+Stan na 16 października 2026 r. Wymagania uzgodniono 8 października,
+a trzy źródła danych wdrożono 15 października.
+Dokument opisuje działający generator: przygotowanie zbioru, filtrowanie,
+ranking, wybór utworów i zapis w Spotify wraz ze wznowieniem nieukończonego zapisu.
+Projekt jest pracą inżynierską; rozwiązanie ma być czytelne, testowalne
+i bez zbędnych warstw infrastruktury.
 
 ## Źródła danych
 
@@ -94,9 +96,11 @@ playlisty oraz cech audio wskazanych ID. Nie importuje produkcyjnych klientów a
 Produkcyjne zależności są składane w http/routes/playlist-generator/composition.ts.
 Przygotowanie zbioru jest dostępne przez API i uruchamiane przyciskiem generowania w UI.
 
-Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile i token Spotify.
-Pobiera metadane po kolei, a cechy tylko dla utworów z nazwą i co najmniej jednym
-wykonawcą. Zapytania o cechy dzieli na porcje do 40 ID, aby ograniczyć długość
+Metoda prepareDataset przyjmuje zwalidowany PlaylistTrackIdsFile, token Spotify
+i opcjonalny kontekst cache metadanych. Router przekazuje ten kontekst z req.sessionID,
+nigdy z body. Pobiera metadane po kolei, korzystając z ich cache, a cechy tylko
+dla utworów z nazwą i co najmniej jednym wykonawcą.
+Zapytania o cechy dzieli na porcje do 40 ID, aby ograniczyć długość
 adresu żądania. To ograniczenie wielkości porcji, nie zastępstwo schedulera HTTP
 kontrolującego tempo i równoległość. Wyniki łączy po spotifyId, a nie po kolejności
 odpowiedzi. Zachowuje identyfikatory i kolejność wejściową.
@@ -105,8 +109,9 @@ Wynik PreparedPlaylistDataset zawiera:
 
 - dataset — metadane i osiem pomiarów gotowych do filtrowania i rankingu;
 - skippedTracks — pominięte ID z kodem metadata-unavailable (404 lub brak
-  wymaganych metadanych) albo audio-features-unavailable (nieudany odczyt
-  pojedynczego utworu lub brak wszystkich ośmiu użytecznych pomiarów);
+  wymaganych metadanych) albo audio-features-unavailable (brak dopasowania
+  w ReccoBeats, oczekiwany brak pomiarów 404 lub brak wszystkich ośmiu
+  użytecznych pomiarów);
 - incompleteTracks — zachowane utwory z listą brakujących pomiarów.
 
 Niepoprawny pomiar staje się null, nie zerem. Częściowe braki nie usuwają utworu:
@@ -114,14 +119,23 @@ generator nadal rozstrzyga, czy brakuje pomiaru potrzebnego do aktywnego wymagan
 Zero w skali 0–1 pozostaje poprawną wartością. Pominięcie przy pobieraniu danych
 jest czymś innym niż odrzucenie przez wymagania użytkownika.
 
-Błędy całych zapytań, w tym problemy z tokenem, limit API lub brak połączenia,
-przerywają przygotowanie i są przekazywane do obsługi błędów. Tak samo traktujemy
-sytuację, w której żaden odczyt cech ReccoBeats się nie udał i wystąpiła awaria
-inna niż oczekiwany brak pomiarów 404. Zachowujemy oryginalny błąd i Retry-After,
-nie zastępując ich pustym wynikiem. Częściowe niepowodzenia nadal są raportowane
-per utwór, gdy są również poprawne odczyty. Jeśli wszystkie odczyty zakończą się brakami pojedynczych utworów,
-dataset.tracks jest pusty; UI wyświetla wtedy informację o brakach zamiast
-wywoływać generator. Surowe komunikaty dostawcy i token nie trafiają do wyniku.
+Wszystkie trzy źródła generatora korzystają z trybu errorMode: "strict" serwisu
+ReccoBeats, ustawionego we wspólnym composition.ts. Awaria choćby jednego odczytu
+przerywa bieżące przygotowanie, również gdy pozostałe pomiary zostały pobrane.
+Dotyczy to 429, timeoutu, błędu połączenia, awarii dostawcy i wadliwej odpowiedzi.
+Takich awarii nie zapisujemy jako skippedTracks i nie uruchamiamy rankingu
+częściowo przygotowanego zbioru. Już rozpoczęte operacje dostawcy mogą się zakończyć.
+Zachowujemy oryginalny błąd integracji i Retry-After, gdy jest dostępny;
+interfejs nie wyświetla surowej diagnostyki dostawcy ani tokenów.
+
+Brak dopasowania w katalogu oraz oczekiwany brak pomiarów 404 nadal oznaczają
+pominięcie, a nie awarię. Jeżeli wszystkie utwory mają takie braki albo nie mają
+użytecznych pomiarów, dataset.tracks jest pusty; UI pokazuje informację o brakach
+zamiast uruchamiać generator. Pojedyncze null pozostają poprawnymi brakami pomiarów.
+Domyślny tryb partial serwisu ReccoBeats nie został zmieniony: może zwrócić
+udane odczyty i błędy pojedynczych utworów, ale nie jest trybem przygotowania generatora.
+Jeżeli żaden odczyt nie powiedzie się i wystąpi awaria techniczna, partial również
+zgłasza wyjątek zamiast przedstawiać awarię jako pusty zbiór.
 
 Testy serwisu używają atrap źródeł, bez zewnętrznych API. Sprawdzają format zbioru,
 łączenie po ID, kolejność, porcje do 40 ID, normalizację pomiarów, częściowe braki,
@@ -129,6 +143,48 @@ pomijanie niedostępnych utworów, propagowanie awarii i brak modyfikacji wejśc
 Test HTTP całego procesu wykorzystuje rzeczywiste serwisy przygotowania i ReccoBeats,
 rzeczywisty generator oraz sesję Express; atrapy zastępują tylko granice dostawców.
 Sprawdza przygotowanie, ranking, powody odrzucenia, ponowne użycie zbioru i Retry-After.
+Testy produkcyjnego składania zależności sprawdzają strict dla każdego źródła,
+odpowiedź HTTP po mieszanym sukcesie i awarii oraz ponowne użycie cache pomiarów.
+
+### Cache i kontrola zapytań do dostawców
+
+Dane są zachowywane na trzech poziomach:
+
+- Frontend przechowuje kompletny zbiór w pamięci komponentu. Zmiana kryteriów
+  pozwala wykonać samą analizę. Ukończone partie pliku pozostają dostępne po błędzie
+  przygotowania; odświeżenie strony lub jej opuszczenie usuwa ten stan.
+- Serwis przygotowania zbioru zachowuje metadane Spotify odczytane po ID przez
+  24 godziny, do 1000 wpisów łącznie. Kluczem jest para: sesja backendu i Spotify ID.
+  Metadane ze stron biblioteki i playlisty nie wymagają tego cache.
+- Serwis ReccoBeats zachowuje znormalizowane pomiary przez 24 godziny od udanego
+  odczytu, do 1000 utworów. Kluczem jest Spotify ID, bez danych użytkownika ani tokenów.
+  Pomiary są wspólne dla sesji i produkcyjnych odbiorców tej instancji serwisu,
+  w tym generatora, dashboardu, profilu i mapy muzycznej.
+
+Wpis pomiarów pomija zarówno wyszukiwanie ReccoBeats, jak i odczyt cech.
+Zapytania zbiorcze obejmują tylko ID bez ważnego wpisu. Udane pomiary zapisujemy
+od razu, także gdy inny odczyt później przerwie przygotowanie w trybie strict.
+Błędy, 404, braki w katalogu i odpowiedzi bez jakiegokolwiek pomiaru nie trafiają
+do cache. Częściowe pomiary i zero są poprawne. Cache nie ukrywa awarii odczytu
+brakującego utworu w trybie strict.
+
+Oba backendowe cache zwracają kopie danych i usuwają najstarszy wpis po
+przekroczeniu limitu. Odczyt wpisu nie przedłuża jego ważności; wygasłe dane
+są usuwane podczas kolejnych odczytów. Restart backendu czyści cache.
+Nie ma Redis ani zapisu na dysku. Równoczesne chybienia cache nie są łączone
+w jedno trwające zapytanie i mogą nadal powodować powtórzone wywołania.
+
+Spotify Web API i ReccoBeats mają osobne schedulery, wspólne dla użytkowników
+jednego procesu backendu. Każdy rozpoczyna najwyżej jedno zapytanie na sekundę,
+przy maksymalnie pięciu trwających. Są to ostrożne ustawienia aplikacji,
+nie potwierdzone limity dostawców ani gwarancja uniknięcia 429.
+Timeout pojedynczej próby zaczyna się dopiero po opuszczeniu kolejki.
+ReccoBeats ponawia przejściowe błędy 502–504 z backoffem od 1000 ms,
+ale nie ponawia 429. Taki błąd pauzuje scheduler; brak lub zerowy Retry-After
+nie usuwa minimalnej pauzy wynikającej z backoffu.
+Podczas pauzy nowe i oczekujące operacje są odrzucane, a rozpoczęte mogą się zakończyć.
+Lokalna odmowa zachowuje pozostały czas pauzy oraz upstreamStatus: null,
+ponieważ nie otrzymano nowej odpowiedzi dostawcy.
 
 ### Endpoint przygotowania zbioru
 
@@ -140,8 +196,8 @@ nie z body. Walidacja ID odbywa się przed odczytem danych z API.
 Odpowiedź 200 zawiera PreparedPlaylistDataset: dataset, skippedTracks oraz
 incompleteTracks. Może zawierać pusty zbiór, jeżeli żaden utwór nie ma użytecznych
 danych. Błędy walidacji, parsera i integracji trafiają do wspólnego middleware;
-limit Retry-After jest przekazywany także w nagłówku odpowiedzi. Parser JSON
-tego routera nadal ma limit 1 MiB, a pozostałe endpointy 100 KiB.
+czas Retry-After jest przekazywany także w nagłówku odpowiedzi. Parser JSON
+wszystkich tras /api/playlist-generator ma limit 1 MiB, a pozostałych endpointów 100 KiB.
 
 POST /api/playlist-generator/generate pozostaje osobnym endpointem: przyjmuje
 pełny dataset, requirements i preferences, nie wymaga sesji i nie wywołuje API.
@@ -154,20 +210,38 @@ walidację, limity parsera, przekazanie wyników oraz wspólny format błędów.
 
 Komponent odczytuje plik i sprawdza ID lokalnie, bez wywołań API. Po poprawnym
 imporcie udostępnia formularz kryteriów. Dopiero „Generuj playlistę” wywołuje
-prepare-dataset, zachowuje PreparedPlaylistDataset w pamięci i wysyła /generate.
+prepare-dataset w kolejnych partiach do 20 ID, zachowuje ich wyniki i po połączeniu
+wszystkich partii wysyła jedno /generate dla całego zbioru.
 Kolejne kliknięcia korzystają z zachowanego zbioru. Zmiana kryteriów nie odczytuje
 pliku ani nie pobiera ponownie metadanych i pomiarów.
 Nowy wybór pliku usuwa poprzedni zbiór i wynik; anulowanie wyboru ich nie zmienia.
 
-Awaria API wyświetla komunikat; przycisk generowania pozwala ponowić proces dla
-zapamiętanych ID, bez ponownego wyboru pliku. Udane przygotowanie pozostaje
+Awaria API wyświetla komunikat, a nie informację o pustym zbiorze. Nie wysyłamy
+kolejnych partii ani /generate. Przycisk generowania pozwala wznowić proces od
+pierwszej nieukończonej partii dla zapamiętanych ID, bez ponownego wyboru pliku.
+Ukończone partie pozostają zachowane. Biblioteka i playlista zaczynają natomiast
+od offsetu 0, z nową wersją playlisty; poprawne backendowe wpisy cache nadal mogą
+ograniczyć liczbę zapytań do dostawców. Udane przygotowanie pozostaje
 dostępne także po błędzie analizy. Pusty zbiór jest poprawną odpowiedzią, ale blokuje
 generowanie. Pominięte ID i brakujące pomiary są pokazane w osobnych listach.
 Wymiana pliku lub zniszczenie komponentu anuluje oczekiwanie na odpowiedź HTTP;
 nie oznacza to gwarancji zatrzymania pracy już rozpoczętej przez backend.
 
+Komunikat dla 429 zależy od poprawnego czasu w nagłówku Retry-After:
+
+- dodatnia liczba całkowita sekund: „Ponów pobieranie za 10 s.”, z otrzymanym czasem;
+- zero, brak lub niepoprawna wartość: „Przekroczono limit zapytań. Spróbuj później.”.
+
+Nie pokazujemy „za 0 s.”. Komunikat nie jest odliczaniem i nie uruchamia procesu
+automatycznie po upływie czasu. Żądania przygotowania są POST i nie są ponawiane
+przez interceptor. Ponowienie całego procesu wymaga kliknięcia użytkownika;
+ograniczone ponowienia odczytów dostawców pozostają odpowiedzialnością backendu.
+
 Testy frontendu sprawdzają żądanie i cookie sesji, walidację importu, ponowienie,
 braki danych, komunikaty HTTP, anulowanie oraz ponowne użycie zbioru dla kryteriów.
+Z rzeczywistym interceptorem i kontrolowanym zegarem sprawdzają też błąd 429
+po udanej stronie, brak następnych stron i rankingu oraz brak automatycznego
+ponowienia mimo upływu czasu Retry-After dla wszystkich trzech źródeł.
 W testach odpowiedzi API są zastępowane przez HttpTestingController, bez zapytań
 do Spotify lub ReccoBeats.
 
@@ -175,12 +249,17 @@ do Spotify lub ReccoBeats.
 
 PlaylistGenerationProgress pojawia się dopiero po kliknięciu generowania i pokazuje:
 
-1. Pobieranie danych — metadane Spotify i cechy audio ReccoBeats w jednym żądaniu przygotowania.
+1. Pobieranie danych — kolejne partie pliku do 20 ID lub strony Spotify do 50 pozycji,
+   z metadanymi i pomiarami audio, uwzględniając backendowe cache.
 2. Analiza i ranking — sprawdzenie wymagań oraz ocena preferencji przez /generate.
 3. Gotowy wynik — ustawiany dopiero po otrzymaniu odpowiedzi generatora.
 
 Licznik 1/3, 2/3 lub 3/3 opisuje etap procesu, nie liczbę utworów ani procent
 pozostałego czasu. Etapy zmieniają się po odpowiedziach API, nie według zegara.
+Postęp przygotowania liczy faktycznie przetworzone ID lub pozycje źródła po
+zakończeniu każdej partii. Pominięte pozycje także zwiększają ten licznik,
+ale nie liczbę przygotowanych utworów. Nie pokazujemy pozornego postępu wewnątrz
+oczekującego żądania. Przed pierwszą odpowiedzią Spotify nie znamy jeszcze rozmiaru zbioru.
 Przy zachowanym zbiorze pobieranie jest już ukończone, więc proces zaczyna się od analizy.
 Awaria lub pusty zbiór zatrzymują animację bez pokazywania pełnego ukończenia.
 Zmiana pliku lub kryteriów usuwa poprzedni postęp i anuluje oczekiwanie na wynik.
@@ -445,23 +524,24 @@ nie pobiera danych z API, nie odczytuje plików i nie zapisuje playlisty na konc
 Testy Supertest korzystają z rzeczywistego createApp i sprawdzają również parsery,
 brak body, walidację i wynik generowania. Import ID i formularz są dostępne
 w UI; wybór Top N i ręczne checkboxy działają lokalnie, a strona generatora
-przechowuje wybrane ID. Zapis na koncie Spotify pozostaje do wdrożenia.
+przechowuje wybrane ID. Zapis na koncie Spotify jest dostępny przez osobny formularz.
 
 ## Wybór utworów do zapisu w Spotify
 
-Uzgodnione 12 października 2026 r. Ta sekcja opisuje zasady wyboru oraz docelowego
-zapisu w Spotify. W widoku wyników działa już formularz Signal Forms z polem N,
+Uzgodnione 12 października 2026 r. Wybór i zapis w Spotify są wdrożone.
+W widoku wyników działa formularz Signal Forms z polem N,
 przełącznikiem trybu i licznikiem. Checkboxy przy rankedTracks pokazują bieżący wybór:
 w top są nieaktywne, a w manual pozwalają edytować zaznaczenia. Zmiana na tryb ręczny
 zachowuje bieżący wybór i wyłącza N; powrót do top zastępuje ręczne zaznaczenia
-pierwszymi N pozycjami. Zapis w Spotify nie jest jeszcze dostępny.
+pierwszymi N pozycjami. Osobny formularz nazwy wysyła wybrane ID do zapisu w Spotify.
 Frontendowy typ PlaylistSelectionMode w playlist-generator.models.ts opisuje
 dwa tryby: top („Top N”) i manual („Ręcznie”). Nie zmienia kontraktu generatora.
 W playlist-track-selection.ts są funkcje validateTopTrackCount, selectTopTrackIds
 i selectRankedTrackIds. Ostatnia zachowuje kolejność rankingu oraz pomija duplikaty,
 nieznane i odrzucone ID, niezależnie od trybu wyboru. Komponent wyników emituje
 selectedTrackIdsChange z kopią ID; strona generatora zapisuje je w selectedTrackIds
-i porządkuje względem aktualnego rankingu. Nie zapisuje jeszcze playlisty w Spotify.
+i porządkuje względem aktualnego rankingu. Stanem zapisu i wznowienia zarządza
+PlaylistSaveStore, dostarczany lokalnie przez komponent strony generatora.
 Usunięcie wyniku, także na początku ponownego generowania, od razu czyści tę listę.
 Testy sprawdzają przekazywanie ID, walidację N, checkboxy, zmiany trybu, pusty wybór,
 reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żądań HTTP.
@@ -471,8 +551,8 @@ reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żą
 - Wybór odbywa się po wygenerowaniu wyniku, wyłącznie z rankedTracks.
 - Utwory z rejectedTracks nie są dostępne do zaznaczenia. Wybór ręczny nie omija
   obowiązkowych wymagań, a pominięte przy pobieraniu utwory nie wracają do wyników.
-- Ranking, oceny, pozycje i wyjaśnienia pozostają bez zmian. Pełny ranking jest
-  nadal widoczny; niezaznaczony utwór nie jest przez to odrzucony przez algorytm.
+- Ranking, oceny, pozycje i wyjaśnienia pozostają bez zmian. Zwinięcie całej listy
+  nie zmienia wyboru; niezaznaczony utwór nie jest przez to odrzucony przez algorytm.
 - Wynik 0% lub brak oceny nie wyklucza wyboru dopuszczonego utworu.
 - Lista do zapisu zawiera tylko wybrane ID, zawsze w kolejności rankingu,
   nie w kolejności zaznaczania. Każde ID występuje w niej najwyżej raz.
@@ -509,9 +589,62 @@ reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żą
 - Zaznaczenia dotyczą wyniku, nie pliku wejściowego. Format version/spotifyTrackIds
   nie zmienia się i nie zapisujemy w nim limitu N, trybu ani checkboxów.
 
-## Wynik i zakres pierwszej wersji
+## Prezentacja wyniku
 
-- Przy każdym wyniku pokazujemy pomiary, spełnione wymagania i uzasadnienie rankingu.
+- Nagłówek pokazuje liczbę dopuszczonych i odrzuconych utworów.
+- Lista dopuszczonych utworów jest początkowo rozwinięta; można zwinąć ją w całości.
+  Wybór Top N lub ręczny pozostaje poza zwijaną listą i nie znika przy jej zwinięciu.
+- Lista odrzuconych utworów jest początkowo zwinięta. Po rozwinięciu pokazuje
+  wszystkie powody odrzucenia. Przy braku odrzuceń widoczny jest osobny komunikat.
+- Pojedyncze karty dopuszczonych utworów pokazują od razu pomiary aktywnych
+  preferencji, dopasowania i kompletność danych. Nie mają osobnego rozwijania szczegółów.
+- Ogólne dopasowanie jest prezentowane procentowo; null oznacza brak aktywnych
+  preferencji albo brak pomiarów i ma osobny komunikat, nie 0%.
+- Nad rankingiem nie wyświetlamy długich akapitów o zasadach oceny i remisach.
+  Te zasady pozostają opisane w dokumentacji algorytmu.
+- Zwijanie, rozwijanie i wybór utworów nie wykonują zapytań API.
+
+## Zapis i wznowienie playlisty w Spotify
+
+Formularz Signal Forms wymaga nazwy od 1 do 100 znaków po przycięciu i co najmniej
+jednego wybranego utworu. POST /api/playlist-generator/save przyjmuje name i trackIds:
+od 1 do 500 unikalnych, poprawnych Spotify ID w kolejności rankingu.
+Backend niezależnie waliduje żądanie; nie odtwarza wcześniejszego rankingu ani kryteriów.
+Wymaga sesji z playlist-modify-private i używa wyłącznie tokenu sesji.
+
+Zapis tworzy nową prywatną playlistę i dodaje utwory po kolei, w partiach do 100.
+Odpowiedź 201 z id, name, spotifyUrl i trackCount oznacza potwierdzenie wszystkich
+partii. Podczas zapisu UI blokuje kryteria, wybór, zmianę źródła, import i kolejne
+wysłanie formularza. Nie pobiera metadanych ani pomiarów i nie uruchamia rankingu.
+
+Jeżeli dodawanie zawiedzie po utworzeniu playlisty, odpowiedź zawiera
+PLAYLIST_SAVE_INCOMPLETE oraz error.details.progress: id, name, spotifyUrl,
+confirmedTrackCount i requestedTrackCount. Licznik obejmuje wyłącznie potwierdzone
+partie; niepotwierdzona partia mogła już zostać zapisana u dostawcy.
+Backend zachowuje pierwotną listę ID i postęp w sesji. Awaria samego tworzenia
+playlisty nie ma postępu, ponieważ dane docelowej playlisty nie są znane.
+Timeout lub błąd połączenia nie gwarantuje, że playlista nie powstała.
+
+POST /api/playlist-generator/resume-save przyjmuje tylko playlistId i wymaga
+playlist-read-private oraz playlist-modify-private. Odczytuje bieżącą zawartość
+playlisty i porównuje jej kolejność z początkiem wyboru zachowanego w sesji.
+Dopisuje tylko brakującą końcówkę, nie tworzy nowej playlisty. Jeżeli pełny wybór
+już istnieje, zwraca 200 bez kolejnego zapisu. Zmieniona zawartość lub brak stanu
+sesji zatrzymują wznowienie błędem 409. Błąd odczytu pozostawia poprzedni stan,
+a kolejna awaria zapisu aktualizuje potwierdzony postęp.
+
+Wznowienie wymaga kliknięcia; POST nie jest automatycznie ponawiany.
+Zmiana źródła, kryteriów lub wyboru nie zastępuje oczekującego zapisu.
+Blokada w instancji serwisu zapobiega równoległym wznowieniom tej samej playlisty,
+a kontrola wersji chroni odczyt stron. Zmiana playlisty już po sprawdzeniu zawartości
+pozostaje możliwa, więc nie należy edytować jej ręcznie podczas zapisu.
+Stan UI nie jest odtwarzany po odświeżeniu strony; restart backendu lub wygaśnięcie
+sesji może uniemożliwić wznowienie. Nie ma trwałego systemu zadań ani bazy zapisów.
+
+## Aktualny zakres i ograniczenia
+
+- Przy dopuszczonych utworach pokazujemy dopasowania i pomiary preferencji,
+  a przy odrzuconych — powody niespełnienia wymagań.
 - Zapis tworzy nową prywatną playlistę na koncie Spotify z wybranymi utworami,
   nie eksportuje wyniku do JSON-a i nie pobiera nagrań. Nie modyfikuje źródłowej playlisty.
 - Playlista jest tworzona po osobnym kliknięciu zapisu, nie automatycznie przy
@@ -520,3 +653,7 @@ reset dla nowego wyniku, zmianę lub anulowanie pliku oraz brak dodatkowych żą
 - Progi speechiness i liveness ograniczają pomiary, nie gwarantują braku wokalu
   ani braku wykonania koncertowego.
 - Filtrowanie wymagań jest wykonywane przed oceną i rankingiem rozmytym.
+- Import pliku z ID wymaga API i sesji Spotify; UI nie ma trybu offline.
+  Syntetyczny pełny zbiór służy do testowania czystego /generate bez dostawców.
+- Generator nie używa rekomendacji ReccoBeats, scraperów, Last.fm ani Soundcharts.
+  Zewnętrzne dane przygotowują zbiór, a filtrowanie i ranking wykonuje własna domena.
