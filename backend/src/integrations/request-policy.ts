@@ -19,8 +19,10 @@ const DEFAULT_HTTP_REQUEST_POLICY: HttpRequestPolicy = {
  * @property timeoutMs - Maksymalny czas jednej próby wyrażony w milisekundach.
  * @property maxAttempts - Łączna liczba prób razem z pierwszym żądaniem.
  * @property retryableStatuses - Statusy odpowiedzi pozwalające ponowić bezpieczny odczyt.
- * @property baseRetryDelayMs - Początkowe opóźnienie retry bez nagłówka `Retry-After`.
- * @property maxRetryDelayMs - Najdłuższe akceptowane opóźnienie przed kolejną próbą.
+ * @property baseRetryDelayMs - Początkowe opóźnienie backoffu, stosowane również
+ * wtedy, gdy `Retry-After` wskazuje krótszy czas oczekiwania.
+ * @property maxRetryDelayMs - Najdłuższe akceptowane opóźnienie przed kolejną
+ * próbą. Nie skraca pauzy schedulera wymaganej przez dłuższy `Retry-After`.
  */
 type HttpRequestPolicy = {
   timeoutMs: number;
@@ -82,6 +84,9 @@ class HttpResponseError extends Error {
  * HTTP po ostatniej próbie jest zwracana klientowi integracji do dalszego
  * zmapowania na błąd konkretnego dostawcy. Odmowa schedulera podczas pauzy
  * jest przekazywana bez zmian, bez ponawiania i bez klasyfikacji jako błąd sieci.
+ * Odpowiedź `429` albo inna błędna odpowiedź z poprawnym `Retry-After`
+ * wstrzymuje scheduler na dłuższy z czasów: backoff lub `Retry-After`.
+ * Pauza obowiązuje również wtedy, gdy żądanie nie zostanie ponowione.
  *
  * @param configuration - Implementacja transportu, polityka i zależności czasu.
  * @returns Funkcja wykonująca żądania HTTP zgodnie ze skonfigurowaną polityką.
@@ -125,9 +130,18 @@ function createHttpRequestExecutor({
           response.headers.get("retry-after"),
           now()
         );
+        const responseDelayMs = calculateResponseDelayMs(
+          retryAfterSeconds,
+          attempt,
+          policy
+        );
 
-        if (scheduler && !response.ok && retryAfterSeconds !== null) {
-          scheduler.pauseFor(retryAfterSeconds * 1_000, {
+        if (
+          scheduler &&
+          !response.ok &&
+          (response.status === 429 || retryAfterSeconds !== null)
+        ) {
+          scheduler.pauseFor(responseDelayMs, {
             cause: new HttpResponseError(response.status),
           });
         }
@@ -140,17 +154,11 @@ function createHttpRequestExecutor({
           return response;
         }
 
-        const retryDelayMs = getRetryDelayMs(
-          retryAfterSeconds,
-          attempt,
-          policy
-        );
-
-        if (retryDelayMs === null) {
+        if (responseDelayMs > policy.maxRetryDelayMs) {
           return response;
         }
 
-        await sleep(retryDelayMs);
+        await sleep(responseDelayMs);
       } catch (cause) {
         if (cause instanceof RequestSchedulerPausedError) {
           throw cause;
@@ -213,20 +221,16 @@ function resolveRequestPolicy(
   return policy;
 }
 
-/** Wyznacza opóźnienie na podstawie `Retry-After` albo strategii wykładniczej. */
-function getRetryDelayMs(
+/** Wybiera dłuższy czas oczekiwania: `Retry-After` lub wykładniczy backoff. */
+function calculateResponseDelayMs(
   retryAfterSeconds: number | null,
   attempt: number,
   policy: HttpRequestPolicy
-): number | null {
-  const retryAfterMs =
-    retryAfterSeconds !== null ? retryAfterSeconds * 1_000 : null;
+): number {
+  const retryAfterMs = (retryAfterSeconds ?? 0) * 1_000;
+  const backoffDelayMs = calculateBackoffDelayMs(attempt, policy);
 
-  if (retryAfterMs !== null) {
-    return retryAfterMs <= policy.maxRetryDelayMs ? retryAfterMs : null;
-  }
-
-  return calculateBackoffDelayMs(attempt, policy);
+  return Math.max(retryAfterMs, backoffDelayMs);
 }
 
 /** Odczytuje `Retry-After` podane jako sekundy albo datę HTTP. */

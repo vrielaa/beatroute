@@ -14,23 +14,36 @@ describe("HTTP request policy", () => {
     vi.useRealTimers();
   });
 
-  it("returns the first successful response without waiting", async () => {
-    const response = new Response(null, { status: 200 });
-    const fetchMock = vi.fn().mockResolvedValue(response);
-    const sleep = vi.fn(async () => undefined);
-    const request = createHttpRequestExecutor({
-      fetchImpl: fetchMock,
-      sleep,
-    });
+  it.each([undefined, "3"])(
+    "returns a successful response without waiting or pausing for Retry-After %s",
+    async (retryAfter) => {
+      const response = new Response(null, {
+        status: 200,
+        headers:
+          retryAfter === undefined ? undefined : { "Retry-After": retryAfter },
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const sleep = vi.fn(async () => undefined);
+      const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+      const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+        scheduler,
+      });
 
-    await expect(request("https://api.test/resource")).resolves.toBe(response);
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.test/resource",
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
-    );
-    expect(sleep).not.toHaveBeenCalled();
-  });
+      await expect(request("https://api.test/resource")).resolves.toBe(
+        response
+      );
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://api.test/resource",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+      expect(sleep).not.toHaveBeenCalled();
+      expect(pauseSpy).not.toHaveBeenCalled();
+    }
+  );
 
   it("retries a safe read after a temporary HTTP failure", async () => {
     const fetchMock = vi
@@ -238,6 +251,182 @@ describe("HTTP request policy", () => {
     expect(sleep).toHaveBeenCalledWith(5_000);
   });
 
+  it.each([
+    ["zero", "0"],
+    ["missing", undefined],
+    ["invalid", "not-a-delay"],
+    ["expired HTTP date", "Fri, 16 Oct 2026 08:00:00 GMT"],
+  ])(
+    "uses increasing backoff for a %s Retry-After",
+    async (_label, retryAfter) => {
+      const rateLimitedResponse = new Response(null, {
+        status: 429,
+        headers:
+          retryAfter === undefined ? undefined : { "Retry-After": retryAfter },
+      });
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(rateLimitedResponse)
+        .mockResolvedValueOnce(rateLimitedResponse)
+        .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+        now: () => Date.parse("2026-10-16T09:00:00.000Z"),
+      });
+
+      await expect(request("https://api.test/resource")).resolves.toMatchObject(
+        { status: 200 }
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(sleep.mock.calls).toEqual([[500], [1_000]]);
+    }
+  );
+
+  it("does not let a positive Retry-After shorten increasing backoff", async () => {
+    const rateLimitedResponse = new Response(null, {
+      status: 429,
+      headers: { "Retry-After": "1" },
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(rateLimitedResponse)
+      .mockResolvedValueOnce(rateLimitedResponse)
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    const sleep = vi.fn(async () => undefined);
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      sleep,
+      policy: { baseRetryDelayMs: 750 },
+    });
+
+    await expect(request("https://api.test/resource")).resolves.toMatchObject({
+      status: 200,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls).toEqual([[1_000], [1_500]]);
+  });
+
+  it.each([
+    ["zero", "0"],
+    ["missing", undefined],
+    ["invalid", "not-a-delay"],
+    ["expired HTTP date", "Thu, 01 Jan 1970 00:00:00 GMT"],
+  ])(
+    "pauses the scheduler after a final 429 with a %s Retry-After",
+    async (_label, retryAfter) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      const response = new Response(null, {
+        status: 429,
+        headers:
+          retryAfter === undefined ? undefined : { "Retry-After": retryAfter },
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        scheduler,
+        policy: { maxAttempts: 1 },
+      });
+
+      await expect(request("https://api.test/resource")).resolves.toBe(
+        response
+      );
+
+      const nextOperation = vi.fn(async () => "done");
+      const nextResult = scheduler.schedule(nextOperation);
+
+      await vi.advanceTimersByTimeAsync(499);
+      expect(nextOperation).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(nextResult).resolves.toBe("done");
+      expect(nextOperation).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("shares increasing delay between retries and scheduler pauses including the final 429", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const response = new Response(null, { status: 429 });
+    const startTimes: number[] = [];
+    const fetchMock = vi.fn(async () => {
+      startTimes.push(Date.now());
+      return response;
+    });
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+    const request = createHttpRequestExecutor({
+      fetchImpl: fetchMock,
+      scheduler,
+    });
+
+    const result = request("https://api.test/resource");
+    await vi.advanceTimersByTimeAsync(1_500);
+
+    await expect(result).resolves.toBe(response);
+    expect(startTimes).toEqual([0, 500, 1_500]);
+    expect(pauseSpy.mock.calls.map(([delayMs]) => delayMs)).toEqual([
+      500, 1_000, 2_000,
+    ]);
+
+    const nextOperation = vi.fn(async () => "done");
+    const nextResult = scheduler.schedule(nextOperation);
+
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(nextOperation).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(nextResult).resolves.toBe("done");
+    expect(nextOperation).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    [400, undefined, false],
+    [400, "not-a-delay", false],
+    [400, "0", true],
+    [503, undefined, false],
+  ])(
+    "pauses after HTTP %i and Retry-After %s only when appropriate",
+    async (status, retryAfter, shouldPause) => {
+      const response = new Response(null, {
+        status,
+        headers:
+          retryAfter === undefined ? undefined : { "Retry-After": retryAfter },
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+      const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+      const sleep = vi.fn(async () => undefined);
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        scheduler,
+        sleep,
+        policy: { maxAttempts: 1 },
+      });
+
+      await expect(request("https://api.test/resource")).resolves.toBe(
+        response
+      );
+
+      if (shouldPause) {
+        expect(pauseSpy).toHaveBeenCalledWith(500, {
+          cause: expect.any(HttpResponseError),
+        });
+      } else {
+        expect(pauseSpy).not.toHaveBeenCalled();
+      }
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(sleep).not.toHaveBeenCalled();
+    }
+  );
+
   it("pauses the scheduler after a failed response with Retry-After", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -280,15 +469,21 @@ describe("HTTP request policy", () => {
     });
     const fetchMock = vi.fn().mockResolvedValue(response);
     const sleep = vi.fn(async () => undefined);
+    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
     const request = createHttpRequestExecutor({
       fetchImpl: fetchMock,
       sleep,
+      scheduler,
       policy: { maxRetryDelayMs: 30_000 },
     });
 
     await expect(request("https://api.test/resource")).resolves.toBe(response);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(sleep).not.toHaveBeenCalled();
+    expect(pauseSpy).toHaveBeenCalledWith(60_000, {
+      cause: expect.objectContaining({ status: 429 }),
+    });
   });
 
   it("returns the final retryable response after exhausting all attempts", async () => {
@@ -370,33 +565,42 @@ describe("HTTP request policy", () => {
     );
   });
 
-  it("pauses the scheduler on POST Retry-After without retrying the write", async () => {
-    const response = new Response(null, {
-      status: 429,
-      headers: { "Retry-After": "3" },
-    });
-    const fetchMock = vi.fn().mockResolvedValue(response);
-    const sleep = vi.fn(async () => undefined);
-    const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
-    const scheduleSpy = vi.spyOn(scheduler, "schedule");
-    const pauseSpy = vi.spyOn(scheduler, "pauseFor");
-    const request = createHttpRequestExecutor({
-      fetchImpl: fetchMock,
-      sleep,
-      scheduler,
-      policy: { maxAttempts: 3 },
-    });
+  it.each([
+    [undefined, 500],
+    ["0", 500],
+    ["not-a-delay", 500],
+    ["3", 3_000],
+  ])(
+    "pauses on a POST 429 with Retry-After %s without retrying the write",
+    async (retryAfter, delayMs) => {
+      const response = new Response(null, {
+        status: 429,
+        headers:
+          retryAfter === undefined ? undefined : { "Retry-After": retryAfter },
+      });
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      const sleep = vi.fn(async () => undefined);
+      const scheduler = createRequestScheduler({ maxConcurrentRequests: 1 });
+      const scheduleSpy = vi.spyOn(scheduler, "schedule");
+      const pauseSpy = vi.spyOn(scheduler, "pauseFor");
+      const request = createHttpRequestExecutor({
+        fetchImpl: fetchMock,
+        sleep,
+        scheduler,
+        policy: { maxAttempts: 3 },
+      });
 
-    await expect(
-      request("https://api.test/resource", { method: "POST" })
-    ).resolves.toBe(response);
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(scheduleSpy).toHaveBeenCalledOnce();
-    expect(pauseSpy).toHaveBeenCalledWith(3_000, {
-      cause: expect.objectContaining({ status: 429 }),
-    });
-    expect(sleep).not.toHaveBeenCalled();
-  });
+      await expect(
+        request("https://api.test/resource", { method: "POST" })
+      ).resolves.toBe(response);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(scheduleSpy).toHaveBeenCalledOnce();
+      expect(pauseSpy).toHaveBeenCalledWith(delayMs, {
+        cause: expect.objectContaining({ status: 429 }),
+      });
+      expect(sleep).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([429, 503])(
     "preserves HTTP %s as the cause of a scheduler pause",
